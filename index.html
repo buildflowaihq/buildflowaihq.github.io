@@ -42,6 +42,7 @@
   .add { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:56px; background:var(--card);
          border:1.5px dashed var(--line); border-radius:14px; color:var(--ink); font:inherit; cursor:pointer; }
   #files { display:none; }
+  .add.drag { border-color:var(--accent); background:#262A1E; }
   .flist { list-style:none; padding:0; margin:10px 0 0; }
   .flist li { display:flex; justify-content:space-between; gap:10px; padding:8px 4px; color:var(--muted); font-size:15px; border-bottom:1px solid var(--line); }
   .flist button { background:none; border:0; color:var(--muted); font:inherit; font-size:15px; text-decoration:underline; cursor:pointer; }
@@ -99,6 +100,22 @@
         <span class="pic plain" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="22" height="22" rx="5"/><path d="M13 8v10M8 13h10"/></svg></span></div>
       <div class="step"><span class="num">3</span><span class="txt">Tap <b>Add</b></span><span class="pic">Add</span></div>
     </div>
+    <div id="desktop" hidden>
+      <div id="dChrome">
+        <div class="step"><span class="num">1</span><span class="txt">Click the <b>&#8942;</b> menu at the top right of Chrome (in Edge: <b>&middot;&middot;&middot;</b>)</span>
+          <span class="pic plain" aria-hidden="true"><svg width="8" height="26" viewBox="0 0 8 26" fill="currentColor"><circle cx="4" cy="4" r="3"/><circle cx="4" cy="13" r="3"/><circle cx="4" cy="22" r="3"/></svg></span></div>
+        <div class="step"><span class="num">2</span><span class="txt">Chrome: <b>Cast, save, and share</b> &gt; <b>Install page as app</b> (or <b>Create shortcut</b>, and tick <b>Open as window</b>).<br>Edge: <b>Apps</b> &gt; <b>Install this site as an app</b>.</span></div>
+        <div class="step"><span class="num">3</span><span class="txt">Click <b>Install</b> (or <b>Create</b>). A BuildFlowAI icon appears on your desktop and in your apps.</span><span class="pic">Install</span></div>
+      </div>
+      <div id="dSafari" hidden>
+        <div class="step"><span class="num">1</span><span class="txt">In Safari's top menu bar, click <b>File</b></span><span class="pic plain">File</span></div>
+        <div class="step"><span class="num">2</span><span class="txt">Click <b>Add to Dock</b></span></div>
+        <div class="step"><span class="num">3</span><span class="txt">Click <b>Add</b>. The BuildFlowAI icon appears in your Dock.</span><span class="pic">Add</span></div>
+      </div>
+      <div id="dOther" hidden>
+        <div class="step"><span class="num">!</span><span class="txt">Open this link in <b>Chrome</b>, <b>Edge</b> or Mac <b>Safari</b> to get a BuildFlowAI icon, or just bookmark this page.</span></div>
+      </div>
+    </div>
     <button class="skip" id="skip" type="button">Skip for now and use it here</button>
   </section>
 
@@ -122,7 +139,7 @@
       <label class="q">Photos or files <small>(optional)</small></label>
       <button type="button" class="add" id="addBtn">
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 3v16M3 11h16"/></svg>
-        Add photos or files</button>
+        <span id="addLabel">Add photos or files</span></button>
       <input type="file" id="files" multiple>
       <ul class="flist" id="flist"></ul>
 
@@ -148,7 +165,7 @@
 <script>
 // Home-screen apps can hold an old copy of this page. If a newer one is online, reload once.
 (function () {
-  var V = 'v2026-11-18f';
+  var V = 'v2026-11-18g';
   try {
     fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
       var m = t.match(/var V = '([^']+)'/);
@@ -186,8 +203,17 @@
 
   if (!key) { $('nolink').hidden = false; return; }
 
-  var mobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
-  if (!standalone && mobile && store('abf_skip') !== '1') $('install').hidden = false;
+  var mobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
+  if (!mobile) {
+    // Computer: show desktop steps instead of phone steps
+    $('ios').hidden = true; $('android').hidden = true; $('notsafari').hidden = true; $('desktop').hidden = false;
+    var isEdgeOrChrome = /Edg\/|Chrome\//.test(ua) && !/OPR\//.test(ua);
+    var isMacSafari = /Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome\/|Edg\//.test(ua);
+    $('dChrome').hidden = !isEdgeOrChrome; $('dSafari').hidden = !isMacSafari; $('dOther').hidden = isEdgeOrChrome || isMacSafari;
+    document.querySelector('#install h2').textContent = 'Put BuildFlowAI on your computer';
+    document.querySelector('#install p.sub').textContent = 'Do this once. Then just click the icon.';
+  }
+  if (!standalone && store('abf_skip') !== '1') $('install').hidden = false;
   $('skip').onclick = function () { store('abf_skip', '1'); $('install').hidden = true; };
   $('formWrap').hidden = false;
 
@@ -205,10 +231,32 @@
   // Files
   var picked = [];
   $('addBtn').onclick = function () { $('files').click(); };
-  $('files').onchange = function () {
-    Array.prototype.forEach.call(this.files, function (f) { if (picked.length < 10) picked.push(f); });
-    this.value = ''; drawFiles();
-  };
+  if (!/iphone|ipad|ipod|android/i.test(navigator.userAgent)) $('addLabel').textContent = 'Add photos or files (or drag them here)';
+  function addFiles(list) {
+    Array.prototype.forEach.call(list || [], function (f) { if (picked.length < 10) picked.push(f); });
+    drawFiles();
+  }
+  $('files').onchange = function () { addFiles(this.files); this.value = ''; };
+  // Drag and drop (anywhere on the page) and paste screenshots
+  var dropBox = $('addBtn');
+  ['dragenter', 'dragover'].forEach(function (t) {
+    window.addEventListener(t, function (e) {
+      if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') > -1) {
+        e.preventDefault(); dropBox.classList.add('drag');
+      }
+    });
+  });
+  ['dragleave', 'dragend'].forEach(function (t) {
+    window.addEventListener(t, function (e) { if (!e.relatedTarget) dropBox.classList.remove('drag'); });
+  });
+  window.addEventListener('drop', function (e) {
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    e.preventDefault(); dropBox.classList.remove('drag'); addFiles(e.dataTransfer.files);
+  });
+  window.addEventListener('paste', function (e) {
+    var items = (e.clipboardData && e.clipboardData.files) || [];
+    if (items.length) { e.preventDefault(); addFiles(items); }
+  });
   function drawFiles() {
     var ul = $('flist'); ul.innerHTML = '';
     picked.forEach(function (f, i) {
