@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#16181B; --card:#1F2226; --line:#33373D; --ink:#F1EEE6; --muted:#A9A79F; --accent:#D4F53C; --bad:#FF8A7A; }
+  :root { --bg:#16181B; --card:#1F2226; --line:#33373D; --ink:#F1EEE6; --muted:#A9A79F; --accent:#B4EE3A; --bad:#FF8A7A; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { background:var(--bg); }
   body { margin:0; color:var(--ink); font-family:"Outfit", -apple-system, system-ui, sans-serif; font-size:18px; line-height:1.4;
@@ -139,6 +139,9 @@
   });
   infoQs.push(P('dig', 'The last thing you had to dig for: what was it, and how long did it take?'));
   infoQs.push(P('headonly', 'What lives only in someone\'s head, phone or personal inbox?'));
+  infoQs.push({ t: 'head', label: 'Cleaning it up', help: 'Nothing is moved, renamed or deleted without your OK.' });
+  infoQs.push(R('cleanup', 'Can we suggest a cleaner folder and naming setup for your main file store?', ['Yes', 'Maybe, show me first', 'No']));
+  infoQs.push(T('cleanup_ok', 'Who approves moving or renaming files? We would do it in small batches.'));
 
   var STEPS = [
     { title: 'Your company', help: 'The basics.', qs: [
@@ -150,14 +153,19 @@
       T('years', 'Years in business'),
       T('size', 'How many people work with you?', 'Staff plus regular contractors'),
       T('filler', 'Your name and role (the person filling this in)'),
-      R('reach', 'Best way to reach you for quick questions', ['Email', 'Text', 'Phone call', 'Voice note'], true)
+      R('reach', 'Best way to reach you for quick questions', ['Email', 'Text', 'Phone call', 'Voice note'], true),
+      R('site', 'Is your website live?', ['Yes, live', 'Being built', 'Not yet', 'Not sure']),
+      T('site_builder', 'Who built or looks after the website, and where is it hosted?', 'Designer, Squarespace, Wix, WordPress...'),
+      P('brand', 'Your brand: logo files, colors, tagline, and who approves brand changes', 'Where the logo files are, color codes if you know them')
     ] },
     { title: 'Your team and roles', help: 'Who does what today.', qs: [
       P('team', 'Everyone on the team, one per line', 'Name, role, email, what they handle'),
       T('decider', 'Who makes the final business decisions?'),
       T('coordinator', 'Who coordinates the day-to-day?', 'Follow-ups, scheduling, paperwork'),
       T('books', 'Who does the books, and how often?'),
-      P('partners', 'Regular outside partners', 'Drafter, engineers, bookkeeper, key suppliers, other firms')
+      P('partners', 'Regular outside partners', 'Drafter, engineers, bookkeeper, key suppliers, other firms'),
+      P('requesters', 'Who should be able to send requests to BuildFlow?', 'Each gets a personal link on their phone and computer'),
+      P('alerts', 'How should each person hear back when work is ready?', 'Phone notification, email, text, or nothing')
     ] },
     { title: 'The tools you use', help: 'Tap everything you use, even a little.', qs: [
       C('t_pm', 'Project management', ['Buildertrend', 'JobTread', 'Procore', 'CoConstruct', 'Houzz Pro', 'None']),
@@ -169,13 +177,18 @@
       C('t_calls', 'Calls and meetings', ['Zoom', 'Google Meet', 'Microsoft Teams', 'Fathom or another note taker']),
       P('t_other', 'Any other or specialty tools', 'Energy modeling, e-signature, CRM, texting apps...'),
       T('t_home', 'Which tool is home base for you day to day?'),
-      P('t_paid', 'Paid tools: plan, rough cost and renewal date, if you know them')
+      P('t_usage', 'In your project management app, which features do you actually use?', 'Schedules, client portal, bids, selections, e-sign, daily logs, invoicing...'),
+      P('t_paid', 'Paid tools: plan, rough cost and renewal date, if you know them'),
+      P('t_formats', 'What files do your design and specialty tools save?', 'Plan files, PDFs, DWG exports, model files...'),
+      R('t_readfiles', 'Is it OK for BuildFlow to read those saved files, without working inside the software?', ['Yes', 'Ask me first', 'No'])
     ] },
     { title: 'Active jobs', help: 'A rough list is fine.', qs: [
       P('jobs', 'Active jobs, one per line', 'Name, location, stage, client, next key date'),
       T('jobcounts', 'How many jobs are in design, permitting, construction and closeout right now?'),
       C('contracts', 'Contract types you use', ['Fixed price', 'Cost-plus', 'Time and materials', 'Design fee (% of budget)', 'Design-bid-build', 'Design-build']),
-      T('pilot', 'Which job would make a good first pilot?', 'Live, typical, not the riskiest')
+      T('pilot', 'Which job would make a good first pilot?', 'Live, typical, not the riskiest'),
+      T('field', 'Who takes job site photos and change orders from the phone?'),
+      T('field_to', 'Where should those photos and change orders end up?', 'A folder per job, the project app...')
     ] },
     { title: 'Your biggest time drains', help: 'Where the hours go.', qs: [
       C('drains', 'Which of these eat the most time?', ['Chasing people for answers or approvals', 'Searching for files and information',
@@ -197,6 +210,9 @@
     ] },
     { title: 'Where your information lives', help: 'This is the most useful part. For each type of information: where it lives, the folder, who keeps it up to date, and how hard it is to find when you need it.', qs: infoQs },
     { title: 'Anything else', help: 'Last step.', qs: [
+      P('dash', 'What does the owner want to see at a glance?', 'Job status, money, schedule, open approvals, what is late...'),
+      R('rec', 'Is it OK to record and take notes on our calls?', ['Yes', 'Ask each time', 'No']),
+      T('rec_who', 'Who needs to agree before a call is recorded?'),
       P('win', 'What would make this worth it for you in the first month?'),
       P('else', 'Anything else we should know?')
     ] }
