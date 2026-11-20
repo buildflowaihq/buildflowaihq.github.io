@@ -104,8 +104,8 @@
   var $ = function (id) { return document.getElementById(id); };
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 
-  var SYSTEMS = ['Dropbox', 'Google Drive', 'OneDrive or SharePoint', 'Box', 'Project app (Buildertrend, JobTread, Procore...)',
-    'Email inbox', 'Accounting app (QuickBooks, Xero...)', 'A computer or hard drive', 'Phone (texts, camera roll)', 'Paper',
+  var SYSTEMS = ['Dropbox', 'Google Drive', 'OneDrive or SharePoint', 'Box', 'Our project management software',
+    'Email inbox', 'Our accounting software', 'A computer or hard drive', 'Phone (texts, camera roll)', 'Paper',
     'Spread across several places', 'Not sure'];
   var INFO = [
     ['contracts', 'Contracts and proposals', 'Signed contracts, proposals, scopes, agreements'],
@@ -143,6 +143,30 @@
   infoQs.push(R('cleanup', 'Can we suggest a cleaner folder and naming setup for your main file store?', ['Yes', 'Maybe, show me first', 'No']));
   infoQs.push(T('cleanup_ok', 'Who approves moving or renaming files? We would do it in small batches.'));
 
+  var AREAS = [
+    ['pm', 'Project management', 'Jobs, tasks, daily logs, client portal'],
+    ['acct', 'Accounting and invoicing', 'Books, invoices, payments, payroll'],
+    ['est', 'Estimating and bids', 'Takeoffs, pricing, proposals'],
+    ['crm', 'Customers and leads', 'New inquiries, follow-ups, past clients'],
+    ['email', 'Email and calendar', 'Company email, shared calendars'],
+    ['files', 'File storage', 'Where documents, plans and photos are saved'],
+    ['design', 'Design and drawings', 'Plans, models, markups'],
+    ['sched', 'Scheduling', 'Crews, subs, inspections, deliveries'],
+    ['comms', 'Communication', 'Texts, team chat, client messages, calls']
+  ];
+  var swQs = [];
+  AREAS.forEach(function (x) {
+    swQs.push({ t: 'head', label: x[1], help: x[2] });
+    swQs.push(T('sw_' + x[0], x[1] + ': what do you use?', 'An app, a spreadsheet, paper, nothing...'));
+    swQs.push(T('sw_' + x[0] + '_who', x[1] + ': who uses it?'));
+    swQs.push(T('sw_' + x[0] + '_wish', x[1] + ': what do you wish it did, or what bugs you about it?'));
+  });
+  swQs.push({ t: 'head', label: 'Everything else', help: '' });
+  swQs.push(P('t_other', 'Any other or specialty software', 'Energy modeling, e-signature, takeoff, time tracking...'));
+  swQs.push(T('t_home', 'Which one is home base for you day to day?'));
+  swQs.push(P('t_paid', 'Which do you pay for? Plan, rough cost and renewal date, if you know them'));
+  swQs.push(R('t_readfiles', 'Is it OK for BuildFlow to read the files your software saves (exports, PDFs, plan and model files), without working inside the software?', ['Yes', 'Ask me first', 'No']));
+
   var STEPS = [
     { title: 'Your company', help: 'The basics.', qs: [
       T('company', 'Company name (and any other names you trade under)'),
@@ -167,21 +191,7 @@
       P('requesters', 'Who should be able to send requests to BuildFlow?', 'Each gets a personal link on their phone and computer'),
       P('alerts', 'How should each person hear back when work is ready?', 'Phone notification, email, text, or nothing')
     ] },
-    { title: 'The tools you use', help: 'Tap everything you use, even a little.', qs: [
-      C('t_pm', 'Project management', ['Buildertrend', 'JobTread', 'Procore', 'CoConstruct', 'Houzz Pro', 'None']),
-      C('t_acct', 'Accounting', ['QuickBooks Online', 'QuickBooks Desktop', 'Xero', 'Bookkeeper handles it']),
-      C('t_files', 'Files', ['Dropbox', 'Google Drive', 'OneDrive or SharePoint', 'Box', 'Just a computer']),
-      C('t_email', 'Email and calendar', ['Google Workspace', 'Microsoft 365', 'Personal Gmail or Outlook']),
-      C('t_design', 'Design and drawings', ['Chief Architect', 'Revit', 'AutoCAD', 'SketchUp', 'Bluebeam']),
-      C('t_est', 'Estimating and bids', ['Excel or Google Sheets', 'Inside the project app', 'Separate estimating software']),
-      C('t_calls', 'Calls and meetings', ['Zoom', 'Google Meet', 'Microsoft Teams', 'Fathom or another note taker']),
-      P('t_other', 'Any other or specialty tools', 'Energy modeling, e-signature, CRM, texting apps...'),
-      T('t_home', 'Which tool is home base for you day to day?'),
-      P('t_usage', 'In your project management app, which features do you actually use?', 'Schedules, client portal, bids, selections, e-sign, daily logs, invoicing...'),
-      P('t_paid', 'Paid tools: plan, rough cost and renewal date, if you know them'),
-      P('t_formats', 'What files do your design and specialty tools save?', 'Plan files, PDFs, DWG exports, model files...'),
-      R('t_readfiles', 'Is it OK for BuildFlow to read those saved files, without working inside the software?', ['Yes', 'Ask me first', 'No'])
-    ] },
+    { title: 'The software that runs your business', help: 'For each part of your business, tell us what you use. Brand names are fine, and so are "a spreadsheet", "paper" or "nothing". BuildFlow works on top of what you already have, so there are no wrong answers. Skip anything that doesn\'t apply.', qs: swQs },
     { title: 'Active jobs', help: 'A rough list is fine.', qs: [
       P('jobs', 'Active jobs, one per line', 'Name, location, stage, client, next key date'),
       T('jobcounts', 'How many jobs are in design, permitting, construction and closeout right now?'),
@@ -204,8 +214,9 @@
       T('ap_limit', 'Is there a dollar amount under which someone else can approve? Who?')
     ] },
     { title: 'Access we will need', help: 'Which accounts only. Never passwords or codes. Most tools let you send an invite. For anything that can\'t be shared by invite, we set up a secure vault together.', qs: [
-      C('access', 'Which of these can you invite us to?', ['Project management app', 'Domain or website registrar', 'Company email admin', 'File storage folders', 'Accounting (read-only)', 'Shared calendar']),
+      C('access', 'Which of these can you invite us to?', ['The main software for each area you listed', 'Domain or website registrar', 'Company email admin', 'File storage folders', 'Accounting (read-only)', 'Shared calendar']),
       T('inviter', 'Who on your team can send those invites?'),
+      P('admins', 'Who is the account admin for each main tool?', 'Only an admin can approve a connection'),
       T('registrar', 'Domain registrar and website host, if you know them')
     ] },
     { title: 'Where your information lives', help: 'This is the most useful part. For each type of information: where it lives, the folder, who keeps it up to date, and how hard it is to find when you need it.', qs: infoQs },
