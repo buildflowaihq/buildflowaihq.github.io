@@ -135,7 +135,7 @@
     <label class="q">Quick jobs <small>(tap one, or just type below)</small></label>
     <div class="jobs" id="jobs">
       <button type="button" data-k="estimate"><b>Estimate</b><span>Priced from the job's material list</span></button>
-      <button type="button" data-k="code"><b>Code / SBA numbers</b><span>Mitigation numbers for a code change</span></button>
+      <button type="button" data-k="code"><b>Code / SBA numbers</b><span>Code upgrade and mitigation split</span></button>
       <button type="button" data-k="contract"><b>Check a contract</b><span>Against CA rules and Builder's Book</span></button>
       <button type="button" data-k="howto"><b>How do I&hellip;</b><span>Steps for a sheet or tool</span></button>
     </div>
@@ -229,9 +229,9 @@
       job: 'Which job?', files: 'New material list <small>(optional, saves to the job folder)</small>', needJob: true,
       note: 'Nothing to attach. We use the newest Chief Architect material list in the job folder, price it from your company data and cross-check prices online. When it checks out, the estimate is emailed to you. If the list is missing or out of date, we\'ll let you know, and you can upload it right here. It saves straight into the job folder.',
       done: 'We\'re pricing it now. The estimate will be emailed to you.' },
-    code: { what: 'What changed in the code?', ph: 'Example: New energy code requires R-49 attic insulation instead of R-38.',
-      job: 'Which job?', files: 'Code pages <small>(optional)</small>', needWhat: true, needJob: true,
-      note: 'We use the plans in the job folder and work out the SBA mitigation numbers for the change. When they check out, they are emailed to you.',
+    code: { what: 'Anything we should know? <small>(optional)</small>', ph: 'Example: The lender wants the split by Friday.',
+      job: 'Which job?', files: 'Extra files <small>(optional, saves to the job folder)</small>', needJob: true,
+      note: 'Nothing to attach. We use the plans, the estimate and the lender sheet in the job folder, compare the code when the house was built with today\'s code, price the difference and split it into SBA code-required and mitigation. Gray areas come to you to decide. If something is missing, we\'ll let you know and you can upload it right here.',
       done: 'We\'re working out the numbers. They will be emailed to you.' },
     contract: { what: 'Anything to look for? <small>(optional)</small>', ph: 'Example: Check the payment schedule and change order terms.',
       job: 'Which job?', files: 'Contract draft <small>(only if it\'s not in the job folder; saves there)</small>', needJob: true,
