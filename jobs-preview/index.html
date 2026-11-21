@@ -226,15 +226,15 @@
   // Quick jobs: each one changes the questions a little and says what happens next
   var JOBS = {
     estimate: { what: 'Anything we should know? <small>(optional)</small>', ph: 'Example: Use the mid-range tile allowance. Skip the landscaping.',
-      job: 'Which job?', files: 'Extra files <small>(optional)</small>', needJob: true,
-      note: 'Nothing to attach. We use the newest Chief Architect material list in the job folder, price it from your company data and cross-check prices online. When it checks out, the estimate is emailed to you. If the list is missing or older than the latest plans, we\'ll ask you to export it to the job folder.',
+      job: 'Which job?', files: 'New material list <small>(optional, saves to the job folder)</small>', needJob: true,
+      note: 'Nothing to attach. We use the newest Chief Architect material list in the job folder, price it from your company data and cross-check prices online. When it checks out, the estimate is emailed to you. If the list is missing or out of date, we\'ll let you know, and you can upload it right here. It saves straight into the job folder.',
       done: 'We\'re pricing it now. The estimate will be emailed to you.' },
     code: { what: 'What changed in the code?', ph: 'Example: New energy code requires R-49 attic insulation instead of R-38.',
       job: 'Which job?', files: 'Code pages <small>(optional)</small>', needWhat: true, needJob: true,
       note: 'We use the plans in the job folder and work out the SBA mitigation numbers for the change. When they check out, they are emailed to you.',
       done: 'We\'re working out the numbers. They will be emailed to you.' },
     contract: { what: 'Anything to look for? <small>(optional)</small>', ph: 'Example: Check the payment schedule and change order terms.',
-      job: 'Which job?', files: 'Contract draft <small>(only if it\'s not in the job folder)</small>', needJob: true,
+      job: 'Which job?', files: 'Contract draft <small>(only if it\'s not in the job folder; saves there)</small>', needJob: true,
       note: 'We take the newest contract draft from the job folder and check it against the California rules and the Builder\'s Book forms. Contracts always get a second look before they come back to you.',
       done: 'We\'re checking the contract. You\'ll get it back after a second look.' },
     howto: { what: 'What are you trying to do?', ph: 'Example: How do I add a new job to the shared schedule sheet?',
