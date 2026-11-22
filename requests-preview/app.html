@@ -396,6 +396,32 @@
 .dash table.bt td{padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:top}
 .dash table.bt .r{text-align:right;white-space:nowrap}
 @media (max-width:720px){.dash .addd{grid-template-columns:1fr 1fr}.dash .addd input[name=title]{grid-column:1/-1}}
+
+.dash .dlg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;display:grid;place-items:center;padding:16px}
+.dash .dlg[hidden]{display:none}
+.dash .dlg-box{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:18px 20px}
+.dash .dlg-h{display:flex;justify-content:space-between;align-items:center}
+.dash .dlg-h h2{margin:0;font-size:18px}
+.dash .dlg-x{background:none;border:0;color:var(--muted);font-size:24px;cursor:pointer}
+.dash .dlg-sub{color:var(--muted);font-size:13px;margin:4px 0 12px}
+.dash .dlg-f{display:grid;gap:12px}
+.dash .dlg-f label,.dash .dlg-fs legend{font-size:13px;color:var(--muted);display:grid;gap:4px}
+.dash .dlg-h2{font-size:12px;color:var(--faint)}
+.dash .dlg input,.dash .dlg select,.dash .dlg textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;color:var(--ink);min-width:0;width:100%;box-sizing:border-box}
+.dash .dlg-r{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.dash .dlg-fs{border:0;padding:0;margin:0;display:grid;gap:8px}
+.dash .dlg-r2{display:grid;grid-template-columns:22px 1fr 1.4fr auto;gap:8px;align-items:center}
+.dash .dlg-n{color:var(--muted);font-size:13px}
+.dash .dlg-r2 small{color:var(--muted)}
+.dash .dlg-b{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.dash .dlg-b button{border:1px solid var(--line);background:none;color:var(--ink);border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+.dash .dlg-b button.pri{background:var(--accent);color:#15180F;border-color:transparent}
+.dash .dlg-b button:disabled{opacity:.6}
+.dash .dlg-rv{display:grid;grid-template-columns:90px 1fr;gap:8px 12px;font-size:14px;margin:0 0 12px}
+.dash .dlg-rv dt{color:var(--muted)}.dash .dlg-rv dd{margin:0}
+.dash .dlg-rv .pre{white-space:pre-wrap}
+.dash .dlg-err{margin:0}
+@media(max-width:520px){.dash .dlg-r{grid-template-columns:1fr}.dash .dlg-r2{grid-template-columns:22px 1fr}}
 </style>
 </head>
 <body>
@@ -520,6 +546,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 </script>
 <script>
 /* BuildFlowAI Dashboard tab v3. Defines only window.dashInit({ key, cal, who, wx }); nothing runs on load.
+ * Optional opts.people {kyle:'email',...} = team emails for meeting invites. Job header has 'Schedule web meeting' + 'Contract: send to client'.
  * key: the person's ?k= key. cal: the client's Company Schedule web app URL. who: first name, lowercase. wx: {lat, lon}.
  * Calls window.showTab('todo'|'chat') and window.chatDraft(text) if the host provides them.
  * Live: Schedule (KDB Schedule Google calendar, 60 days, add a date) and weather (Open-Meteo).
@@ -541,6 +568,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function dayName(iso, opt) { return new Date(iso + 'T12:00').toLocaleDateString('en-US', opt || { weekday: 'short' }); }
   function tag(id) { var j = job(id); return j ? '<span class="tag"><i style="background:' + j.color + '"></i>' + esc(j.name.replace(/^\d+\s+(W |E )?/, '')) + '</span>' : '<span class="tag">KDB</span>'; }
   var SVG = {
+    cam: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10l6-3v10l-6-3z"/></svg>',
+    doc: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/></svg>',
     msg: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v11H8l-4 4z"/></svg>',
     pin: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'
   };
@@ -643,7 +672,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var rem = DATA.reminders.filter(function (r) { return r.job === v; });
       var first = j.client.split(/ & | /)[0];
       h = '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span>' + esc(j.name) + ' <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + '</p>' +
-        '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a></div></div>' + wxHtml() + '</div>' +
+        '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Schedule web meeting</button><button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button></div></div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + actionsHtml(acts) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         '</div><div>' + todoHtml() +
@@ -663,6 +692,91 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if ((b = e.target.closest('[data-say]'))) { if (window.chatDraft) window.chatDraft(b.getAttribute('data-say')); else if (window.showTab) window.showTab('chat'); return; }
     if (e.target.closest('[data-add]')) { var f = $('dash-addd'); if (!S.cal) { toast('The company calendar isn’t connected yet.'); return; } f.hidden = !f.hidden; if (!f.hidden) { f.date.value = DATA.today; f.title.focus(); } return; }
     if (e.target.closest('[data-addx]')) { $('dash-addd').hidden = true; return; }
+    if ((b = e.target.closest('[data-act]'))) { openDlg(b.getAttribute('data-act'), b.getAttribute('data-job')); return; }
+  });
+
+  // ---- Schedule web meeting + Contract: send to client (modeled on Buildertrend's job-level actions) ----
+  // Both are two steps: fill in, then a review screen showing exactly who gets what. Nothing reaches a client until someone presses the final button.
+  var PEOPLE = {};  // set by dashInit: { name: 'email' } from /api/dash
+  var MAILRE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+  function clientsOf(j) {
+    var names = j.client.replace(/\s*\(to confirm\)/, '').split(/\s*(?:&|,| and )\s*/).filter(Boolean);
+    var mails = j.contacts.filter(function (c) { return c[0].indexOf('Client') === 0 && c[2]; }).map(function (c) { return c[2]; });
+    return names.map(function (n, i) { return { name: n, email: mails[i] || '' }; });
+  }
+  function dlgShell(title, body) {
+    var d = $('dash-dlg');
+    if (!d) { d = document.createElement('div'); d.id = 'dash-dlg'; d.className = 'dlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); root.appendChild(d); }
+    d.innerHTML = '<div class="dlg-box"><div class="dlg-h"><h2>' + title + '</h2><button class="dlg-x" data-dlgx aria-label="Close">×</button></div>' + body + '</div>';
+    d.hidden = false; return d;
+  }
+  function closeDlg() { var d = $('dash-dlg'); if (d) d.hidden = true; }
+  function nextHour() { var d = new Date(Date.now() + 3600e3); d.setMinutes(0, 0, 0); return d; }
+  function openDlg(kind, id) {
+    var j = job(id); if (!j) return;
+    if (kind === 'meet') {
+      var cl = clientsOf(j), t = nextHour();
+      dlgShell('Schedule web meeting', '<p class="dlg-sub">' + esc(j.name) + '</p><form class="dlg-f" data-form="meet" data-job="' + id + '">' +
+        '<label>Meeting title<input name="title" required value="' + esc(j.name.replace(/^\d+\s+(W |E )?/, '') + ' meeting') + '"></label>' +
+        '<div class="dlg-r"><label>Date<input name="date" type="date" required value="' + ymd(t) + '"></label><label>Start time<input name="time" type="time" required value="' + t.toTimeString().slice(0, 5) + '"></label>' +
+        '<label>Length<select name="mins"><option value="30">30 min</option><option value="60" selected>1 hour</option><option value="90">90 min</option></select></label></div>' +
+        '<label>Who is invited<span class="dlg-h2">One email per line. Client first, then your team.</span><textarea name="who" rows="4">' +
+        esc(cl.map(function (c) { return c.email; }).filter(Boolean).concat(Object.keys(PEOPLE).filter(function (k) { return j.team.indexOf(k) >= 0 && k !== S.who; }).map(function (k) { return PEOPLE[k]; })).join('\n')) + '</textarea></label>' +
+        '<label>Note for the invite (optional)<textarea name="note" rows="3" placeholder="What to expect, what to have ready"></textarea></label>' +
+        '<p class="dk-err dlg-err" hidden></p><div class="dlg-b"><button type="button" data-dlgx>Cancel</button><button type="submit" class="pri">Review invite</button></div></form>');
+    } else {
+      var cs = clientsOf(j);
+      dlgShell('Contract: send to client', '<p class="dlg-sub">' + esc(j.name) + '</p><form class="dlg-f" data-form="contract" data-job="' + id + '">' +
+        '<label>What kind of contract<select name="type"><option value="SFR">New single-family home</option><option value="SFR+POOL">New home with pool</option><option value="HIC">Remodel or addition (home improvement)</option><option value="POOL">Pool only</option><option value="OTHER">Something else</option></select></label>' +
+        '<label>Contract price<input name="price" inputmode="decimal" placeholder="$"></label>' +
+        '<fieldset class="dlg-fs"><legend>Who signs, in order</legend>' + cs.map(function (c, i) { return '<div class="dlg-r2"><span class="dlg-n">' + (i + 1) + '</span><input name="sn' + i + '" value="' + esc(c.name) + '" aria-label="Name"><input name="se' + i + '" value="' + esc(c.email) + '" placeholder="email" aria-label="Email"></div>'; }).join('') +
+        '<div class="dlg-r2"><span class="dlg-n">' + (cs.length + 1) + '</span><input value="' + esc(PEOPLE.contractorName || '') + '" disabled><input value="' + esc(PEOPLE.kyle || '') + '" disabled><small>signs last</small></div></fieldset>' +
+        '<label>Notes for the contract (optional)<textarea name="note" rows="3" placeholder="Anything that is different on this job"></textarea></label>' +
+        '<p class="dk-err dlg-err" hidden></p><div class="dlg-b"><button type="button" data-dlgx>Cancel</button><button type="submit" class="pri">Review before sending</button></div></form>');
+    }
+  }
+  function reviewMeet(f) {
+    var j = job(f.getAttribute('data-job')), v = f.elements, err = f.querySelector('.dlg-err');
+    var who = v.who.value.split(/[\s,;]+/).filter(Boolean);
+    var bad = who.filter(function (x) { return !MAILRE.test(x); });
+    if (!who.length || bad.length) { err.textContent = bad.length ? 'This doesn’t look like an email: ' + bad[0] : 'Add at least one email.'; err.hidden = false; return; }
+    var m = { job: j.id, title: v.title.value.trim(), date: v.date.value, time: v.time.value, minutes: +v.mins.value, attendees: who, note: v.note.value.trim(), record: true };
+    var when = new Date(m.date + 'T' + m.time).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var body = 'Hi,\n\nHere is the link for our meeting about ' + j.name + ' on ' + when + '.' + (m.note ? '\n\n' + m.note : '') + '\n\nA notetaker will join to take notes, and it will say so in the meeting chat.\n\nThanks,\nKDB';
+    dlgShell('Review the invite', '<p class="dlg-sub">Nothing is sent until you press the button.</p><dl class="dlg-rv"><dt>To</dt><dd>' + who.map(esc).join('<br>') + '</dd><dt>Subject</dt><dd>' + esc(m.title) + ' · ' + esc(when) + '</dd><dt>Message</dt><dd class="pre">' + esc(body) + '</dd><dt>Video link</dt><dd>Google Meet link is added automatically</dd></dl>' +
+      '<p class="dk-err dlg-err" hidden></p><div class="dlg-b"><button type="button" data-dlgback="meet" data-job="' + j.id + '">Back</button><button type="button" class="pri" data-send="meet">Send invite</button></div>');
+    $('dash-dlg').__m = m;
+  }
+  function reviewContract(f) {
+    var j = job(f.getAttribute('data-job')), v = f.elements, err = f.querySelector('.dlg-err'), cs = clientsOf(j), signers = [];
+    for (var i = 0; i < cs.length; i++) { var n = v['sn' + i].value.trim(), e = v['se' + i].value.trim(); if (!n) continue; if (!MAILRE.test(e)) { err.textContent = 'Add a valid email for ' + n + '.'; err.hidden = false; return; } signers.push({ name: n, email: e }); }
+    if (!signers.length) { err.textContent = 'Add at least one signer.'; err.hidden = false; return; }
+    var c = { job: j.id, type: v.type.value, typeLabel: v.type.options[v.type.selectedIndex].text, price: v.price.value.trim(), note: v.note.value.trim(), signers: signers };
+    var subject = 'Your construction contract for ' + j.name + ' is ready to sign';
+    dlgShell('Review before sending', '<p class="dlg-sub">Kyle checks the contract first. It goes to the client only after he approves.</p><dl class="dlg-rv"><dt>Contract</dt><dd>' + esc(c.typeLabel) + (c.price ? ' · ' + esc(c.price) : '') + '</dd><dt>Signing order</dt><dd>' + signers.map(function (s, i) { return (i + 1) + '. ' + esc(s.name) + ' (' + esc(s.email) + ')'; }).join('<br>') + '<br>' + (signers.length + 1) + '. Kyle Kovacs (signs last)</dd><dt>Subject</dt><dd>' + esc(subject) + '</dd><dt>Message</dt><dd class="pre">' + esc('Hi ' + signers.map(function (s) { return s.name.split(' ')[0]; }).join(' and ') + ',\n\nYour contract for ' + j.name + ' is ready. Open the link, review it, and sign. It takes a few minutes and you don’t need an account.\n\nThanks,\nKDB') + '</dd></dl>' +
+      '<div class="dlg-b"><button type="button" data-dlgback="contract" data-job="' + j.id + '">Back</button><button type="button" class="pri" data-send="contract">' + (S.who === 'kyle' ? 'Approve and send' : 'Send to Kyle for approval') + '</button></div>');
+    $('dash-dlg').__c = c;
+  }
+  function sendMeet(btn) {
+    var d = $('dash-dlg'), m = d.__m, err = d.querySelector('.dlg-err');
+    if (!S.cal) { err.textContent = 'The company calendar isn’t connected yet.'; err.hidden = false; return; }
+    btn.disabled = true; btn.textContent = 'Sending…';
+    fetch(S.cal, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'meeting', k: S.key, meeting: m }) })
+      .then(function (r) { return r.json(); })
+      .then(function (r) { if (!r.ok) throw new Error(r.error); closeDlg(); toast('Invite sent. The Google Meet link is in it.'); loadCal(); })
+      .catch(function (x) { btn.disabled = false; btn.textContent = 'Send invite'; err.textContent = /unknown_action/.test(x.message) ? 'Meeting invites aren’t switched on yet. Nothing was sent.' : 'That didn’t send. Nothing went out. Try again in a moment.'; err.hidden = false; });
+  }
+  function sendContract() {
+    var c = $('dash-dlg').__c, j = job(c.job);
+    var msg = 'Contract: send to client for ' + j.name + '. Type: ' + c.typeLabel + (c.price ? ', price ' + c.price : '') + '. Signing order: ' + c.signers.map(function (s) { return s.name + ' <' + s.email + '>'; }).join(', then ') + ', then Kyle Kovacs last (e-sign). Kyle approves first; do not send to the client until he does.' + (c.note ? ' Notes: ' + c.note : '');
+    closeDlg();
+    if (window.chatDraft) window.chatDraft(msg); else toast('Couldn’t open Chat.');
+  }
+  root.addEventListener('click', function (e) {
+    var b;
+    if (e.target.closest('[data-dlgx]') || e.target.id === 'dash-dlg') { closeDlg(); return; }
+    if ((b = e.target.closest('[data-dlgback]'))) { openDlg(b.getAttribute('data-dlgback'), b.getAttribute('data-job')); return; }
+    if ((b = e.target.closest('[data-send]'))) { if (b.getAttribute('data-send') === 'meet') sendMeet(b); else sendContract(); return; }
   });
   function saveDate(form) {
     var title = form.title.value.trim(), date = form.date.value, time = form.time.value, err = $('dash-adderr');
@@ -678,6 +792,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   root.addEventListener('submit', function (e) {
     e.preventDefault();
     if (e.target.id === 'dash-addd') { saveDate(e.target); return; }
+    var fm = e.target.getAttribute('data-form'); if (fm) { if (fm === 'meet') reviewMeet(e.target); else reviewContract(e.target); return; }
     var i = e.target.querySelector('input'), t = i.value.trim(); if (!t) return;
     i.value = '';
     if (window.chatDraft) window.chatDraft('Add to my to-do: ' + t); else toast('Couldn’t open Chat.');
@@ -812,6 +927,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     opts = opts || {};
     S.key = opts.key || S.key; S.cal = opts.cal || S.cal; S.wx = opts.wx || S.wx;
     var who = String(opts.who || DATA.me.id || '').toLowerCase();
+    S.who = who; PEOPLE = opts.people || {};
     DATA.me = { id: who, name: who ? who.charAt(0).toUpperCase() + who.slice(1) : '' };
     DATA.today = ymd(new Date());
     S.started = true;
@@ -820,6 +936,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       .then(function (r) { if (!r.ok) throw new Error('dash ' + r.status); return r.json(); })
       .then(function (d) {
         ['jobs', 'leads', 'actions', 'schedule', 'activity', 'reminders', 'money'].forEach(function (k) { if (d[k]) DATA[k] = d[k]; });
+        if (d.people && !opts.people) PEOPLE = d.people;
         SNAP = DATA.schedule;
       }, function () { /* no private data: the dashboard shows what it can */ })
       .then(function () { render(); loadCal(); loadSnap(); });
