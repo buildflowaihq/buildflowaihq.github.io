@@ -730,7 +730,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         '<label>Contract PDF<span class="dlg-h2">Pick a PDF from this job’s folder in the brain. Export it from Buildertrend into the folder first if it isn’t there.</span><select name="file" required><option value="">Looking in the brain…</option></select></label>' +
         '<fieldset class="dlg-fs"><legend>Who signs, in order</legend><div id="dlg-sg">' + cs.map(function (c, i) { return signerRow(i, c.name, c.email); }).join('') + '</div>' +
         '<button type="button" class="dk-chip" data-addsigner>+ Add another homeowner</button></fieldset>' +
-        '<label>Countersigned last by<select name="cs">' + Object.keys(S.csOptions || { kyle: 'Kyle' }).map(function (k) { return '<option value="' + k + '"' + (k === (S.csDefault || 'kyle') ? ' selected' : '') + '>' + esc(S.csOptions[k]) + '</option>'; }).join('') + '</select></label>' +
+        '<label>Countersigned last by<select name="cs">' + Object.keys(S.csOptions || {}).map(function (k) { return '<option value="' + k + '"' + (k === S.csDefault ? ' selected' : '') + '>' + esc(S.csOptions[k]) + '</option>'; }).join('') + '</select></label>' +
         '<p class="dlg-h2">Customers sign first, in this order. The firm always signs last.</p>' +
         '<p class="dk-err dlg-err" hidden></p><div class="dlg-b"><button type="button" data-dlgx>Cancel</button><button type="submit" class="pri">Review before sending</button></div></form>');
       loadContractFiles(j);
