@@ -490,7 +490,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // Client data (jobs, contacts, to-dos, money) is NOT in this public page. It loads after sign-in from the client's private data endpoint.
   var DATA = { me: { name: '', id: '' }, today: '', jobs: [], leads: [], actions: [], schedule: [], activity: [], reminders: [], money: [], wx: { time: [], code: [], hi: [], rain: [] } };
 
-  var S = { view: 'all', tab: 'over', q: '', key: '', cal: '', wx: null, started: false, live: null };
+  var S = { view: 'all', tab: 'over', q: '', key: '', cal: '', wx: null, started: false, live: null, client: {} };
+  // client labels (from /api/me): short name, main software, calendar name, company area
+  function sw() { return S.client.software || ''; }
   function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function fmtTime(iso) { return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
   var SNAP = DATA.schedule;  // job dates from contracts and emails, shown until the live calendar answers
@@ -499,7 +501,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function icon(c) { return c <= 1 ? '☀️' : c <= 3 ? '☁️' : c <= 48 ? '🌫️' : (c <= 67 || c >= 80) ? '🌧️' : '❄️'; }
   function dayName(iso, opt) { return new Date(iso + 'T12:00').toLocaleDateString('en-US', opt || { weekday: 'short' }); }
-  function tag(id) { var j = job(id); return j ? '<span class="tag"><i style="background:' + j.color + '"></i>' + esc(j.name.replace(/^\d+\s+(W |E )?/, '')) + '</span>' : '<span class="tag">KDB</span>'; }
+  function tag(id) { var j = job(id); return j ? '<span class="tag"><i style="background:' + j.color + '"></i>' + esc(j.name.replace(/^\d+\s+(W |E )?/, '')) + '</span>' : '<span class="tag">' + esc(S.client.short_name || '') + '</span>'; }
   var SVG = {
     msg: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v11H8l-4 4z"/></svg>',
     pin: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'
@@ -521,7 +523,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function wxHtml() {
     var w = DATA.wx, h = '';
     for (var i = 0; i < 5 && i < w.time.length; i++) h += '<div title="' + (w.rain[i] ? w.rain[i] + '% chance of rain' : 'Dry') + '">' + (i ? dayName(w.time[i]) : 'Today') + '<i>' + icon(w.code[i]) + '</i><b>' + w.hi[i] + '°</b>' + (w.rain[i] >= 30 ? '<span class="rain">' + w.rain[i] + '%</span>' : '') + '</div>';
-    var j = wxKey() !== 'all' && job(wxKey()); return h ? '<div class="wxw"><div class="wxs" aria-label="Weather">' + h + '</div><small>' + (j ? 'Weather at ' + esc(j.addr.split(',')[0]) : 'Weather around Altadena') + '</small></div>' : '';
+    var j = wxKey() !== 'all' && job(wxKey()); return h ? '<div class="wxw"><div class="wxs" aria-label="Weather">' + h + '</div><small>' + (j ? 'Weather at ' + esc(j.addr.split(',')[0]) : (S.client.area ? 'Weather around ' + esc(S.client.area) : 'Weather')) + '</small></div>' : '';
   }
 
   function actionsHtml(list) {
@@ -551,7 +553,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var later = items.filter(function (e) { return e.date > new Date(start.getTime() + (days - 1) * 864e5).toISOString().slice(0, 10); });
     if (later.length) h += '<li><div class="dk-d"><b>Later</b></div><div>' + later.map(function (e) { return '<div class="ev ' + (e.auto ? 'auto' : e.bt ? 'btv' : '') + '"><span class="dk-t">' + dayName(e.date, { month: 'short', day: 'numeric' }) + '</span><b>' + esc(e.title) + '</b><span>' + (e.job && S.view === 'all' ? tag(e.job) + (e.note ? ' · ' : '') : '') + esc(e.note || '') + '</span></div>'; }).join('') + '</div></li>';
     return '<section class="card"><div class="ch"><h2>Schedule</h2><button class="link" data-add>+ Add a date</button></div>' +
-      '<form class="addd" id="dash-addd" hidden><input name="title" placeholder="What is it? e.g. Tile delivery" aria-label="What" required><input name="date" type="date" aria-label="Date" required><input name="time" type="time" aria-label="Time (optional)"><button type="submit">Save</button><button type="button" data-addx>Cancel</button><p class="dk-err" id="dash-adderr" hidden></p></form><ul class="ag">' + h + '</ul><div class="lg"><span><i class="s"></i>KDB Schedule</span><span><i class="a"></i>Dates BuildFlow found in contracts and emails</span>' + (DATA.btSchedule ? '<span><i class="b"></i>Buildertrend schedule</span>' : '') + '</div><p class="dk-src">' + (S.live === false ? 'Couldn’t reach the KDB Schedule calendar just now. Showing saved dates.' : S.live ? 'Live from the KDB Schedule Google calendar. Changes there show here.' : 'Loading the KDB Schedule calendar…') + '</p></section>';
+      '<form class="addd" id="dash-addd" hidden><input name="title" placeholder="What is it? e.g. Tile delivery" aria-label="What" required><input name="date" type="date" aria-label="Date" required><input name="time" type="time" aria-label="Time (optional)"><button type="submit">Save</button><button type="button" data-addx>Cancel</button><p class="dk-err" id="dash-adderr" hidden></p></form><ul class="ag">' + h + '</ul><div class="lg"><span><i class="s"></i>KDB Schedule</span><span><i class="a"></i>Dates BuildFlow found in contracts and emails</span>' + (DATA.btSchedule ? '<span><i class="b"></i>' + esc(sw() || 'Software') + ' schedule</span>' : '') + '</div><p class="dk-src">' + (S.live === false ? 'Couldn’t reach the KDB Schedule calendar just now. Showing saved dates.' : S.live ? 'Live from the KDB Schedule Google calendar. Changes there show here.' : 'Loading the KDB Schedule calendar…') + '</p></section>';
   }
 
   function glanceHtml() {
@@ -594,7 +596,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + DATA.jobs.length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p></div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + actionsHtml(DATA.actions) + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
-        todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, DATA.btWhen ? 'Company money · Buildertrend' : 'Company money') + '</div></div>';
+        todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, DATA.btWhen && sw() ? 'Company money · ' + esc(sw()) : 'Company money') + '</div></div>';
     } else {
       var j = job(v);
       var acts = DATA.actions.filter(function (a) { return a.job === v; });
@@ -632,7 +634,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var btn = form.querySelector('[type=submit]'); btn.disabled = true;
     fetch(S.cal, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'save', k: S.key, event: ev }) })
       .then(function (r) { return r.json(); })
-      .then(function (j) { if (!j.ok) throw new Error(j.error); toast('Added to KDB Schedule. It’s in Google Calendar now.'); loadCal(); })
+      .then(function (j) { if (!j.ok) throw new Error(j.error); toast('Added to ' + (S.client.calendar_name || 'the company calendar') + '. It’s in Google Calendar now.'); loadCal(); })
       .catch(function () { btn.disabled = false; err.textContent = 'That didn’t save. Try again in a moment.'; err.hidden = false; });
   }
   root.addEventListener('submit', function (e) {
@@ -718,12 +720,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       ['Purchase orders', sum('Purchase orders: count (not voided)') + ' not voided', money(sum('Purchase orders: Cost (not voided)'))],
       ['Bills waiting to pay', sum('Bills: unpaid count') + '', money(sum('Bills: Remaining balance'))],
       ['Receipts in Bills Inbox', sum('Bills: Inbox count (receipts not yet entered)') + ' not entered yet', money(sum('Bills: Inbox amount'))]];
-    DATA.leads = (T.Leads || []).filter(function (l) { return l.lead; }).map(function (l) { return { name: l.lead, client: l.client || '', note: [l.status, l.notes].filter(Boolean).join(' · ') }; }).concat(DATA.leads.filter(function (l) { return l.name === '1026 E Palm'; }));
+    DATA.leads = (T.Leads || []).filter(function (l) { return l.lead; }).map(function (l) { return { name: l.lead, client: l.client || '', note: [l.status, l.notes].filter(Boolean).join(' · ') }; }).concat(DATA.leads.filter(function (l) { return !(T.Leads || []).some(function (r) { return r.lead === l.name; }); })) // keep the dashboard's own leads the software doesn't have;
     var today = DATA.today;
     DATA.btSchedule = (T.Schedule || []).map(function (r) {
       var j = jobFor(r.job || r.Job), st = btDate(r.Start), en = btDate(r.End) || st, done = String(r.Complete) === '100%' || num(r.Complete) === 1;
       if (!st || done || en < today) return null;
-      return { date: st < today ? today : st, job: j ? j.id : '', title: r.Title, note: (st < today ? 'In progress, ends ' + dayName(en, { month: 'short', day: 'numeric' }) : r.Duration || '') + (r['Assigned To'] ? ' · ' + r['Assigned To'] : ''), time: num(r.Complete) ? r.Complete + ' done' : 'Buildertrend', bt: true };
+      return { date: st < today ? today : st, job: j ? j.id : '', title: r.Title, note: (st < today ? 'In progress, ends ' + dayName(en, { month: 'short', day: 'numeric' }) : r.Duration || '') + (r['Assigned To'] ? ' · ' + r['Assigned To'] : ''), time: num(r.Complete) ? r.Complete + ' done' : sw(), bt: true };
     }).filter(Boolean);
     var act = (T.Activity || []).filter(function (r) { return r.text; }).sort(function (a, b) { return String(b.date) > String(a.date) ? 1 : -1; }).map(function (r) {
       var j = jobFor(r.job || r.Job), d = btDate(r.date);
@@ -739,7 +741,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function finHtml(j) {
     var x = j.fin, f = x.f, kv = function (rows) { return '<dl class="mt">' + rows.map(function (m) { return '<dt>' + esc(m[0]) + (m[2] ? '<small>' + esc(m[2]) + '</small>' : '') + '</dt><dd>' + m[1] + '</dd>'; }).join('') + '</dl>'; };
     var g = function (title, body, open) { return '<details class="fold sub"' + (open ? ' open' : '') + '><summary><h3>' + title + '</h3></summary>' + body + '</details>'; };
-    return '<section class="card fin"><div class="ch"><h2>Job financials</h2><span class="dk-src" style="margin:0">From Buildertrend · read ' + esc(DATA.btWhen) + '</span></div>' +
+    return '<section class="card fin"><div class="ch"><h2>Job financials</h2><span class="dk-src" style="margin:0">From ' + esc(sw() || 'your software') + ' · read ' + esc(DATA.btWhen) + '</span></div>' +
       '<div class="big"><div><small>Total revised price</small><b>' + money(f['Total revised price']) + '</b></div><div><small>Payments</small><b>' + money(f.Payments) + '</b></div><div><small>Remaining balance</small><b>' + money(f['Remaining balance']) + '</b></div></div>' +
       g('Job costing budget', kv([['Revised price', money(f['Revised price'])], ['Projected cost', money(f['Projected cost'])], ['Projected profit', money(f['Projected profit']), f['Profit vs estimate'] || ''], ['Profit margin', pct(f['Profit margin'])],
         ['Original budget costs', money(f['Budget total: Original budget costs'])], ['Revised budget costs', money(f['Budget total: Revised budget costs'])], ['Pending costs', money(f['Budget total: Pending costs'])], ['Committed costs', money(f['Budget total: Committed costs'])],
@@ -770,7 +772,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   window.dashInit = function (opts) {
     opts = opts || {};
-    S.key = opts.key || S.key; S.cal = opts.cal || S.cal; S.wx = opts.wx || S.wx;
+    S.key = opts.key || S.key; S.cal = opts.cal || S.cal; S.wx = opts.wx || S.wx; S.client = opts.client || S.client;
     var who = String(opts.who || DATA.me.id || '').toLowerCase();
     DATA.me = { id: who, name: who ? who.charAt(0).toUpperCase() + who.slice(1) : '' };
     DATA.today = ymd(new Date());
@@ -789,7 +791,25 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 <script src="voice/recorder-next.js?v=202611211900"></script>
 <script>
 (function () {
-  var API = "https://script.google.com/macros/s/AKfycbzi4KHTN8AChENP4Ar28nSZCsBPkSzxQ2dytwbO-GTAX0x5VGnK60bLJXq3WZm_A7zU9g/exec"; // requests + To-do
+  // The app is the same for every client. Who the client is (request-app and calendar links, labels, weather spot)
+  // comes from /api/me on the shared chat worker, using this person's private key; it is kept on the device so the app
+  // opens offline. Nothing about any client is written in this public page.
+  var CHAT = "https://buildflowai-chat.mekovacs22.workers.dev";  // shared by all clients
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var m = location.search.match(/[?&]k=([\w-]+)/);
+  var key = m ? m[1] : store('abf_k');
+  var CK = 'abf_cfg_' + (key || 'x').slice(0, 6), cached = null, started = false;
+  try { cached = JSON.parse(store(CK) || 'null'); } catch (e) { cached = null; }
+  function go(c) { if (!started && c && c.requests_api) { started = true; startApp(c); } }
+  go(cached);
+  if (key) fetch(CHAT + '/api/me', { headers: { Authorization: 'Bearer ' + key }, cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d && d.app) { store(CK, JSON.stringify(d.app)); go(d.app); } })
+    .catch(function () {})
+    .then(function () { if (!started) document.getElementById('what') && (document.getElementById('what').placeholder = 'This link is not active yet. Ask BuildFlowAI for help.'); });
+})();
+function startApp(CFG) {
+  var API = CFG.requests_api; // the client's request app: requests + To-do
   var CHAT = "https://buildflowai-chat.mekovacs22.workers.dev";  // answers from the brain (Gemini)
   var $ = function (id) { return document.getElementById(id); };
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
@@ -801,14 +821,14 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   if (key && 'serviceWorker' in navigator && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js?k=' + encodeURIComponent(key)); } catch (e) {} }
 
   // ---------- tabs ----------
-  var CAL = "https://script.google.com/macros/s/AKfycbz8NKJmoMnxsom1doFYSXwNOqH-maD2LmQwKoSEOMN7AbroST3juikf4Q4RASJejsjKqQ/exec"; // KDB Schedule (temporary, Michael only)
+  var CAL = CFG.calendar_api || ''; // the client's company calendar sync
   var dashReady = false;
   function show(tab) {
     $('tabChat').classList.toggle('on', tab === 'chat'); $('tabTodo').classList.toggle('on', tab === 'todo'); $('tabDash').classList.toggle('on', tab === 'dash');
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 } }); }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: CFG.wx, client: CFG }); }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
@@ -1369,7 +1389,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   })();
 
   // ---------- owner-only link: shown only when the server says this key is Michael's ----------
-  if (key) fetch(API + '?k=' + encodeURIComponent(key)).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok && d.name === 'Michael') { $('tabOwner').hidden = false; document.querySelector('.app').classList.add('owner'); } }).catch(function () {});
+  if (key) fetch(API + '?k=' + encodeURIComponent(key)).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok && (CFG.owner_names || []).indexOf(d.name) > -1) { $('tabOwner').hidden = false; document.querySelector('.app').classList.add('owner'); } }).catch(function () {});
 
   // ---------- app alerts (web push; same service worker and server as before) ----------
   (function () {
@@ -1377,7 +1397,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (!key || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
     if (/iphone|ipad|ipod/i.test(ua) && !standalone) return; // iPhone/iPad: only works from the Home Screen app
     fetch(API + '?k=' + encodeURIComponent(key)).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d.ok || ['Michael'].indexOf(d.name) < 0) return; // alerts: Michael first, then everyone
+      if (!d.ok || (CFG.owner_names || []).indexOf(d.name) < 0) return; // alerts: Michael first, then everyone
       navigator.serviceWorker.register('sw.js?k=' + encodeURIComponent(key)).then(function (reg) {
         return reg.pushManager.getSubscription().then(function (sub) {
           if (sub && Notification.permission === 'granted') return send(sub);
@@ -1414,7 +1434,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     }
   })();
 
-})();
+}
 </script>
 </body>
 </html>
