@@ -184,13 +184,13 @@
       if (r.status === 'void') h += '<span class="dk-m">Void: counts nowhere.</span>';
     }
     if (k === 'co') {
-      if (r.status === 'draft') h += b('save', 'Save') + (!S.ed.isNew ? b('send', 'Send to client for approval') + (can ? b('manual', 'Approve for client…', 'alt') : '') + b('del', 'Delete', 'alt') : '');
+      if (r.status === 'draft') h += b('save', 'Save') + b('send', 'Send to client for approval') + (!S.ed.isNew ? (can ? b('manual', 'Approve for client…', 'alt') : '') + b('del', 'Delete', 'alt') : '');
       if (r.status === 'pending') h += b('recall', 'Recall to draft', 'alt') + (can ? b('manual', 'Approve for client…', 'alt') : '') + b('void', 'Void', 'alt');
       if (r.status === 'approved') h += b('void', 'Void (removes it from price and budget)', 'alt');
       if (r.status === 'declined') h += b('void', 'Void', 'alt');
     }
     if (k === 'inv') {
-      if (r.status === 'draft') h += b('save', 'Save') + (!S.ed.isNew ? b('send', 'Send to client') + b('del', 'Delete', 'alt') : '');
+      if (r.status === 'draft') h += b('save', 'Save') + b('send', 'Send to client') + (!S.ed.isNew ? b('del', 'Delete', 'alt') : '');
       else if (r.status !== 'void') h += b('save', 'Save', 'alt') + b('send', 'Resend', 'alt') + (r.payments && r.payments.length ? '' : b('void', 'Void', 'alt'));
     }
     return h + b('close', 'Close', 'alt');
@@ -279,7 +279,7 @@
     if (a === 'cancel-review') { S.review = null; return drawEditor(); }
     if (a === 'save') return save();
     if (a === 'bill_delete' || a === 'payment_delete') { var x = {}; x[btn.dataset.idf] = btn.dataset.idv; return actCall(k, a, x).then(function (res) { if (res) afterAct(res, 'Removed.'); }); }
-    if (a === 'send') { if (ed.isNew) return flash('Save first.', true); return save().then(function (rec) { if (rec) startSend(k); }); }
+    if (a === 'send') { return save().then(function (rec) { if (rec) startSend(k); }); }
     if (a === 'confirm-send') return actCall(k, 'send').then(function (res) { if (res) afterAct(res, res.mail && res.mail.delivered ? 'Sent' + (res.mail.mode !== 'live' ? ' in test mode: the email went only to Michael, not the real recipient.' : '.') : 'Link ready. The email service is not connected yet, so nothing was emailed. Copy the link below to send it yourself.'); });
     if (a === 'approve') return save().then(function (rec) { if (rec) actCall('po', 'approve').then(function (res) { if (res) afterAct(res, 'Approved. It now counts as a committed cost.'); }); });
     if (a === 'void') { if (!confirm('Void this ' + (k === 'po' ? 'purchase order' : k === 'co' ? 'change order' : 'invoice') + '? It stops counting everywhere.')) return; return actCall(k, 'void').then(function (res) { if (res) afterAct(res, 'Voided.'); }); }
