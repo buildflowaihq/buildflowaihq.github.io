@@ -697,7 +697,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   // ---- Schedule web meeting + Contract: send to client (modeled on Buildertrend's job-level actions) ----
   // Both are two steps: fill in, then a review screen showing exactly who gets what. Nothing reaches a client until someone presses the final button.
-  var PEOPLE = {};  // set by dashInit: { kyle: 'kyle@kdbla.com', mary: '...' }
+  var PEOPLE = {};  // set by dashInit from /api/dash
   var MAILRE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
   function clientsOf(j) {
     var names = j.client.replace(/\s*\(to confirm\)/, '').split(/\s*(?:&|,| and )\s*/).filter(Boolean);
