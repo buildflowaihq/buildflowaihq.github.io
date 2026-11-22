@@ -677,9 +677,11 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         '</div><div>' + todoHtml() +
         '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
-        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div>';
+        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (FINANCE_ON ? '<section class="card fin bf-fin" id="bf-fin"></section>' : '') + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div>';
     }
     $('dash-main').innerHTML = h;
+    var bf = $('bf-fin');
+    if (bf && window.BFFinance && v !== 'all') { var jj = job(v); window.BFFinance.mount(bf, { api: FINANCE_API, key: S.key, job: { id: jj.id, name: jj.name, client: jj.client }, snap: jj.fin ? { f: jj.fin.f, pos: jj.fin.pos, cos: jj.fin.cos, inv: jj.fin.inv, budget: jj.fin.budget, codes: jj.fin.codes } : null }); }
   }
 
   var root = $('dash');
@@ -698,6 +700,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Schedule web meeting + Contract: send to client (modeled on Buildertrend's job-level actions) ----
   // Both are two steps: fill in, then a review screen showing exactly who gets what. Nothing reaches a client until someone presses the final button.
   var PEOPLE = {};  // set by dashInit from /api/dash
+  // Purchase orders / change orders / invoices live in the client's own finance service (one per client). Preview only for now.
+  var FINANCE_API = 'https://kdb-finance.mekovacs22.workers.dev', FINANCE_ON = true;
   var MAILRE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
   function clientsOf(j) {
     var names = j.client.replace(/\s*\(to confirm\)/, '').split(/\s*(?:&|,| and )\s*/).filter(Boolean);
@@ -883,7 +887,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var f = rowsFor(T, 'Job financials', j.id)[0], jr = rowsFor(T, 'Jobs', j.id)[0];
       if (jr && jr.client) j.client = jr.client;
       j.fin = f ? { f: f, inv: rowsFor(T, 'Invoices', j.id), bills: rowsFor(T, 'Bills', j.id), pos: rowsFor(T, 'Purchase orders', j.id), cos: rowsFor(T, 'Change orders', j.id),
-        budget: rowsFor(T, 'Budget by cost code', j.id).filter(function (r) { return r['Row type'] === 'Cost category'; }) } : null;
+        budget: rowsFor(T, 'Budget by cost code', j.id).filter(function (r) { return r['Row type'] === 'Cost category'; }), codes: rowsFor(T, 'Budget by cost code', j.id).filter(function (r) { return r['Row type'] === 'Cost code'; }) } : null;
     });
     var F = T['Job financials'] || [], sum = function (k) { return F.reduce(function (a, r) { return a + (num(r[k]) || 0); }, 0); };
     if (F.length) DATA.money = [
@@ -964,6 +968,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
+<link rel="stylesheet" href="finance.css?v=202611220700">
+<script src="finance.js?v=202611220700"></script>
 <script src="../voice/recorder-next.js?v=202611211900"></script>
 <script>
 (function () {
