@@ -280,7 +280,7 @@
     if (a === 'save') return save();
     if (a === 'bill_delete' || a === 'payment_delete') { var x = {}; x[btn.dataset.idf] = btn.dataset.idv; return actCall(k, a, x).then(function (res) { if (res) afterAct(res, 'Removed.'); }); }
     if (a === 'send') { if (ed.isNew) return flash('Save first.', true); return save().then(function (rec) { if (rec) startSend(k); }); }
-    if (a === 'confirm-send') return actCall(k, 'send').then(function (res) { if (res) afterAct(res, 'Sent' + (res.mail && res.mail.mode !== 'live' ? ' in test mode (only Michael got the email)' : '') + (res.mail && !res.mail.delivered ? ' (email service not connected yet, so use the link)' : '') + '.'); });
+    if (a === 'confirm-send') return actCall(k, 'send').then(function (res) { if (res) afterAct(res, res.mail && res.mail.delivered ? 'Sent' + (res.mail.mode !== 'live' ? ' in test mode: the email went only to Michael, not the real recipient.' : '.') : 'Link ready. The email service is not connected yet, so nothing was emailed. Copy the link below to send it yourself.'); });
     if (a === 'approve') return save().then(function (rec) { if (rec) actCall('po', 'approve').then(function (res) { if (res) afterAct(res, 'Approved. It now counts as a committed cost.'); }); });
     if (a === 'void') { if (!confirm('Void this ' + (k === 'po' ? 'purchase order' : k === 'co' ? 'change order' : 'invoice') + '? It stops counting everywhere.')) return; return actCall(k, 'void').then(function (res) { if (res) afterAct(res, 'Voided.'); }); }
     if (a === 'recall') return actCall(k, 'recall').then(function (res) { if (res) afterAct(res, 'Recalled. You can edit it again.'); });
