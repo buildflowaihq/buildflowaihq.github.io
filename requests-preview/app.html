@@ -697,7 +697,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   // ---- Schedule web meeting + Contract: send to client (modeled on Buildertrend's job-level actions) ----
   // Both are two steps: fill in, then a review screen showing exactly who gets what. Nothing reaches a client until someone presses the final button.
-  var PEOPLE = {};  // set by dashInit: { name: 'email' } from /api/dash
+  var PEOPLE = {};  // set by dashInit: { kyle: 'kyle@kdbla.com', mary: '...' }
   var MAILRE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
   function clientsOf(j) {
     var names = j.client.replace(/\s*\(to confirm\)/, '').split(/\s*(?:&|,| and )\s*/).filter(Boolean);
@@ -727,13 +727,29 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     } else {
       var cs = clientsOf(j);
       dlgShell('Contract: send to client', '<p class="dlg-sub">' + esc(j.name) + '</p><form class="dlg-f" data-form="contract" data-job="' + id + '">' +
-        '<label>What kind of contract<select name="type"><option value="SFR">New single-family home</option><option value="SFR+POOL">New home with pool</option><option value="HIC">Remodel or addition (home improvement)</option><option value="POOL">Pool only</option><option value="OTHER">Something else</option></select></label>' +
-        '<label>Contract price<input name="price" inputmode="decimal" placeholder="$"></label>' +
-        '<fieldset class="dlg-fs"><legend>Who signs, in order</legend>' + cs.map(function (c, i) { return '<div class="dlg-r2"><span class="dlg-n">' + (i + 1) + '</span><input name="sn' + i + '" value="' + esc(c.name) + '" aria-label="Name"><input name="se' + i + '" value="' + esc(c.email) + '" placeholder="email" aria-label="Email"></div>'; }).join('') +
-        '<div class="dlg-r2"><span class="dlg-n">' + (cs.length + 1) + '</span><input value="' + esc(PEOPLE.contractorName || '') + '" disabled><input value="' + esc(PEOPLE.kyle || '') + '" disabled><small>signs last</small></div></fieldset>' +
-        '<label>Notes for the contract (optional)<textarea name="note" rows="3" placeholder="Anything that is different on this job"></textarea></label>' +
+        '<label>Contract PDF<span class="dlg-h2">Pick a PDF from this job’s folder in the brain. Export it from Buildertrend into the folder first if it isn’t there.</span><select name="file" required><option value="">Looking in the brain…</option></select></label>' +
+        '<fieldset class="dlg-fs"><legend>Who signs, in order</legend><div id="dlg-sg">' + cs.map(function (c, i) { return signerRow(i, c.name, c.email); }).join('') + '</div>' +
+        '<button type="button" class="dk-chip" data-addsigner>+ Add another homeowner</button></fieldset>' +
+        '<label>Countersigned last by<select name="cs">' + Object.keys(S.csOptions || { kyle: 'Kyle' }).map(function (k) { return '<option value="' + k + '"' + (k === (S.csDefault || 'kyle') ? ' selected' : '') + '>' + esc(S.csOptions[k]) + '</option>'; }).join('') + '</select></label>' +
+        '<p class="dlg-h2">Customers sign first, in this order. The firm always signs last.</p>' +
         '<p class="dk-err dlg-err" hidden></p><div class="dlg-b"><button type="button" data-dlgx>Cancel</button><button type="submit" class="pri">Review before sending</button></div></form>');
+      loadContractFiles(j);
     }
+  }
+  function signerRow(i, n, e) { return '<div class="dlg-r2"><span class="dlg-n">' + (i + 1) + '</span><input name="sn" value="' + esc(n) + '" aria-label="Name"><input name="se" value="' + esc(e) + '" placeholder="email" aria-label="Email"></div>'; }
+  function loadContractFiles(j) {
+    var sel = document.querySelector('#dash-dlg [name=file]'); if (!sel) return;
+    if (!S.cal) { sel.innerHTML = '<option value="">The brain isn’t connected yet</option>'; return; }
+    fetch(S.cal, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'contractFiles', k: S.key, job: j.id, search: j.name.replace(/^\d+\s+(W |E )?/, '').replace(/ (St|Ave|Dr)$/, '') }) })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.error);
+        S.csOptions = r.countersigners || S.csOptions; S.csDefault = r.defaultCountersigner || S.csDefault;
+        var cs = document.querySelector('#dash-dlg [name=cs]');
+        if (cs && r.countersigners) cs.innerHTML = Object.keys(r.countersigners).map(function (k) { return '<option value="' + k + '"' + (k === r.defaultCountersigner ? ' selected' : '') + '>' + esc(r.countersigners[k]) + '</option>'; }).join('');
+        sel.innerHTML = r.files.length ? '<option value="">Choose the contract…</option>' + r.files.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + ' · ' + esc(f.modified) + '</option>'; }).join('') : '<option value="">No PDF found. Put the contract in the job folder first.</option>';
+      })
+      .catch(function () { sel.innerHTML = '<option value="">Couldn’t reach the brain. Try again in a moment.</option>'; });
   }
   function reviewMeet(f) {
     var j = job(f.getAttribute('data-job')), v = f.elements, err = f.querySelector('.dlg-err');
@@ -748,13 +764,15 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     $('dash-dlg').__m = m;
   }
   function reviewContract(f) {
-    var j = job(f.getAttribute('data-job')), v = f.elements, err = f.querySelector('.dlg-err'), cs = clientsOf(j), signers = [];
-    for (var i = 0; i < cs.length; i++) { var n = v['sn' + i].value.trim(), e = v['se' + i].value.trim(); if (!n) continue; if (!MAILRE.test(e)) { err.textContent = 'Add a valid email for ' + n + '.'; err.hidden = false; return; } signers.push({ name: n, email: e }); }
+    var j = job(f.getAttribute('data-job')), v = f.elements, err = f.querySelector('.dlg-err'), signers = [];
+    var ns = f.querySelectorAll('[name=sn]'), es = f.querySelectorAll('[name=se]');
+    for (var i = 0; i < ns.length; i++) { var n = ns[i].value.trim(), e = es[i].value.trim(); if (!n && !e) continue; if (!n || !MAILRE.test(e)) { err.textContent = 'Each signer needs a name and a valid email.'; err.hidden = false; return; } signers.push({ name: n, email: e }); }
+    if (!v.file.value) { err.textContent = 'Choose the contract PDF.'; err.hidden = false; return; }
     if (!signers.length) { err.textContent = 'Add at least one signer.'; err.hidden = false; return; }
-    var c = { job: j.id, type: v.type.value, typeLabel: v.type.options[v.type.selectedIndex].text, price: v.price.value.trim(), note: v.note.value.trim(), signers: signers };
-    var subject = 'Your construction contract for ' + j.name + ' is ready to sign';
-    dlgShell('Review before sending', '<p class="dlg-sub">Kyle checks the contract first. It goes to the client only after he approves.</p><dl class="dlg-rv"><dt>Contract</dt><dd>' + esc(c.typeLabel) + (c.price ? ' · ' + esc(c.price) : '') + '</dd><dt>Signing order</dt><dd>' + signers.map(function (s, i) { return (i + 1) + '. ' + esc(s.name) + ' (' + esc(s.email) + ')'; }).join('<br>') + '<br>' + (signers.length + 1) + '. Kyle Kovacs (signs last)</dd><dt>Subject</dt><dd>' + esc(subject) + '</dd><dt>Message</dt><dd class="pre">' + esc('Hi ' + signers.map(function (s) { return s.name.split(' ')[0]; }).join(' and ') + ',\n\nYour contract for ' + j.name + ' is ready. Open the link, review it, and sign. It takes a few minutes and you don’t need an account.\n\nThanks,\nKDB') + '</dd></dl>' +
-      '<div class="dlg-b"><button type="button" data-dlgback="contract" data-job="' + j.id + '">Back</button><button type="button" class="pri" data-send="contract">' + (S.who === 'kyle' ? 'Approve and send' : 'Send to Kyle for approval') + '</button></div>');
+    var fname = v.file.options[v.file.selectedIndex].text.replace(/ · .*$/, '');
+    var c = { job: j.id, fileId: v.file.value, fileName: fname, cs: v.cs.value, csName: v.cs.options[v.cs.selectedIndex].text, signers: signers, ref: j.id + '-' + v.file.value.slice(0, 8) + '-' + Date.now().toString(36) };
+    dlgShell('Review before sending', '<p class="dlg-sub">Nothing goes out until you press the button.</p><dl class="dlg-rv"><dt>Contract</dt><dd>' + esc(fname) + '</dd><dt>Job</dt><dd>' + esc(j.name) + '</dd><dt>Signing order</dt><dd>' + signers.map(function (s, i) { return (i + 1) + '. ' + esc(s.name) + ' (' + esc(s.email) + ')'; }).join('<br>') + '<br>' + (signers.length + 1) + '. ' + esc(c.csName) + ' (signs last)</dd><dt>Subject</dt><dd>Contract for ' + esc(j.name) + ' to sign</dd><dt>Message</dt><dd class="pre">' + esc('Hi,\n\nYour contract for ' + j.name + ' is ready to sign. Open the link, review it, and sign. It takes a few minutes and you don’t need an account.\n\nThanks,\nKDB') + '</dd></dl>' +
+      '<p class="dk-err dlg-err" hidden></p><div class="dlg-b"><button type="button" data-dlgback="contract" data-job="' + j.id + '">Back</button><button type="button" class="pri" data-send="contract">Send for signature</button></div>');
     $('dash-dlg').__c = c;
   }
   function sendMeet(btn) {
@@ -766,17 +784,20 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       .then(function (r) { if (!r.ok) throw new Error(r.error); closeDlg(); toast('Invite sent. The Google Meet link is in it.'); loadCal(); })
       .catch(function (x) { btn.disabled = false; btn.textContent = 'Send invite'; err.textContent = /unknown_action/.test(x.message) ? 'Meeting invites aren’t switched on yet. Nothing was sent.' : 'That didn’t send. Nothing went out. Try again in a moment.'; err.hidden = false; });
   }
-  function sendContract() {
-    var c = $('dash-dlg').__c, j = job(c.job);
-    var msg = 'Contract: send to client for ' + j.name + '. Type: ' + c.typeLabel + (c.price ? ', price ' + c.price : '') + '. Signing order: ' + c.signers.map(function (s) { return s.name + ' <' + s.email + '>'; }).join(', then ') + ', then Kyle Kovacs last (e-sign). Kyle approves first; do not send to the client until he does.' + (c.note ? ' Notes: ' + c.note : '');
-    closeDlg();
-    if (window.chatDraft) window.chatDraft(msg); else toast('Couldn’t open Chat.');
+  function sendContract(btn) {
+    var d = $('dash-dlg'), c = d.__c, err = d.querySelector('.dlg-err');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    fetch(S.cal, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'contract', k: S.key, contract: c }) })
+      .then(function (r) { return r.json(); })
+      .then(function (r) { if (!r.ok) throw new Error(r.error || 'failed'); closeDlg(); toast('Sent for signature. ' + (r.test ? 'TEST MODE: ' : '') + 'The signed copy files into the brain by itself.'); })
+      .catch(function (x) { btn.disabled = false; btn.textContent = 'Send for signature'; err.textContent = /unknown_action/.test(x.message) ? 'Contract sending isn’t switched on yet. Nothing was sent.' : 'That didn’t send. Nothing went out. ' + (x.message && x.message.length < 120 ? x.message : ''); err.hidden = false; });
   }
   root.addEventListener('click', function (e) {
     var b;
     if (e.target.closest('[data-dlgx]') || e.target.id === 'dash-dlg') { closeDlg(); return; }
     if ((b = e.target.closest('[data-dlgback]'))) { openDlg(b.getAttribute('data-dlgback'), b.getAttribute('data-job')); return; }
-    if ((b = e.target.closest('[data-send]'))) { if (b.getAttribute('data-send') === 'meet') sendMeet(b); else sendContract(); return; }
+    if ((b = e.target.closest('[data-send]'))) { if (b.getAttribute('data-send') === 'meet') sendMeet(b); else sendContract(b); return; }
+    if (e.target.closest('[data-addsigner]')) { var g = $('dash-sg'), n = g.children.length; g.insertAdjacentHTML('beforeend', signerRow(n, '', '')); return; }
   });
   function saveDate(form) {
     var title = form.title.value.trim(), date = form.date.value, time = form.time.value, err = $('dash-adderr');
