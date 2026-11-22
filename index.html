@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>
+// Staged rollout: people on this list get the new chat app (app.html). Everyone else keeps this page.
+// Keys are matched by a short SHA-256 fingerprint, so no key is written here. To roll out to everyone, make app.html the main page.
+(function () {
+  var NEW_APP = ['d56c76b226ee90dc', '4cb72351e3e05963', 'c3d51823bee42de8']; // Michael, Kyle, Mary (live 2026-11-21 4:40 PM CT, Michael's OK)
+  try {
+    var m = location.search.match(/[?&]k=([\w-]+)/), k = m ? m[1] : localStorage.getItem('abf_k');
+    if (!k || !window.crypto || !crypto.subtle) return;
+    document.documentElement.style.visibility = 'hidden';
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)).then(function (h) {
+      var hex = Array.prototype.map.call(new Uint8Array(h), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('').slice(0, 16);
+      if (NEW_APP.indexOf(hex) > -1) { if (m) localStorage.setItem('abf_k', k); location.replace('app.html' + location.search + location.hash); }
+      else document.documentElement.style.visibility = '';
+    }, function () { document.documentElement.style.visibility = ''; });
+  } catch (e) { document.documentElement.style.visibility = ''; }
+})();
+</script>
+<script>
+// Self-update: remember the published version when this page loads; if a newer one is published later, reload (keeps open app windows current).
+(function(){var seen=null;
+function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
+ if(!v||!v.build)return; if(seen===null){seen=v.build;return} if(v.build!==seen)location.reload();}).catch(function(){})}
+check();document.addEventListener("visibilitychange",function(){if(!document.hidden)check()});window.addEventListener("focus",check);setInterval(check,300000);})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BuildFlowAI</title>
+<meta name="apple-mobile-web-app-title" content="BuildFlowAI">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#16181B">
+<meta name="robots" content="noindex">
+<meta http-equiv="Cache-Control" content="no-cache">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="icons/pwa-icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#16181B; --card:#1F2226; --line:#33373D; --ink:#F1EEE6; --muted:#A9A79F; --accent:#B4EE3A; --bad:#FF8A7A; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:var(--bg); }
+  body { margin:0; color:var(--ink); font-family:"Outfit", -apple-system, system-ui, sans-serif; font-size:18px; line-height:1.4;
+         padding:max(20px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  main { max-width:520px; margin:0 auto; }
+  header { text-align:center; padding:8px 0 18px; }
+  header img { width:min(260px, 70vw); height:auto; }
+  h1 { font-size:28px; font-weight:600; margin:0 0 4px; }
+  .hi { color:var(--muted); margin:0 0 22px; }
+  label.q { display:block; font-weight:600; margin:22px 0 8px; }
+  label.q small { font-weight:400; color:var(--muted); }
+  textarea, input[type=text] { width:100%; background:var(--card); color:var(--ink); border:1.5px solid var(--line);
+         border-radius:14px; padding:14px; font:inherit; outline:none; }
+  textarea { min-height:140px; resize:vertical; }
+  textarea:focus, input[type=text]:focus { border-color:var(--accent); }
+  ::placeholder { color:#6E6C66; }
+  .chips { display:flex; gap:10px; flex-wrap:wrap; }
+  .chips button { flex:1 1 30%; min-height:52px; background:var(--card); color:var(--ink); border:1.5px solid var(--line);
+         border-radius:14px; font:inherit; font-size:16px; cursor:pointer; }
+  .chips button.on { background:var(--accent); color:var(--bg); border-color:var(--accent); font-weight:600; }
+  .add { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:56px; background:var(--card);
+         border:1.5px dashed var(--line); border-radius:14px; color:var(--ink); font:inherit; cursor:pointer; }
+  #files { display:none; }
+  .add.drag { border-color:var(--accent); background:#262A1E; }
+  .flist { list-style:none; padding:0; margin:10px 0 0; }
+  .flist li { display:flex; justify-content:space-between; gap:10px; padding:8px 4px; color:var(--muted); font-size:15px; border-bottom:1px solid var(--line); }
+  .flist button { background:none; border:0; color:var(--muted); font:inherit; font-size:15px; text-decoration:underline; cursor:pointer; }
+  .send { width:100%; min-height:62px; margin-top:28px; background:var(--accent); color:var(--bg); border:0; border-radius:16px;
+         font:inherit; font-size:21px; font-weight:700; cursor:pointer; }
+  .send:disabled { opacity:.55; }
+  .err { color:var(--bad); margin:12px 0 0; min-height:1em; }
+  .done { text-align:center; padding:40px 0 10px; }
+  .done .big { width:84px; height:84px; border-radius:50%; background:var(--accent); color:var(--bg); display:flex; align-items:center;
+         justify-content:center; margin:0 auto 18px; }
+  .done h1 { font-size:30px; }
+  .ghost { margin-top:26px; background:none; border:1.5px solid var(--line); color:var(--ink); border-radius:14px; min-height:54px;
+         width:100%; font:inherit; cursor:pointer; }
+  /* install card */
+  .install { background:var(--card); border:1.5px solid var(--line); border-radius:18px; padding:20px 18px; margin-bottom:26px; }
+  .install h2 { margin:0 0 4px; font-size:22px; font-weight:600; }
+  .install p.sub { margin:0 0 16px; color:var(--muted); font-size:16px; }
+  .step { display:flex; align-items:center; gap:14px; padding:12px 0; border-top:1px solid var(--line); }
+  .num { flex:0 0 36px; height:36px; border-radius:50%; background:var(--accent); color:var(--bg); font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .step .txt { flex:1; font-size:18px; }
+  .pic { flex:0 0 auto; display:flex; align-items:center; justify-content:center; min-width:52px; height:46px; padding:0 10px; border-radius:10px;
+         background:#2B2F34; color:#4DA3FF; font-size:15px; font-weight:600; }
+  .pic.plain { color:var(--ink); }
+  .install .skip { display:block; margin:14px auto 0; background:none; border:0; color:var(--muted); font:inherit; font-size:16px; text-decoration:underline; cursor:pointer; }
+  .nolink { text-align:center; padding:30px 10px; color:var(--muted); }
+  footer { text-align:center; margin:44px 0 6px; color:var(--muted); font-size:13px; }
+  footer img { width:120px; height:auto; display:block; margin:0 auto 6px; opacity:.85; }
+  .alerts { background:var(--card); border:1.5px solid var(--accent); border-radius:18px; padding:18px; margin-bottom:22px; }
+  .alerts h2 { margin:0 0 4px; font-size:21px; font-weight:600; }
+  .alerts p { margin:0 0 14px; color:var(--muted); font-size:16px; }
+  .alerts .send { margin-top:0; min-height:54px; font-size:19px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="icons/logo.png" alt="BuildFlow AI, AI Business Builder"></header>
+
+  <!-- Shown in the browser (not yet on the home screen) -->
+  <section class="install" id="install" hidden>
+    <h2>Put this on your home screen</h2>
+    <p class="sub">Do this once. Then you just tap the icon.</p>
+    <div id="notsafari" hidden>
+      <div class="step"><span class="num">!</span><span class="txt">First open this page in <b>Safari</b> or <b>Chrome</b>. Tap the <b>&bull;&bull;&bull;</b> or <b>compass</b> button and choose <b>Open in Safari</b>. Or tap <b>Copy link</b> below and paste it into Safari or Chrome.</span></div>
+      <button class="ghost" id="copy" type="button" style="margin:4px 0 8px">Copy link</button>
+    </div>
+    <div id="ios">
+      <div class="step"><span class="num">1</span><span class="txt">Tap <b>Share</b>. In Safari it's at the bottom (or tap <b>&bull;&bull;&bull;</b> first). In Chrome it's at the <b>top</b>, in the address bar.</span>
+        <span class="pic" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 26 30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2v17M7 8l6-6 6 6"/><path d="M8 12H4v16h18V12h-4"/></svg></span></div>
+      <div class="step"><span class="num">2</span><span class="txt">Scroll down and tap <b>Add to Home Screen</b> (you may need to tap <b>View More</b> first)</span>
+        <span class="pic plain" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="22" height="22" rx="5"/><path d="M13 8v10M8 13h10"/></svg></span></div>
+      <div class="step"><span class="num">3</span><span class="txt">Tap <b>Add</b> at the top right</span>
+        <span class="pic">Add</span></div>
+    </div>
+    <div id="android" hidden>
+      <div class="step"><span class="num">1</span><span class="txt">Tap the <b>three dots</b> at the top right</span>
+        <span class="pic plain" aria-hidden="true"><svg width="8" height="26" viewBox="0 0 8 26" fill="currentColor"><circle cx="4" cy="4" r="3"/><circle cx="4" cy="13" r="3"/><circle cx="4" cy="22" r="3"/></svg></span></div>
+      <div class="step"><span class="num">2</span><span class="txt">Tap <b>Add to Home screen</b></span>
+        <span class="pic plain" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="22" height="22" rx="5"/><path d="M13 8v10M8 13h10"/></svg></span></div>
+      <div class="step"><span class="num">3</span><span class="txt">Tap <b>Add</b></span><span class="pic">Add</span></div>
+    </div>
+    <div id="desktop" hidden>
+      <div id="dChrome">
+        <div class="step"><span class="num">1</span><span class="txt">Click the <b>&#8942;</b> menu at the top right of Chrome (in Edge: <b>&middot;&middot;&middot;</b>)</span>
+          <span class="pic plain" aria-hidden="true"><svg width="8" height="26" viewBox="0 0 8 26" fill="currentColor"><circle cx="4" cy="4" r="3"/><circle cx="4" cy="13" r="3"/><circle cx="4" cy="22" r="3"/></svg></span></div>
+        <div class="step"><span class="num">2</span><span class="txt">Chrome: <b>Cast, save, and share</b> &gt; <b>Install page as app</b> (or <b>Create shortcut</b>, and tick <b>Open as window</b>).<br>Edge: <b>Apps</b> &gt; <b>Install this site as an app</b>.</span></div>
+        <div class="step"><span class="num">3</span><span class="txt">Click <b>Install</b> (or <b>Create</b>). A BuildFlowAI icon appears on your desktop and in your apps.</span><span class="pic">Install</span></div>
+      </div>
+      <div id="dSafari" hidden>
+        <div class="step"><span class="num">1</span><span class="txt">In Safari's top menu bar, click <b>File</b></span><span class="pic plain">File</span></div>
+        <div class="step"><span class="num">2</span><span class="txt">Click <b>Add to Dock</b></span></div>
+        <div class="step"><span class="num">3</span><span class="txt">Click <b>Add</b>. The BuildFlowAI icon appears in your Dock.</span><span class="pic">Add</span></div>
+      </div>
+      <div id="dOther" hidden>
+        <div class="step"><span class="num">!</span><span class="txt">Open this link in <b>Chrome</b>, <b>Edge</b> or Mac <b>Safari</b> to get a BuildFlowAI icon, or just bookmark this page.</span></div>
+      </div>
+    </div>
+    <button class="skip" id="skip" type="button">Skip for now and use it here</button>
+  </section>
+
+  <!-- App alerts (web push): shown in the installed app until turned on -->
+  <section class="alerts" id="alerts" hidden>
+    <h2>Turn on alerts</h2>
+    <p id="alertsTxt">Get a ping when BuildFlowAI needs you. Nothing else.</p>
+    <button class="send" id="alertsBtn" type="button">Turn on alerts</button>
+    <button class="skip" id="alertsSkip" type="button" style="display:block;margin:12px auto 0;background:none;border:0;color:var(--muted);font:inherit;font-size:16px;text-decoration:underline;cursor:pointer">Not now</button>
+  </section>
+
+  <!-- The request form -->
+  <section id="formWrap" hidden>
+    <h1>New request</h1>
+    <form id="f" novalidate>
+      <label class="q" for="what">What do you need?</label>
+      <textarea id="what" placeholder="Example: Send the Smith client an update that tile starts Monday."></textarea>
+
+      <label class="q" for="job">Which job? <small>(optional)</small></label>
+      <input type="text" id="job" autocomplete="off" placeholder="Smith kitchen">
+
+      <label class="q">When do you need it? <small>(optional)</small></label>
+      <div class="chips" id="when">
+        <button type="button" data-v="Today (urgent)">Today</button>
+        <button type="button" data-v="This week">This week</button>
+        <button type="button" data-v="No rush">No rush</button>
+      </div>
+
+      <label class="q">Photos or files <small>(optional)</small></label>
+      <button type="button" class="add" id="addBtn">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 3v16M3 11h16"/></svg>
+        <span id="addLabel">Add photos or files</span></button>
+      <input type="file" id="files" multiple>
+      <ul class="flist" id="flist"></ul>
+
+      <button class="send" id="send" type="submit">Send to BuildFlowAI</button>
+      <p class="err" id="err" role="alert"></p>
+    </form>
+  </section>
+
+  <section class="done" id="done" hidden>
+    <div class="big"><svg width="42" height="42" viewBox="0 0 42 42" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 22l8 8 16-17"/></svg></div>
+    <h1>Got it</h1>
+    <p class="hi" id="doneMsg">BuildFlowAI is on it.</p>
+    <button class="ghost" id="again" type="button">Send another</button>
+  </section>
+
+  <section class="nolink" id="nolink" hidden>
+    <p>This page needs your personal BuildFlowAI link.<br>Please use the link you were sent.</p>
+  </section>
+
+  <footer><img src="icons/logo.png" alt="BuildFlowAI"></footer>
+</main>
+
+<script>
+// Home-screen apps can hold an old copy of this page. If a newer one is online, reload once.
+(function () {
+  var V = 'v2026-11-21a';
+  try {
+    fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
+      var m = t.match(/var V = '([^']+)'/);
+      if (m && m[1] !== V && sessionStorage.getItem('abf_reloaded') !== m[1]) {
+        sessionStorage.setItem('abf_reloaded', m[1]); location.reload();
+      }
+    }).catch(function () {});
+  } catch (e) {}
+})();
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbzi4KHTN8AChENP4Ar28nSZCsBPkSzxQ2dytwbO-GTAX0x5VGnK60bLJXq3WZm_A7zU9g/exec";
+  var MAX_TOTAL = 30 * 1024 * 1024; // keep uploads reasonable for a phone connection
+  var $ = function (id) { return document.getElementById(id); };
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  // Who is this? The personal link carries a private key (?k=...). Remember it on this phone.
+  var m = location.search.match(/[?&]k=([\w-]+)/);
+  var key = m ? m[1] : store('abf_k');
+  if (m) store('abf_k', key);
+
+  var standalone = window.navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  var ua = navigator.userAgent;
+  if (/android/i.test(ua)) { $('ios').hidden = true; $('android').hidden = false; }
+  // On iPhone, only Safari can add to the home screen. Other apps' browsers (Gmail, Chrome, texts preview, etc.) can't.
+  var iOS = /iphone|ipad|ipod/i.test(ua);
+  var realSafari = iOS && (/CriOS|FxiOS|EdgiOS/.test(ua) || /Safari\//.test(ua)) && !/GSA|FBAN|FBAV|Instagram|Line\/|DuckDuckGo/i.test(ua);
+  if (iOS && !realSafari) $('notsafari').hidden = false;
+  $('copy').onclick = function () {
+    var u = location.origin + location.pathname + '?k=' + (key || '');
+    var done = function () { $('copy').textContent = 'Copied. Now open Safari and paste it.'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(u).then(done, function () { prompt('Copy this link:', u); });
+    else prompt('Copy this link:', u);
+  };
+
+  if (!key) { $('nolink').hidden = false; return; }
+
+  var mobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
+  if (!mobile) {
+    // Computer: show desktop steps instead of phone steps
+    $('ios').hidden = true; $('android').hidden = true; $('notsafari').hidden = true; $('desktop').hidden = false;
+    var isEdgeOrChrome = /Edg\/|Chrome\//.test(ua) && !/OPR\//.test(ua);
+    var isMacSafari = /Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome\/|Edg\//.test(ua);
+    $('dChrome').hidden = !isEdgeOrChrome; $('dSafari').hidden = !isMacSafari; $('dOther').hidden = isEdgeOrChrome || isMacSafari;
+    document.querySelector('#install h2').textContent = 'Put BuildFlowAI on your computer';
+    document.querySelector('#install p.sub').textContent = 'Do this once. Then just click the icon.';
+  }
+  if (!standalone && store('abf_skip') !== '1') $('install').hidden = false;
+  $('skip').onclick = function () { store('abf_skip', '1'); $('install').hidden = true; };
+  $('formWrap').hidden = false;
+
+  // Staged rollout by NAME too: if this link belongs to someone on the new app (even an older link of theirs), open the new app.
+  var NEW_APP_NAMES = ['Michael', 'Kyle', 'Mary'];
+  try {
+    fetch(API + '?k=' + encodeURIComponent(key), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.ok && NEW_APP_NAMES.indexOf(d.name) > -1) { store('abf_k', key); location.replace('app.html?k=' + encodeURIComponent(key)); }
+    }).catch(function () {});
+  } catch (e) {}
+
+  // App alerts (web push). Testing on Michael's link first (ALERT_PEOPLE), then everyone.
+  var ALERT_PEOPLE = ['Michael'];
+  (function () {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+    if (/iphone|ipad|ipod/i.test(ua) && !standalone) return; // iPhone/iPad: only works from the Home Screen app
+    fetch(API + '?k=' + encodeURIComponent(key)).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok || ALERT_PEOPLE.indexOf(d.name) < 0) return;
+      navigator.serviceWorker.register('sw.js?k=' + encodeURIComponent(key)).then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (sub) {
+          if (sub && Notification.permission === 'granted') return send(sub); // keep the server's copy fresh
+          if (Notification.permission === 'denied' || store('abf_alerts_skip') === '1') return;
+          $('alerts').hidden = false;
+          $('alertsSkip').onclick = function () { store('abf_alerts_skip', '1'); $('alerts').hidden = true; };
+          $('alertsBtn').onclick = function () {
+            $('alertsBtn').disabled = true;
+            Notification.requestPermission().then(function (p) {
+              if (p !== 'granted') throw new Error('denied');
+              return fetch(API + '?action=vapid').then(function (r) { return r.json(); });
+            }).then(function (v) {
+              var b = atob(v.key.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((v.key.length + 3) % 4));
+              var arr = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) arr[i] = b.charCodeAt(i);
+              return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr });
+            }).then(send).then(function () {
+              $('alertsTxt').textContent = 'Alerts are on. You will get a ping when BuildFlowAI needs you.';
+              $('alertsBtn').hidden = true; $('alertsSkip').hidden = true;
+              setTimeout(function () { $('alerts').hidden = true; }, 4000);
+            }).catch(function (e) {
+              $('alertsBtn').disabled = false;
+              $('alertsTxt').textContent = String(e && e.message) === 'denied'
+                ? 'Alerts are blocked. Turn them on in Settings, Notifications, BuildFlowAI.'
+                : 'That did not work. Check your signal and tap again.';
+            });
+          };
+        });
+      });
+    }).catch(function () {});
+    function send(sub) {
+      return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ k: key, action: 'subscribe', sub: sub.toJSON() }) }).then(function (r) { return r.json(); })
+        .then(function (d) { if (!d.ok) throw new Error('save'); });
+    }
+  })();
+
+  // When chips (tap again to clear)
+  var when = '';
+  Array.prototype.forEach.call(document.querySelectorAll('#when button'), function (b) {
+    b.onclick = function () {
+      var on = !b.classList.contains('on');
+      Array.prototype.forEach.call(document.querySelectorAll('#when button'), function (x) { x.classList.remove('on'); });
+      if (on) b.classList.add('on');
+      when = on ? b.getAttribute('data-v') : '';
+    };
+  });
+
+  // Files
+  var picked = [];
+  $('addBtn').onclick = function () { $('files').click(); };
+  if (!/iphone|ipad|ipod|android/i.test(navigator.userAgent)) $('addLabel').textContent = 'Add photos or files (or drag them here)';
+  function addFiles(list) {
+    Array.prototype.forEach.call(list || [], function (f) { if (picked.length < 10) picked.push(f); });
+    drawFiles();
+  }
+  $('files').onchange = function () { addFiles(this.files); this.value = ''; };
+  // Drag and drop (anywhere on the page) and paste screenshots
+  var dropBox = $('addBtn');
+  ['dragenter', 'dragover'].forEach(function (t) {
+    window.addEventListener(t, function (e) {
+      if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') > -1) {
+        e.preventDefault(); dropBox.classList.add('drag');
+      }
+    });
+  });
+  ['dragleave', 'dragend'].forEach(function (t) {
+    window.addEventListener(t, function (e) { if (!e.relatedTarget) dropBox.classList.remove('drag'); });
+  });
+  window.addEventListener('drop', function (e) {
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    e.preventDefault(); dropBox.classList.remove('drag'); addFiles(e.dataTransfer.files);
+  });
+  window.addEventListener('paste', function (e) {
+    var items = (e.clipboardData && e.clipboardData.files) || [];
+    if (items.length) { e.preventDefault(); addFiles(items); }
+  });
+  function drawFiles() {
+    var ul = $('flist'); ul.innerHTML = '';
+    picked.forEach(function (f, i) {
+      var li = document.createElement('li');
+      var s = document.createElement('span'); s.textContent = f.name || ('Photo ' + (i + 1));
+      var x = document.createElement('button'); x.type = 'button'; x.textContent = 'Remove';
+      x.onclick = function () { picked.splice(i, 1); drawFiles(); };
+      li.appendChild(s); li.appendChild(x); ul.appendChild(li);
+    });
+  }
+
+  // Phone photos are big: shrink them before sending
+  function readFile(f) {
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onload = function () { res(String(fr.result).split(',')[1]); };
+      fr.onerror = rej; fr.readAsDataURL(f);
+    });
+  }
+  function shrink(f) {
+    if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type)) return readFile(f).then(function (d) { return { name: f.name, type: f.type, data: d }; });
+    return new Promise(function (res) {
+      var url = URL.createObjectURL(f), img = new Image();
+      img.onload = function () {
+        var s = Math.min(1, 2000 / Math.max(img.width, img.height));
+        var c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        var name = (f.name || 'photo').replace(/\.\w+$/, '') + '.jpg';
+        res({ name: name, type: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.85).split(',')[1] });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); readFile(f).then(function (d) { res({ name: f.name, type: f.type, data: d }); }); };
+      img.src = url;
+    });
+  }
+
+  $('f').onsubmit = function (ev) {
+    ev.preventDefault();
+    var what = $('what').value.trim();
+    $('err').textContent = '';
+    if (!what) { $('err').textContent = 'Please say what you need.'; $('what').focus(); return; }
+    var btn = $('send'); btn.disabled = true; btn.textContent = picked.length ? 'Sending files...' : 'Sending...';
+    Promise.all(picked.map(shrink)).then(function (files) {
+      var total = files.reduce(function (n, f) { return n + f.data.length * 0.75; }, 0);
+      if (total > MAX_TOTAL) throw new Error('size');
+      return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ k: key, what: what, job: $('job').value.trim(), when: when, files: files }) });
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) throw new Error(d.error || 'fail');
+      $('formWrap').hidden = true; $('install').hidden = true; $('done').hidden = false;
+      window.scrollTo(0, 0);
+    }).catch(function (e) {
+      var msg = String(e && e.message);
+      $('err').textContent = msg === 'size' ? 'Those files are too big together. Try fewer photos.' :
+        msg === 'link' ? 'This link is not working. Please use the personal link you were sent.' :
+        'That did not send. Check your signal and tap Send again.';
+    }).then(function () { btn.disabled = false; btn.textContent = 'Send to BuildFlowAI'; });
+  };
+
+  $('again').onclick = function () {
+    $('what').value = ''; $('job').value = ''; picked = []; drawFiles(); when = '';
+    Array.prototype.forEach.call(document.querySelectorAll('#when button'), function (x) { x.classList.remove('on'); });
+    $('done').hidden = true; $('formWrap').hidden = false; window.scrollTo(0, 0);
+  };
+})();
+</script>
+<p id="diag" style="text-align:center;font-size:10px;opacity:.35;margin:8px 0 16px"></p>
+<script>
+// Tiny support code (no private data): which version this is, a 4-letter id of the link key, and where the key came from.
+(function(){try{var m=location.search.match(/[?&]k=([\w-]+)/),k=m?m[1]:localStorage.getItem('abf_k'),src=m?'link':(k?'saved':'none');
+function show(id){fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(v){document.getElementById('diag').textContent='v'+String(v.build).slice(-4)+' · '+id+' · '+src+' · '+location.pathname;}).catch(function(){document.getElementById('diag').textContent=id+' · '+src;});}
+if(!k||!crypto.subtle){show('----');return;}
+crypto.subtle.digest('SHA-256',new TextEncoder().encode(k)).then(function(h){show(Array.prototype.map.call(new Uint8Array(h).slice(0,2),function(b){return('0'+b.toString(16)).slice(-2)}).join(''));});}catch(e){}})();
+</script>
+</body>
+</html>

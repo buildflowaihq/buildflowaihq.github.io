@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BuildFlowAI Questions</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#16181B">
+<meta http-equiv="Cache-Control" content="no-cache">
+<link rel="icon" href="../icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#16181B; --card:#1F2226; --line:#33373D; --ink:#F1EEE6; --muted:#A9A79F; --accent:#B4EE3A; --bad:#FF8A7A; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:var(--bg); }
+  body { margin:0; color:var(--ink); font-family:"Outfit", -apple-system, system-ui, sans-serif; font-size:18px; line-height:1.4;
+         padding:max(20px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  main { max-width:560px; margin:0 auto; }
+  header { text-align:center; padding:4px 0 14px; }
+  header img { width:min(200px, 55vw); height:auto; }
+  h1 { font-size:24px; font-weight:600; margin:0 0 6px; }
+  .muted { color:var(--muted); }
+  .bar { height:8px; background:var(--card); border-radius:8px; overflow:hidden; margin:18px 0 6px; }
+  .bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .25s ease-out; }
+  .count { font-size:15px; color:var(--muted); margin-bottom:18px; }
+  .q { font-size:21px; font-weight:600; margin:0 0 18px; }
+  .opts { display:flex; flex-direction:column; gap:10px; }
+  .opts button { text-align:left; min-height:56px; padding:12px 16px; background:var(--card); color:var(--ink); border:1.5px solid var(--line);
+         border-radius:14px; font:inherit; font-size:17px; cursor:pointer; }
+  .opts button.on { background:var(--accent); color:var(--bg); border-color:var(--accent); font-weight:600; }
+  label.note { display:block; margin:18px 0 8px; color:var(--muted); font-size:16px; }
+  textarea { width:100%; min-height:90px; background:var(--card); color:var(--ink); border:1.5px solid var(--line); border-radius:14px;
+         padding:12px 14px; font:inherit; font-size:17px; outline:none; resize:vertical; }
+  textarea:focus { border-color:var(--accent); }
+  .nav { display:flex; gap:10px; margin-top:24px; }
+  .nav button { min-height:58px; border-radius:16px; font:inherit; font-size:19px; cursor:pointer; }
+  .next { flex:2; background:var(--accent); color:var(--bg); border:0; font-weight:700; }
+  .next:disabled { opacity:.5; }
+  .back { flex:1; background:none; color:var(--ink); border:1.5px solid var(--line); }
+  .skip { display:block; margin:16px auto 0; background:none; border:0; color:var(--muted); font:inherit; font-size:16px; text-decoration:underline; cursor:pointer; }
+  .err { color:var(--bad); min-height:1.2em; margin:12px 0 0; }
+  .done { text-align:center; padding:30px 0; }
+  .done .big { width:84px; height:84px; border-radius:50%; background:var(--accent); color:var(--bg); display:flex; align-items:center;
+         justify-content:center; margin:0 auto 18px; font-size:44px; font-weight:700; }
+  .center { text-align:center; padding:40px 10px; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="../icons/logo.png" alt="BuildFlowAI"></header>
+  <div id="app"><p class="center muted">Loading your questions...</p></div>
+</main>
+<script>
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbzi4KHTN8AChENP4Ar28nSZCsBPkSzxQ2dytwbO-GTAX0x5VGnK60bLJXq3WZm_A7zU9g/exec";
+  var P = new URLSearchParams(location.search);
+  var K = P.get('k') || '', F = P.get('f') || '';
+  var app = document.getElementById('app');
+  var D = null, i = 0, ans = {}, skipped = {};
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fail(msg) { app.innerHTML = '<p class="center muted">' + esc(msg) + '</p>'; }
+
+  if (!K || !F) { fail('This link is missing a part. Please use the link from your email.'); return; }
+
+  fetch(API + '?k=' + encodeURIComponent(K) + '&f=' + encodeURIComponent(F), { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.ok) { fail('This link did not work. Please ask Michael for a new one.'); return; }
+      D = d; ans = d.answers || {};
+      // Resume at the first unanswered question.
+      i = 0; while (i < D.qs.length && ans[D.qs[i].id]) i++;
+      if (i >= D.qs.length) i = 0;
+      intro();
+    })
+    .catch(function () { fail('Could not load the questions. Check your connection and refresh.'); });
+
+  function intro() {
+    var done = D.qs.filter(function (q) { return ans[q.id]; }).length;
+    app.innerHTML = '<h1>' + esc(D.title) + '</h1><p class="muted">Hi ' + esc(D.name) + '. ' + esc(D.intro) + '</p>' +
+      '<p class="muted">' + D.qs.length + ' questions' + (done ? ', ' + done + ' already answered' : '') + '. About 3 minutes.</p>' +
+      '<div class="nav"><button class="next" id="go">' + (done ? 'Keep going' : 'Start') + '</button></div>';
+    document.getElementById('go').onclick = show;
+  }
+
+  function show() {
+    var q = D.qs[i], cur = ans[q.id] || { a: '', note: '' };
+    var pick = cur.a;
+    app.innerHTML =
+      '<div class="bar"><i style="width:' + Math.round(i / D.qs.length * 100) + '%"></i></div>' +
+      '<div class="count">Question ' + (i + 1) + ' of ' + D.qs.length + '</div>' +
+      '<p class="q">' + esc(q.q) + '</p>' +
+      '<div class="opts">' + q.opts.map(function (o, n) {
+        return '<button data-n="' + n + '"' + (o === pick ? ' class="on"' : '') + '>' + esc(o) + '</button>'; }).join('') + '</div>' +
+      '<label class="note" for="note">' + esc(q.other) + '</label>' +
+      '<textarea id="note" placeholder="Type here (optional)">' + esc(cur.note || '') + '</textarea>' +
+      '<p class="err" id="err"></p>' +
+      '<div class="nav">' + (i ? '<button class="back" id="back">Back</button>' : '') +
+      '<button class="next" id="next">' + (i === D.qs.length - 1 ? 'Finish' : 'Next') + '</button></div>' +
+      '<button class="skip" id="skip">Skip for now</button>';
+    var btns = app.querySelectorAll('.opts button');
+    btns.forEach(function (b) {
+      b.onclick = function () {
+        btns.forEach(function (x) { x.classList.remove('on'); });
+        if (pick === q.opts[b.dataset.n]) { pick = ''; } else { b.classList.add('on'); pick = q.opts[b.dataset.n]; }
+      };
+    });
+    if (i) document.getElementById('back').onclick = function () { i--; show(); };
+    document.getElementById('skip').onclick = function () { skipped[q.id] = 1; move(); };
+    document.getElementById('next').onclick = function () {
+      var note = document.getElementById('note').value.trim();
+      var err = document.getElementById('err');
+      if (!pick && !note) { err.textContent = 'Tap an answer or type one (or tap Skip for now).'; return; }
+      var btn = this; btn.disabled = true; btn.textContent = 'Saving...';
+      var last = (i === D.qs.length - 1) || D.qs.every(function (x, n) { return n === i || ans[x.id]; });
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ k: K, f: F, id: q.id, a: pick, note: note, last: last && D.qs.every(function (x, n) { return n === i || ans[x.id]; }) }) })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) throw new Error('save');
+          ans[q.id] = { a: pick, note: note };
+          move();
+        })
+        .catch(function () { btn.disabled = false; btn.textContent = 'Try again'; err.textContent = 'That did not save. Check your connection and tap again.'; });
+    };
+  }
+
+  function move() {
+    if (i < D.qs.length - 1) { i++; show(); return; }
+    var left = D.qs.filter(function (q) { return !ans[q.id] && !skipped[q.id]; });
+    var nskip = D.qs.filter(function (q) { return !ans[q.id]; }).length;
+    if (left.length) { i = D.qs.indexOf(left[0]); show(); return; }
+    app.innerHTML = '<div class="done"><div class="big">&#10003;</div><h1>All done, thanks!</h1>' +
+      '<p class="muted">Your answers are saved in the ' + esc(D.job) + ' job folder.' + (nskip ? ' You skipped ' + nskip + '. Open this link again any time to answer them.' : ' The updated estimate will come to you next.') + '</p>' +
+      '<button class="skip" id="again">Change an answer</button></div>';
+    document.getElementById('again').onclick = function () { i = 0; skipped = {}; show(); };
+  }
+})();
+</script>
+</body>
+</html>

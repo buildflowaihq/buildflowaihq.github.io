@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>BuildFlowAI</title>
+<style>html,body{background:#16181B;margin:0}</style></head><body>
+<script>
+// Opens the main BuildFlowAI app from inside /record/, so desktop dock apps that were added from the recorder link keep it in their own window.
+fetch('../app.html?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
+  t = t.replace('<head>', '<head><base href="../">');
+  document.open(); document.write(t); document.close();
+}).catch(function () { location.replace('../app.html' + location.search); });
+</script>
+</body></html>

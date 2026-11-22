@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>location.replace("../app.html" + location.search + location.hash);</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>BuildFlowAI preview</title>
+<meta name="apple-mobile-web-app-title" content="BuildFlowAI">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#16181B">
+<meta name="robots" content="noindex">
+<meta http-equiv="Cache-Control" content="no-cache">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon-180.png">
+<link rel="icon" href="../icons/favicon-32.png" sizes="32x32">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#16181B; --card:#1F2226; --card2:#262A2F; --line:#33373D; --ink:#F1EEE6; --muted:#A9A79F; --faint:#6E6C66;
+          --accent:#B4EE3A; --coral:#E8796E; --bad:#FF8A7A; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:var(--bg); height:100%; }
+  body { margin:0; color:var(--ink); font-family:"Outfit", -apple-system, system-ui, sans-serif; font-size:18px; line-height:1.4; }
+  button { font:inherit; color:inherit; }
+  [hidden] { display:none !important; }
+  .app { max-width:640px; margin:0 auto; min-height:100%; display:flex; flex-direction:column;
+         padding:max(12px, env(safe-area-inset-top)) 16px 0; }
+  /* top bar: tabs + Call */
+  .top { display:flex; align-items:center; gap:10px; padding:4px 0 10px; }
+  .tabs { display:flex; background:var(--card); border:1.5px solid var(--line); border-radius:999px; padding:3px; }
+  .tabs button { border:0; background:transparent; padding:8px 16px; border-radius:999px; font-size:16px; font-weight:500; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .tabs button.on { background:var(--ink); color:var(--bg); }
+  .badge { min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--coral); color:#fff; font-size:12px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+  .tabs button.on .badge { background:var(--bg); color:var(--ink); }
+  .spacer { flex:1; }
+  .call { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; background:var(--card);
+          border:1.5px solid var(--line); font-size:16px; font-weight:500; cursor:pointer; }
+  .call svg { color:var(--accent); }
+  .pv { background:#2B2F34; border:1.5px dashed var(--accent); border-radius:12px; padding:8px 12px; font-size:14px; margin:0 0 10px; text-align:center; color:var(--muted); }
+  .pv b { color:var(--ink); font-weight:600; }
+
+  /* ---------- Chat ---------- */
+  .chat { flex:1; display:flex; flex-direction:column; min-height:0; }
+  .hello { flex:1; display:flex; flex-direction:column; justify-content:center; padding:10px 0 8px; }
+  .hello img { width:min(230px, 62vw); height:auto; display:block; margin:0 auto 18px; }
+  .hello h1 { font-size:28px; font-weight:600; margin:0 0 14px; }
+  .chat.talking .hello { display:none; }
+  .msgs { display:none; flex:1; overflow-y:auto; padding:6px 0 12px; }
+  .chat.talking .msgs { display:block; }
+  .m { margin:12px 0; display:flex; }
+  .m.me { justify-content:flex-end; }
+  .m .b { max-width:86%; padding:11px 15px; border-radius:18px; white-space:pre-wrap; word-wrap:break-word; }
+  .m.me .b { background:var(--card2); border-bottom-right-radius:6px; }
+  .m.ai .b { background:transparent; padding-left:2px; padding-right:2px; max-width:100%; }
+  .m.ai .who { font-size:13px; color:var(--accent); font-weight:600; margin-bottom:2px; }
+  .src { margin-top:8px; font-size:13px; color:var(--muted); }
+  .chip { display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:6px 12px; border-radius:999px; background:#232A16; border:1px solid rgba(180,238,58,.35); color:var(--accent); font-size:14px; }
+  .mail { margin-top:12px; border:1.5px solid var(--line); border-radius:14px; background:var(--card); padding:12px 14px; }
+  .mail .h { font-size:13px; color:var(--muted); margin-bottom:2px; }
+  .mail .sub { font-weight:600; margin:4px 0 8px; }
+  .mail .body { white-space:pre-wrap; font-size:15px; color:var(--ink); max-height:240px; overflow:auto; border-top:1px solid var(--line); padding-top:8px; }
+  .mail .acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .mail a, .mail button { padding:8px 14px; border-radius:12px; border:1.5px solid var(--line); background:transparent; color:var(--ink); font-size:15px; text-decoration:none; cursor:pointer; }
+  .mail a.pri { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:600; }
+  .maybe { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .maybe .q { width:100%; color:var(--accent); font-weight:600; font-size:16px; }
+  .maybe button { padding:8px 18px; border-radius:12px; border:1.5px solid var(--line); background:transparent; font-size:15px; cursor:pointer; }
+  .maybe button.pri { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:600; }
+  .typing { color:var(--muted); font-size:15px; }
+  .typing i { display:inline-block; width:6px; height:6px; margin:0 2px; border-radius:50%; background:var(--muted); animation:blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay:.2s; } .typing i:nth-child(3) { animation-delay:.4s; }
+  @keyframes blink { 0%,80%,100% { opacity:.25; } 40% { opacity:1; } }
+  .newchat { display:none; margin:2px auto 0; background:none; border:0; color:var(--muted); font-size:14px; text-decoration:underline; cursor:pointer; }
+  .chat.talking .newchat { display:block; }
+
+  /* the box (composer) */
+  .dock { padding:6px 0 max(12px, env(safe-area-inset-bottom)); background:var(--bg); }
+  .chat.talking .dock { position:sticky; bottom:0; }
+  .composer { background:var(--card); border:1.5px solid var(--line); border-radius:20px; padding:6px 6px 6px 14px; }
+  .composer:focus-within { border-color:var(--accent); }
+  .composer .row { display:flex; align-items:flex-end; gap:6px; }
+  .composer textarea { flex:1; min-width:0; min-height:46px; max-height:200px; border:0; background:transparent; color:var(--ink);
+         padding:11px 0; resize:none; outline:none; font:inherit; font-size:18px; line-height:1.35; }
+  ::placeholder { color:var(--faint); }
+  @media (max-width:480px) { .chat:not(.talking) .composer textarea { min-height:70px; } }
+  .go { flex:none; width:42px; height:42px; border-radius:50%; border:0; cursor:pointer; display:flex; align-items:center; justify-content:center; background:var(--accent); color:var(--bg); }
+  .go:disabled { opacity:.4; }
+  .tools { display:flex; align-items:center; gap:4px; padding:6px 4px 0; }
+  .tool { width:40px; height:40px; border-radius:50%; border:0; background:transparent; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .tool:hover { color:var(--ink); background:var(--card); }
+  .tool.on { background:var(--accent); color:var(--bg); animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(180,238,58,.5); } 50% { box-shadow:0 0 0 10px rgba(180,238,58,0); } }
+  .tool.rec { display:none; }
+  .chat.talking .tool.rec { display:flex; }
+  .tool.rec i { width:12px; height:12px; border-radius:50%; background:var(--coral); box-shadow:0 0 0 3px rgba(180,238,58,.35); }
+  .hint { font-size:14px; color:var(--muted); margin:4px 6px 0; }
+  .plusmenu { display:flex; gap:8px; padding:6px 0 0; }
+  .plusmenu button { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; border-radius:14px; border:1.5px solid var(--line); background:var(--card); font-size:16px; cursor:pointer; }
+  .flist { list-style:none; padding:0; margin:4px 0 0; }
+  .flist li { display:flex; justify-content:space-between; gap:10px; padding:6px 0; color:var(--muted); font-size:15px; border-bottom:1px solid var(--line); }
+  .flist button { background:none; border:0; color:var(--muted); font-size:15px; text-decoration:underline; cursor:pointer; }
+  #files, #cam { display:none; }
+  /* record a meeting (option A) */
+  .recA { display:flex; align-items:center; gap:14px; padding:12px 14px; margin:0 0 14px; background:var(--card); border:1.5px solid var(--line); border-radius:16px; color:inherit; text-decoration:none; }
+  .recA .dot { flex:none; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid rgba(180,238,58,.45); }
+  .recA .dot i { width:16px; height:16px; border-radius:50%; background:var(--coral); }
+  .recA:hover .dot { border-color:var(--accent); }
+  .recA b { display:block; font-weight:600; font-size:17px; }
+  .recA small { display:block; color:var(--muted); font-size:14px; }
+
+  /* ---------- To-do ---------- */
+  .todo { flex:1; padding:4px 0 30px; }
+  .todo h1 { font-size:26px; font-weight:600; margin:6px 0 4px; }
+  .todo .sub { color:var(--muted); font-size:15px; margin:0 0 14px; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+  .filters button { padding:6px 14px; border-radius:999px; border:1.5px solid var(--line); background:transparent; font-size:15px; color:var(--muted); cursor:pointer; }
+  .filters button.on { border-color:var(--ink); color:var(--ink); }
+  .sec { font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:18px 2px 8px; }
+  .item { background:var(--card); border:1.5px solid var(--line); border-radius:16px; padding:14px 14px 12px; margin:0 0 10px; }
+  .item.urgent { border-left:4px solid var(--coral); }
+  .item .t { font-weight:600; font-size:18px; line-height:1.3; }
+  .item .meta { font-size:14px; color:var(--muted); margin-top:3px; }
+  .item .d { font-size:15px; color:#CFCCC3; margin-top:8px; }
+  .item .auto { font-size:13px; color:var(--muted); margin-top:8px; display:flex; gap:6px; align-items:flex-start; }
+  .item .auto svg { flex:none; color:var(--accent); margin-top:2px; }
+  .acts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .acts button { padding:9px 14px; border-radius:12px; border:1.5px solid var(--line); background:transparent; font-size:15px; cursor:pointer; }
+  .acts button.pri { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:600; }
+  .acts button:disabled { opacity:.5; }
+  .snz { display:flex; gap:6px; margin-top:8px; }
+  .snz button { flex:1; padding:8px; border-radius:10px; border:1.5px solid var(--line); background:var(--bg); font-size:14px; cursor:pointer; }
+  .item.ask { border-color:rgba(180,238,58,.5); }
+  .item.ask .q { color:var(--accent); font-weight:600; margin-top:8px; }
+  .item.finished { opacity:.75; padding:10px 14px; display:flex; align-items:center; gap:10px; }
+  .item.finished .t { font-size:16px; font-weight:500; text-decoration:line-through; text-decoration-color:var(--faint); }
+  .item.finished .meta { margin:0; }
+  .item.finished .grow { flex:1; min-width:0; }
+  .undo { background:none; border:0; color:var(--accent); font-size:15px; cursor:pointer; text-decoration:underline; }
+  .empty { text-align:center; color:var(--muted); padding:30px 0; }
+  .err { color:var(--bad); font-size:15px; margin:8px 2px; }
+
+  .sheet { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:flex-end; justify-content:center; z-index:20; }
+  .sheet > div { background:var(--card); width:100%; max-width:520px; border-radius:20px 20px 0 0; padding:24px 20px max(24px, env(safe-area-inset-bottom)); text-align:center; }
+  .sheet h3 { margin:6px 0 6px; font-size:22px; }
+  .sheet p { color:var(--muted); margin:0 0 18px; font-size:16px; }
+  .sheet button { width:100%; padding:14px; border-radius:12px; border:0; background:var(--accent); color:var(--bg); font-weight:600; cursor:pointer; }
+  .dropover { position:fixed; inset:0; z-index:30; background:rgba(22,24,27,.93); border:3px dashed var(--accent); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:600; color:var(--accent); pointer-events:none; }
+  .dropover span { background:var(--card); border:1.5px solid var(--accent); border-radius:999px; padding:14px 26px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="tabs" role="tablist">
+      <button type="button" id="tabChat" class="on" role="tab">Chat</button>
+      <button type="button" id="tabTodo" role="tab">To-do <span class="badge" id="todoCount" hidden></span></button>
+    </div>
+    <span class="spacer"></span>
+    <button class="call" id="call" type="button" aria-label="Call BuildFlowAI"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>Call</button>
+  </div>
+  <p class="pv"><b>Preview for Michael.</b> This page is connected: requests and To-do changes are real.</p>
+
+  <!-- CHAT (home) -->
+  <section class="chat" id="chat">
+    <div class="hello">
+      <img src="../icons/logo.png" alt="BuildFlowAI, AI Business Builder">
+      <h1>New request</h1>
+      <a class="recA" href="../voice-preview/"><span class="dot"><i></i></span><span><b>Record a meeting</b><small>Saved to the job folder</small></span></a>
+    </div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="dock">
+      <form id="f" novalidate>
+        <div class="composer" id="composer">
+          <ul class="flist" id="flist"></ul>
+          <div class="row">
+            <textarea id="what" rows="1" placeholder="Ask BuildFlowAI a question or start a task…" aria-label="Message"></textarea>
+            <button class="go" id="send" type="submit" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </div>
+        </div>
+        <div class="tools">
+          <button class="tool" id="plus" type="button" aria-label="Add photos or files"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4v14M4 11h14"/></svg></button>
+          <button class="tool" id="mic" type="button" aria-label="Talk instead of typing"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <a class="tool rec" href="../voice-preview/" aria-label="Record a meeting" title="Record a meeting"><i></i></a>
+          <span class="spacer"></span>
+          <button class="newchat" id="newchat" type="button">New chat</button>
+        </div>
+        <div class="plusmenu" id="plusMenu" hidden>
+          <button type="button" id="camBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Take photo</button>
+          <button type="button" id="addBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>Photos or files</button>
+        </div>
+        <p class="hint" id="hint" hidden></p>
+        <input type="file" id="cam" accept="image/*" capture="environment">
+        <input type="file" id="files" multiple>
+      </form>
+    </div>
+  </section>
+
+  <!-- TO-DO -->
+  <section class="todo" id="todo" hidden>
+    <h1>To-do</h1>
+    <p class="sub">Items stay here until they're done. BuildFlowAI checks them off when it can tell, and asks when it can't.</p>
+    <div class="filters" id="filters" hidden></div>
+    <p class="err" id="todoErr" hidden></p>
+    <div id="todoList"><p class="empty">Loading…</p></div>
+  </section>
+
+  <div class="dropover" id="dropover" hidden><span>Drop to attach</span></div>
+  <div class="sheet" id="callSheet" hidden><div>
+    <h3>Talk to BuildFlowAI</h3>
+    <p>This will be a live voice call with BuildFlowAI, in the same warm voice as the recorder. It's the same chat, just spoken. Coming soon.</p>
+    <button type="button" id="callClose">OK</button>
+  </div></div>
+</div>
+
+<script>
+(function () {
+  var API = "https://script.google.com/macros/s/AKfycbzi4KHTN8AChENP4Ar28nSZCsBPkSzxQ2dytwbO-GTAX0x5VGnK60bLJXq3WZm_A7zU9g/exec"; // requests + To-do
+  var CHAT = "https://buildflowai-chat.mekovacs22.workers.dev";  // answers from the brain (Gemini)
+  var $ = function (id) { return document.getElementById(id); };
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var m = location.search.match(/[?&]k=([\w-]+)/);
+  var key = m ? m[1] : store('abf_k');
+  if (m) store('abf_k', key);
+  var HKEY = 'abf_chat_' + (key || 'x').slice(0, 6);
+
+  // ---------- tabs ----------
+  function show(tab) {
+    $('tabChat').classList.toggle('on', tab === 'chat'); $('tabTodo').classList.toggle('on', tab === 'todo');
+    $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo';
+    if (tab === 'todo') loadTodos();
+  }
+  $('tabChat').onclick = function () { show('chat'); };
+  $('tabTodo').onclick = function () { show('todo'); };
+  $('call').onclick = function () { $('callSheet').hidden = false; };
+  $('callClose').onclick = function () { $('callSheet').hidden = true; };
+
+  var box = document.getElementById('what');
+  // ---------- chat history (kept on this device) ----------
+  var hist = []; try { hist = JSON.parse(store(HKEY) || '[]'); } catch (e) { hist = []; }
+  function save() { store(HKEY, JSON.stringify(hist.slice(-60))); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function bubble(msg) {
+    var d = document.createElement('div'); d.className = 'm ' + (msg.role === 'user' ? 'me' : 'ai');
+    var b = document.createElement('div'); b.className = 'b';
+    if (msg.role !== 'user') b.innerHTML = '<div class="who">BuildFlowAI</div>';
+    var t = document.createElement('div'); t.textContent = msg.text; b.appendChild(t);
+    if (msg.files) { var f = document.createElement('div'); f.className = 'src'; f.textContent = 'Attached: ' + msg.files; b.appendChild(f); }
+    if (msg.sources && msg.sources !== 'general') { var s = document.createElement('div'); s.className = 'src'; s.textContent = 'From: ' + msg.sources.split('|').map(function (x) { return x.trim(); }).join(' · '); b.appendChild(s); }
+    if (msg.req) { var c = document.createElement('div'); c.className = 'chip'; c.textContent = '✓ Got it, starting this as a task (#' + msg.req + ')'; b.appendChild(c); }
+    if (msg.mail) {
+      var m = msg.mail, mc = document.createElement('div'); mc.className = 'mail';
+      var to = m.to ? (m.to_name ? m.to_name + ' <' + m.to + '>' : m.to) : (m.to_name || 'Add who it goes to');
+      mc.innerHTML = '<div class="h">Email draft · To: ' + esc(to) + '</div><div class="sub">' + esc(m.subject || '(no subject)') + '</div><div class="body"></div>';
+      mc.querySelector('.body').textContent = m.body || '';
+      var ma = document.createElement('div'); ma.className = 'acts';
+      var go = document.createElement('a'); go.className = 'pri'; go.textContent = 'Send from my email';
+      go.href = 'mailto:' + encodeURIComponent(m.to || '').replace(/%40/g, '@') + '?subject=' + encodeURIComponent(m.subject || '') + '&body=' + encodeURIComponent(m.body || '');
+      var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'Copy text';
+      cp.onclick = function () { try { navigator.clipboard.writeText((m.subject ? 'Subject: ' + m.subject + '\n\n' : '') + (m.body || '')); cp.textContent = 'Copied'; } catch (e) {} };
+      ma.appendChild(go); ma.appendChild(cp); mc.appendChild(ma); b.appendChild(mc);
+    }
+    if (msg.maybe && !msg.req) {
+      var q = document.createElement('div'); q.className = 'maybe';
+      if (msg.declined) q.innerHTML = '<span class="src">Kept as a chat, no task.</span>';
+      else {
+        q.innerHTML = '<div class="q">Want me to make this a task?</div>';
+        var y = document.createElement('button'); y.type = 'button'; y.textContent = 'Yes'; y.className = 'pri';
+        var n = document.createElement('button'); n.type = 'button'; n.textContent = 'No';
+        y.onclick = function () { y.disabled = n.disabled = true; fileRequest(msg.ask + '\n\n(BuildFlowAI summary: ' + msg.maybe + ')', []).then(function (d) { msg.req = d.num; save(); redraw(); loadTodos(); }, function () { y.disabled = n.disabled = false; }); };
+        n.onclick = function () { msg.declined = true; save(); redraw(); };
+        q.appendChild(y); q.appendChild(n);
+      }
+      b.appendChild(q);
+    }
+    d.appendChild(b); $('msgs').appendChild(d); return { el: d, text: t, box: b };
+  }
+  function redraw() {
+    $('msgs').innerHTML = ''; hist.forEach(bubble);
+    $('chat').classList.toggle('talking', hist.length > 0);
+    box.placeholder = hist.length ? 'Reply or start a new task…' : 'Ask BuildFlowAI a question or start a task…';
+    $('msgs').scrollTop = $('msgs').scrollHeight; window.scrollTo(0, document.body.scrollHeight);
+  }
+  redraw();
+  $('newchat').onclick = function () { hist = []; save(); redraw(); $('what').focus(); };
+
+  // ---------- files ----------
+  var picked = [];
+  function addFiles(list) { Array.prototype.forEach.call(list || [], function (f) { if (picked.length < 10) picked.push(f); }); drawFiles(); }
+  function drawFiles() {
+    var ul = $('flist'); ul.innerHTML = '';
+    picked.forEach(function (f, i) {
+      var li = document.createElement('li'); var s = document.createElement('span'); s.textContent = f.name || ('Photo ' + (i + 1));
+      var x = document.createElement('button'); x.type = 'button'; x.textContent = 'Remove'; x.onclick = function () { picked.splice(i, 1); drawFiles(); };
+      li.appendChild(s); li.appendChild(x); ul.appendChild(li);
+    });
+  }
+  $('plus').onclick = function () { $('plusMenu').hidden = !$('plusMenu').hidden; };
+  $('camBtn').onclick = function () { $('cam').click(); };
+  $('addBtn').onclick = function () { $('files').click(); };
+  $('cam').onchange = function () { addFiles(this.files); this.value = ''; $('plusMenu').hidden = true; };
+  $('files').onchange = function () { addFiles(this.files); this.value = ''; $('plusMenu').hidden = true; };
+  ['dragenter', 'dragover'].forEach(function (t) { window.addEventListener(t, function (e) {
+    if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') > -1) { e.preventDefault(); $('dropover').hidden = false; } }); });
+  ['dragleave', 'dragend'].forEach(function (t) { window.addEventListener(t, function (e) { if (!e.relatedTarget) $('dropover').hidden = true; }); });
+  window.addEventListener('drop', function (e) { $('dropover').hidden = true; if (!e.dataTransfer || !e.dataTransfer.files.length) return; e.preventDefault(); addFiles(e.dataTransfer.files); show('chat'); });
+  window.addEventListener('paste', function (e) { var it = (e.clipboardData && e.clipboardData.files) || []; if (it.length) { e.preventDefault(); addFiles(it); } });
+  function readFile(f) { return new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result).split(',')[1]); }; fr.onerror = rej; fr.readAsDataURL(f); }); }
+  function shrink(f) {
+    if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type)) return readFile(f).then(function (d) { return { name: f.name, type: f.type, data: d }; });
+    return new Promise(function (res) {
+      var url = URL.createObjectURL(f), img = new Image();
+      img.onload = function () {
+        var s = Math.min(1, 2000 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        res({ name: (f.name || 'photo').replace(/\.\w+$/, '') + '.jpg', type: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.85).split(',')[1] });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); readFile(f).then(function (d) { res({ name: f.name, type: f.type, data: d }); }); };
+      img.src = url;
+    });
+  }
+
+  // ---------- box: autogrow, Enter to send on a computer, mic ----------
+  box.addEventListener('input', function () { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 200) + 'px'; });
+  box.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !/iphone|ipad|android/i.test(navigator.userAgent)) { e.preventDefault(); $('f').requestSubmit(); }
+  });
+  (function () {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null, on = false, base = '', mic = $('mic'), hint = $('hint');
+    mic.onclick = function () {
+      if (!SR) { hint.hidden = false; hint.textContent = 'Talking to type isn\'t available in this browser. Try Safari or Chrome.'; return; }
+      if (on) { rec.stop(); return; }
+      rec = new SR(); rec.lang = 'en-US'; rec.continuous = true; rec.interimResults = true;
+      base = box.value ? box.value.replace(/\s*$/, ' ') : '';
+      rec.onresult = function (e) { var t = ''; for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; box.value = base + t; box.dispatchEvent(new Event('input')); };
+      rec.onerror = function (e) { hint.hidden = false; hint.textContent = e.error === 'not-allowed' ? 'Allow the microphone to talk instead of typing.' : 'Didn\'t catch that. Tap the mic and try again.'; };
+      rec.onend = function () { on = false; mic.classList.remove('on'); if (!/Allow|catch/.test(hint.textContent)) hint.hidden = true; };
+      rec.start(); on = true; mic.classList.add('on'); hint.hidden = false; hint.textContent = 'Listening. Tap the mic again when you\'re done, then the arrow to send.';
+    };
+  })();
+
+  // ---------- send ----------
+  function fileRequest(what, files) { // files the work in the tracker; the receiver wakes the inbox agent at once
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ k: key, what: what, job: '', when: '', files: files || [] }) }).then(function (r) { return r.json(); })
+      .then(function (d) { if (!d.ok) throw new Error(d.error || 'fail'); return d; });
+  }
+  function askBrain(onText) { // streams an answer from the brain + Gemini chat worker
+    var msgs = hist.filter(function (x) { return x.text; }).slice(-24).map(function (x) { return { role: x.role, text: x.text }; });
+    return fetch(CHAT + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ messages: msgs }) }).then(function (r) {
+      if (!r.ok || !r.body) throw new Error('chat ' + r.status);
+      var rd = r.body.getReader(), dec = new TextDecoder(), all = '';
+      function pump() { return rd.read().then(function (x) { if (x.done) return all; all += dec.decode(x.value, { stream: true }); onText(all); return pump(); }); }
+      return pump();
+    });
+  }
+  function split(raw) { // reply text, SOURCES line, TASK line (work), MAYBE_TASK line (not sure), EMAIL_DRAFT line (JSON)
+    var src = '', task = '', maybe = '', mail = null;
+    var lines = raw.replace(/\s+$/, '').split('\n').filter(function (l) {
+      var s = l.match(/^\s*SOURCES:\s*(.*)$/i), t = l.match(/^\s*TASK:\s*(.*)$/i), mb = l.match(/^\s*MAYBE_TASK:\s*(.*)$/i);
+      var em = l.match(/^\s*EMAIL_DRAFT:\s*(.*)$/i); // hidden while it streams in
+      if (em) { try { mail = JSON.parse(em[1]); } catch (e) { mail = null; } return false; }
+      if (s) { src = s[1].trim(); return false; } if (t) { task = t[1].trim(); return false; } if (mb) { maybe = mb[1].trim(); return false; } return true;
+    });
+    return { text: lines.join('\n').replace(/\s+$/, ''), sources: src, task: task, maybe: maybe, mail: mail };
+  }
+  var busy = false;
+  $('f').onsubmit = function (ev) {
+    ev.preventDefault();
+    var what = box.value.trim();
+    if (busy || (!what && !picked.length)) return;
+    if (!key) { alert('This page needs your personal BuildFlowAI link.'); return; }
+    busy = true; $('send').disabled = true; $('plusMenu').hidden = true;
+    var files = picked.slice(); picked = []; drawFiles();
+    var me = { role: 'user', text: what || 'Photos and files', files: files.map(function (f) { return f.name || 'photo'; }).join(', ') };
+    hist.push(me); save(); box.value = ''; box.style.height = ''; redraw();
+    var ai = { role: 'assistant', text: '' }, view = bubble(ai);
+    view.text.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+    $('chat').classList.add('talking'); $('msgs').scrollTop = $('msgs').scrollHeight;
+    function finish() { hist.push(ai); save(); redraw(); busy = false; $('send').disabled = false; }
+    function asRequest(text, reply) {
+      return Promise.all(files.map(shrink)).then(function (data) { return fileRequest(text, data); }).then(function (d) {
+        ai.req = d.num; ai.text = d.reply || reply || 'Got it. BuildFlowAI is on it. You\'ll hear back here or by email.';
+      });
+    }
+    var p;
+    if (files.length) p = asRequest(what || 'Photos and files from the app'); // photos and files always go in as work
+    else p = askBrain(function (raw) { view.text.textContent = split(raw).text; $('msgs').scrollTop = $('msgs').scrollHeight; })
+      .then(function (raw) {
+        var r = split(raw); ai.text = r.text; ai.sources = r.sources;
+        if (r.mail) { ai.mail = r.mail; return; } // a draft for them to send from their own email
+        if (r.maybe && !r.task) { ai.maybe = r.maybe; ai.ask = what; return; }
+        if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; });
+      }, function () { return asRequest(what); }); // chat not reachable yet: file it so nothing is lost
+    p.then(finish, function () { ai.text = 'That didn\'t go through. Check your connection and tap send again.'; hist.pop(); box.value = what; finish(); });
+  };
+
+  // ---------- To-do ----------
+  var todos = [], me = '', admin = false, who = 'mine', openSnooze = '';
+  function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
+  function loadTodos() {
+    if (!key) { $('todoList').innerHTML = '<p class="empty">This page needs your personal link.</p>'; return; }
+    return fetch(API + '?action=todos&k=' + encodeURIComponent(key)).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) throw new Error('todos');
+      todos = d.items; me = d.me; admin = d.admin; $('todoErr').hidden = true; drawTodos();
+    }).catch(function () { $('todoErr').hidden = false; $('todoErr').textContent = 'Couldn\'t load the list. Pull down or tap To-do to try again.'; });
+  }
+  function act(id, op, until) {
+    var t = todos.filter(function (x) { return x.id === id; })[0]; if (!t) return;
+    var before = t.status; // update the screen right away, then save
+    t.status = { done: 'done', yes: 'done', cancel: 'cancelled', snooze: 'snoozed', notyet: 'open', undo: 'open' }[op] || t.status;
+    t.updated = new Date().toISOString(); openSnooze = ''; drawTodos();
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: key, action: 'todo', id: id, op: op, until: until }) })
+      .then(function (r) { return r.json(); }).then(function (d) { if (!d.ok) throw new Error(); return loadTodos(); })
+      .catch(function () { t.status = before; drawTodos(); $('todoErr').hidden = false; $('todoErr').textContent = 'That didn\'t save. Try again.'; });
+  }
+  function drawTodos() {
+    var people = []; todos.forEach(function (t) { if (people.indexOf(t.person) < 0) people.push(t.person); });
+    var fl = $('filters'); fl.hidden = !admin; fl.innerHTML = '';
+    if (admin) ['all'].concat(people).forEach(function (p) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = p === 'all' ? 'Everyone' : p; b.className = (who === p || (who === 'mine' && p === 'all')) ? 'on' : '';
+      b.onclick = function () { who = p; drawTodos(); }; fl.appendChild(b);
+    });
+    var list = todos.filter(function (t) { return !admin || who === 'mine' || who === 'all' || t.person === who; });
+    var ask = list.filter(function (t) { return t.status === 'ask'; });
+    var open = list.filter(function (t) { return t.status === 'open'; }).sort(function (a, b) { return (b.urgent - a.urgent) || (new Date(a.created) - new Date(b.created)); });
+    var snoozed = list.filter(function (t) { return t.status === 'snoozed'; });
+    var fin = list.filter(function (t) { return /done|cancelled/.test(t.status); }).sort(function (a, b) { return new Date(b.updated) - new Date(a.updated); });
+    var openCount = list.filter(function (t) { return t.status === 'open' || t.status === 'ask'; }).length;
+    $('todoCount').hidden = !openCount; $('todoCount').textContent = openCount;
+    var out = $('todoList'); out.innerHTML = '';
+    function sec(label) { var h = document.createElement('p'); h.className = 'sec'; h.textContent = label; out.appendChild(h); }
+    function card(t) {
+      var c = document.createElement('div'); c.className = 'item' + (t.urgent ? ' urgent' : '') + (t.status === 'ask' ? ' ask' : '');
+      var meta = [t.job, admin ? t.person : '', 'open ' + ago(t.created)].filter(Boolean).join(' · ');
+      c.innerHTML = '<div class="t">' + esc(t.title) + '</div><div class="meta">' + esc(meta) + '</div>' +
+        (t.detail ? '<div class="d">' + esc(t.detail) + '</div>' : '') +
+        (t.auto ? '<div class="auto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>' + esc(t.auto) + '</span></div>' : '') +
+        (t.status === 'ask' ? '<div class="q">' + esc(t.note || 'Did this get done?') + '</div>' : '');
+      var a = document.createElement('div'); a.className = 'acts';
+      function btn(label, fn, pri) { var b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (pri) b.className = 'pri'; b.onclick = fn; a.appendChild(b); }
+      if (t.status === 'ask') { btn('Yes, done', function () { act(t.id, 'yes'); }, true); btn('Not yet', function () { act(t.id, 'notyet'); }); }
+      else {
+        btn('Done', function () { act(t.id, 'done'); }, true);
+        btn('Snooze', function () { openSnooze = openSnooze === t.id ? '' : t.id; drawTodos(); });
+        btn('Cancel', function () { act(t.id, 'cancel'); });
+      }
+      c.appendChild(a);
+      if (openSnooze === t.id) {
+        var s = document.createElement('div'); s.className = 'snz';
+        [['tomorrow', 'Tomorrow'], ['monday', 'Monday'], ['week', 'Next week']].forEach(function (o) {
+          var b = document.createElement('button'); b.type = 'button'; b.textContent = o[1]; b.onclick = function () { act(t.id, 'snooze', o[0]); }; s.appendChild(b);
+        });
+        c.appendChild(s);
+      }
+      out.appendChild(c);
+    }
+    function small(t) {
+      var c = document.createElement('div'); c.className = 'item finished';
+      var label = t.status === 'cancelled' ? 'Cancelled' : t.status === 'snoozed' ? 'Back ' + new Date(t.until).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) :
+        t.status === 'autodone' ? 'Checked off by BuildFlowAI' : 'Done' + (t.by && t.by !== me ? ' by ' + t.by : '');
+      c.innerHTML = '<div class="grow"><div class="t">' + esc(t.title) + '</div><div class="meta">' + esc(label) + '</div></div>';
+      var u = document.createElement('button'); u.type = 'button'; u.className = 'undo'; u.textContent = t.status === 'snoozed' ? 'Bring back' : 'Undo';
+      u.onclick = function () { act(t.id, 'undo'); }; c.appendChild(u);
+      if (t.status === 'snoozed') c.querySelector('.t').style.textDecoration = 'none';
+      out.appendChild(c);
+    }
+    if (ask.length) { sec('Did these get done?'); ask.forEach(card); }
+    if (open.length) { sec('Open'); open.forEach(card); }
+    if (!ask.length && !open.length) out.innerHTML += '<p class="empty">Nothing open. Nice.</p>';
+    if (snoozed.length) { sec('Snoozed'); snoozed.forEach(small); }
+    if (fin.length) { sec('Done recently'); fin.forEach(small); }
+  }
+  loadTodos();
+  if (location.hash === '#todo') show('todo');
+})();
+</script>
+</body>
+</html>
