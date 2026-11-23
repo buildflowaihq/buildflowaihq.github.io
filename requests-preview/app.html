@@ -561,7 +561,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231830";
+(function(){var BUILD="202611231900";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1492,6 +1492,28 @@ window.dashJobMounted = function (el, job) {
         return fetch('https://kdb-finance.mekovacs22.workers.dev/api/co/save', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ job: c.job, title: v.title, description: v.description, lines: lines, days_impact: Number(v.days) || 0, attachments: (photos || []).slice(0, 4).map(function (p) { return { name: p.name, mime: p.type, data: p.data }; }) }) }).then(function (r) { return r.json(); })
           .then(function (r) { if (!r.ok) throw new Error(r.error || 'That did not save. Nothing was created.'); return 'Saved as draft ' + ((r.co && r.co.number) || 'change order') + ' for ' + (c.jobName || c.job) + ((photos || []).length ? ' with ' + Math.min(4, photos.length) + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. It is not sent to the client.'; });
+      }
+    },
+    schedmove: {
+      title: 'Schedule change', btn: 'Apply', foot: 'Nothing changes on the schedule until you press Apply. Items that depend on this one move with it.', hint: '',
+      fields: function (c) {
+        var ch = (c.changes || []).map(function (x) { return (x.title || x.id) + ': ' + (x.from || '?') + ' → ' + (x.to || '?'); }).join('\n');
+        return [{ k: 'job', l: 'Job', v: c.jobName || c.job || '', ro: 1 }, { k: 'item', l: 'Item', v: c.title || '', ro: 1 }, { k: 'start', l: 'New start', v: c.to || '', ro: 1, half: 1 }, { k: 'was', l: 'Was', v: c.from || '', ro: 1, half: 1 },
+          { k: 'chg', l: 'Everything that would shift (' + (c.changes || []).length + ')', v: ch, area: 1, ro: 1 }].concat(c.needsApproval ? [{ k: 'ap', l: 'Needs an owner OK', v: 'This move needs approval from an owner (Kyle or Mary).', ro: 1 }] : []).concat(c.held ? [{ k: 'hd', l: 'Held', v: String(typeof c.held === 'string' ? c.held : JSON.stringify(c.held)), ro: 1 }] : []);
+      },
+      send: function (v, c) {
+        if (c.cycle) return Promise.reject(new Error('That move would create a loop in the schedule, so it can’t be applied.'));
+        return fetch(CHAT + '/api/sched', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ op: 'move', job: c.job, id: c.id, start: c.to }) })
+          .then(function (r) { return r.json(); }).then(function (r) { if (r.error) throw new Error(r.error); return 'Moved ' + c.title + ' to ' + c.to + '. ' + ((r.changes || []).length || (c.changes || []).length) + ' item(s) updated on ' + (c.jobName || c.job) + '.'; });
+      }
+    },
+    schedadd: {
+      title: 'New schedule item', btn: 'Add to schedule', foot: 'Adds the item to the job’s schedule when you press the button.', hint: '',
+      fields: function (c) { return [{ k: 'job', l: 'Job', v: c.jobName || c.job || '', ro: 1 }, { k: 'title', l: 'Title', v: c.title || '' }, { k: 'start', l: 'Start', v: c.start || '', type: 'date', half: 1 }, { k: 'days', l: 'Work days', v: String(c.workDays || 1), half: 1 }, { k: 'notes', l: 'Notes', v: c.notes || '', area: 1 }]; },
+      send: function (v, c) {
+        if (!v.title.trim() || !/^\d{4}-\d\d-\d\d$/.test(v.start)) return Promise.reject(new Error('Add a title and a start date.'));
+        return fetch(CHAT + '/api/sched', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ op: 'add', job: c.job, title: v.title, start: v.start, workDays: Number(v.days) || 1, notes: v.notes }) })
+          .then(function (r) { return r.json(); }).then(function (r) { if (r.error) throw new Error(r.error); return 'Added ' + v.title + ' on ' + v.start + ' to ' + (c.jobName || c.job) + '.'; });
       }
     },
     meeting: {
