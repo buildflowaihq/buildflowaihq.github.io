@@ -1461,17 +1461,17 @@ window.dashJobMounted = function (el, job) {
       }
     },
     changeorder: {
-      title: 'Change order draft', btn: 'Save draft', foot: 'Saves a draft change order in the job\u2019s finance. Nothing goes to the client until you send it for approval there.',
+      photos: 1, title: 'Change order draft', btn: 'Save draft', foot: 'Saves a draft change order in the job\u2019s finance. Nothing goes to the client until you send it for approval there.',
       hint: '',
       fields: function (c) { return [{ k: 'job', l: 'Job', v: c.jobName || c.job || '', ro: 1 }, { k: 'title', l: 'Title', v: c.title || '' }, { k: 'description', l: 'What is changing', v: c.description || '', area: 1 },
         { k: 'lines', l: 'Lines, one per row: description | price to the client', v: (c.lines || []).map(function (l) { return l.desc + ' | ' + l.price; }).join('\n'), area: 1 }, { k: 'days', l: 'Days added to the schedule', v: String(c.days_impact || 0), half: 1 }]; },
-      send: function (v, c) {
+      send: function (v, c, photos) {
         var lines = String(v.lines || '').split('\n').map(function (l) { var m = l.match(/^(.*?)[|\t]+\s*\$?\s*([\d,]+(?:\.\d+)?)\s*$/); return m ? { desc: m[1].trim(), qty: 1, unit_cost: 0, price_override: parseFloat(m[2].replace(/,/g, '')) } : null; }).filter(function (l) { return l && l.desc; });
         if (!v.title.trim()) return Promise.reject(new Error('Give the change order a title.'));
         if (!lines.length) return Promise.reject(new Error('Add at least one line like: Fireplace surround | 4200'));
         return fetch('https://kdb-finance.mekovacs22.workers.dev/api/co/save', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ job: c.job, title: v.title, description: v.description, lines: lines, days_impact: Number(v.days) || 0 }) }).then(function (r) { return r.json(); })
-          .then(function (r) { if (!r.ok) throw new Error(r.error || 'That did not save. Nothing was created.'); return 'Saved as draft ' + ((r.co && r.co.number) || 'change order') + ' for ' + (c.jobName || c.job) + '. It is not sent to the client.'; });
+          body: JSON.stringify({ job: c.job, title: v.title, description: v.description, lines: lines, days_impact: Number(v.days) || 0, attachments: (photos || []).slice(0, 4).map(function (p) { return { name: p.name, mime: p.type, data: p.data }; }) }) }).then(function (r) { return r.json(); })
+          .then(function (r) { if (!r.ok) throw new Error(r.error || 'That did not save. Nothing was created.'); return 'Saved as draft ' + ((r.co && r.co.number) || 'change order') + ' for ' + (c.jobName || c.job) + ((photos || []).length ? ' with ' + Math.min(4, photos.length) + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. It is not sent to the client.'; });
       }
     },
     meeting: {
@@ -1522,6 +1522,15 @@ window.dashJobMounted = function (el, job) {
         row2.appendChild(cb); row2.appendChild(l); cbox.appendChild(row2);
       });
     }
+    var photos = [];
+    if (a.photos) {
+      var pw = document.createElement('div'); pw.style.marginTop = '8px'; var pl = document.createElement('div'); pl.className = 'fine';
+      var pf = document.createElement('input'); pf.type = 'file'; pf.accept = 'image/*'; pf.multiple = true; pf.hidden = true;
+      var pb = document.createElement('button'); pb.type = 'button'; pb.textContent = 'Add photos';
+      pb.onclick = function () { pf.click(); };
+      pf.onchange = function () { pl.textContent = 'Preparing photos…'; Promise.all(Array.prototype.slice.call(pf.files, 0, 4).map(shrink)).then(function (d) { photos = d; pl.textContent = d.length ? d.length + ' photo' + (d.length > 1 ? 's' : '') + ' attached (up to 4)' : ''; }); };
+      pw.appendChild(pb); pw.appendChild(pf); pw.appendChild(pl); cbox.appendChild(pw);
+    }
     var acts = document.createElement('div'); acts.className = 'acts';
     var go = document.createElement('button'); go.type = 'button'; go.className = 'pri'; go.textContent = a.btn || 'Send';
     var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'Copy text';
@@ -1529,7 +1538,7 @@ window.dashJobMounted = function (el, job) {
     var er = document.createElement('div'); er.className = 'bad'; er.hidden = true;
     go.onclick = function () {
       var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value.trim(); }); er.hidden = true; go.disabled = true; go.textContent = 'Sending…';
-      a.send(v, c).then(function (m) { msg.cardDone = m; if (msg.todo) { try { act(msg.todo, 'done'); } catch (x) {} } save(); redraw(); }, function (e) { go.disabled = false; go.textContent = a.btn || 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
+      a.send(v, c, photos).then(function (m) { msg.cardDone = m; if (msg.todo) { try { act(msg.todo, 'done'); } catch (x) {} } save(); redraw(); }, function (e) { go.disabled = false; go.textContent = a.btn || 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
     };
     acts.appendChild(go); acts.appendChild(cp); cbox.appendChild(acts); cbox.appendChild(er);
     var fn = document.createElement('div'); fn.className = 'fine'; fn.textContent = a.foot || ('Nothing is sent until you press Send. ' + a.hint); cbox.appendChild(fn);
