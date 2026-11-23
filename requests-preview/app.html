@@ -460,6 +460,8 @@
 .dash .dk-tw{overflow-x:auto}.dash .dk-tbl{width:100%;border-collapse:collapse;font-size:13px}.dash .dk-tbl th{text-align:left;font-weight:600;font-size:12px;padding:8px 10px;white-space:nowrap;opacity:.75;border-bottom:1px solid rgba(255,255,255,.12)}.dash .dk-tbl td{padding:10px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top;white-space:nowrap}
 @media(max-width:700px){.dash .dk-trip{grid-template-columns:1fr}.dash .dk-tc{border-left:0;padding:8px 0}.dash .dk-pr{grid-template-columns:1fr}}
 .dash .dk-fd li{display:block;grid-template-columns:none}.dash .dk-fd li span{display:block}
+.dash .dk-dl{list-style:none;margin:0;padding:0}.dash .dk-dl li{padding:12px 0;border-top:1px solid rgba(255,255,255,.08)}.dash .dk-dl li:first-child{border-top:0}
+.dash .dk-dh{font-size:14px}.dash .dk-dm{font-size:12px;opacity:.7;margin:2px 0 6px}.dash .dk-dl p{margin:0;font-size:13px;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -576,7 +578,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611232252";
+(function(){var BUILD="202611232318";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -765,6 +767,22 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return '<section class="card"><div class="ch"><h2>Recent activity from your team</h2></div><ul class="feed dk-fd">' + h + '</ul></section>';
   }
 
+  // ---- Daily logs / Messages / Files from the one-time history read (DATA.history[jobId] = {logs, messages, files}). Shown only when there are rows. ----
+  function histHtml(id) {
+    var H = (DATA.history || {})[id]; if (!H) return '';
+    var h = '';
+    if (H.logs && H.logs.length) h += '<section class="card"><div class="ch"><h2>Daily logs</h2><span class="dk-src" style="margin:0">' + H.logs.length + ' logs</span></div><ul class="dk-dl">' + H.logs.map(function (l) {
+      return '<li><div class="dk-dh"><b>' + esc(l.date) + '</b>' + (l.title ? ' · ' + esc(l.title) : '') + '</div><div class="dk-dm">' + esc(l.author || '') + (l.visibility ? ' · ' + esc(l.visibility) : '') + (l.temps ? ' · ' + esc(l.temps) : '') + (l.photos && l.photos !== '0' && l.photos !== '0 photos' ? ' · ' + esc(String(l.photos)) + ' photo' + (String(l.photos)[0] === '1' ? '' : 's') : '') + '</div><p>' + esc(l.text || '') + '</p></li>';
+    }).join('') + '</ul></section>';
+    if (H.messages && H.messages.length) h += '<section class="card"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + H.messages.length + '</span></div><ul class="dk-dl">' + H.messages.map(function (m) {
+      return '<li><div class="dk-dh"><b>' + esc(m.title || '(no subject)') + '</b></div><div class="dk-dm">' + esc(m.from || '') + (m.to ? ' to ' + esc(m.to) : '') + ' · ' + esc(m.date || '') + '</div><p>' + esc(m.body || '') + '</p></li>';
+    }).join('') + '</ul></section>';
+    if (H.files && H.files.length) h += '<section class="card"><div class="ch"><h2>Files</h2><span class="dk-src" style="margin:0">' + H.files.length + '</span></div><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th><th>Added by</th></tr></thead><tbody>' + H.files.map(function (f) {
+      return '<tr><td>' + esc(f.name) + '</td><td>' + esc(f.folder || '') + '</td><td>' + esc(f.date || '') + '</td><td>' + esc(f.by || '') + '</td></tr>';
+    }).join('') + '</tbody></table></section>';
+    return h;
+  }
+
   function render() {
     sideHtml();
     loadWx(); DATA.wx = WX[wxKey()] || { time: [], code: [], hi: [], rain: [] };
@@ -786,7 +804,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Schedule web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + peopleHtml(j) + triptychHtml(acts) + actionsHtml(acts) + newHtml(v) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
-        '</div><div>' + updatesHtml() + weekHtml(sch) + todoHtml() +
+        histHtml(v) + '</div><div>' + updatesHtml() + weekHtml(sch) + todoHtml() +
         contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
         (act.length ? activityGrouped(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div><div id="dash-ext"></div>';
     }
@@ -1174,7 +1192,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     fetch(base + '/api/dash?preview=1', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('dash ' + r.status); return r.json(); })
       .then(function (d) {
-        ['jobs', 'leads', 'actions', 'schedule', 'activity', 'reminders', 'money'].forEach(function (k) { if (d[k]) DATA[k] = d[k]; });
+        ['jobs', 'leads', 'actions', 'schedule', 'activity', 'reminders', 'money', 'history'].forEach(function (k) { if (d[k]) DATA[k] = d[k]; });
         if (d.people && !opts.people) PEOPLE = d.people;
         SNAP = DATA.schedule;
       }, function () { /* no private data: the dashboard shows what it can */ })
