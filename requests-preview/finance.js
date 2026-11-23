@@ -27,6 +27,7 @@
     });
   }
   // One-time (safe to repeat) copy of what's already in the client's current software, so numbers carry on from there.
+  function btIso(v) { var d = new Date(String(v || '').replace(/,\s*\d+:\d+.*$/, '')); return isNaN(d) ? '' : d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function maybeImport() {
     var x = S.snap, d = S.data;
     if (!x || !x.f || !d || d.job.base.imported) return Promise.resolve();
@@ -38,7 +39,8 @@
       budget: (x.codes || []).map(function (r) { return { code: r['Cost code'], category: r['Cost category'], name: r['Cost code'], original: num(r['Original budget costs']), actual_base: num(r['Actual costs']) }; }),
       pos: (x.pos || []).map(function (r) { var paid = String(r.Paid || '').toLowerCase() === 'paid'; var cost = num(r.Cost); return { number: r['PO #'], title: r.Title, vendor: r['Performed By'], status: r['PO Status'], cost: cost, paid_amount: paid ? cost : 0 }; }),
       cos: (x.cos || []).map(function (r) { return { number: r['CO ID#'], title: r.Title, status: r.Status, builder_cost: num(r['Builder cost']), price: num(r['Total price']) }; }),
-      invoices: (x.inv || []).map(function (r) { return { number: r['Invoice ID'], title: r.Title, status: r.Status, total: num(r['Total price']), paid_amount: num(r['Amount paid']), due_date: String(r.Due || '').slice(0, 10), date_paid: String(r['Date paid'] || '').slice(0, 10), qb: r['QuickBooks invoice'] }; })
+      invoices: (x.inv || []).map(function (r) { return { number: r['Invoice ID'], title: r.Title, status: r.Status, total: num(r['Total price']), paid_amount: num(r['Amount paid']), due_date: String(r.Due || '').slice(0, 10), date_paid: String(r['Date paid'] || '').slice(0, 10), qb: r['QuickBooks invoice'] }; }),
+      bills: (x.bills || []).map(function (r) { return { number: r['Bill #'], title: r['Bill title'], vendor: r['Pay to'], status: r['Bill status'], amount: num(r['Bill amount']), paid_amount: num(r['Amount paid']), bill_date: btIso(r['Invoice date']), due_date: btIso(r['Due date']), date_paid: btIso(r['Date paid']) }; })
     };
     return call('POST', 'import', body).then(function (r) {
       if (!r.ok) { flash('Could not copy numbers from the current job software: ' + r.error, true); return; }
@@ -100,7 +102,7 @@
     var rec = id ? (S.data.bills || []).filter(function (x) { return x.id === id; })[0] : null;
     var b = rec ? JSON.parse(JSON.stringify(rec)) : { title: '', vendor: { name: '' }, cost_code: '', amount: '', bill_date: ymd(new Date()), due_date: '', notes: '', status: 'draft', payments: [], events: [] };
     var m = document.createElement('div'); m.className = 'bf-modal'; document.documentElement.classList.add('bf-lock');
-    var can = S.cfg.can_approve, ro = b.status === 'void';
+    var can = S.cfg.can_approve, ro = b.status === 'void' || !!b.imported;
     function close() { m.remove(); document.documentElement.classList.remove('bf-lock'); }
     function paint() {
       var t = b.totals || { amount: n2(b.amount), paid: 0, remaining: n2(b.amount) };
@@ -126,15 +128,15 @@
   }
   function poList(d) {
     return '<div class="bf-bar"><button class="bf-btn" data-bf-new="po">+ Purchase order</button><span class="dk-m">Approved POs count as committed costs.</span></div>' +
-      table([['PO #', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">BT</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Performed by', function (r) { return esc(r.vendor.name); }], ['Status', function (r) { return badge(r.display); }], ['Cost', function (r) { return money(r.totals.cost); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1]], d.pos, 'po', 'No purchase orders yet.');
+      table([['PO #', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Performed by', function (r) { return esc(r.vendor.name); }], ['Status', function (r) { return badge(r.display); }], ['Cost', function (r) { return money(r.totals.cost); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1]], d.pos, 'po', 'No purchase orders yet.');
   }
   function coList(d) {
     return '<div class="bf-bar"><button class="bf-btn" data-bf-new="co">+ Change order</button><span class="dk-m">Approved changes raise the contract price and the budget.</span></div>' +
-      table([['CO #', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">BT</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.status === 'pending' ? 'Waiting on client' : r.status.charAt(0).toUpperCase() + r.status.slice(1)); }], ['Builder cost', function (r) { return money(r.totals.builder); }, 1], ['Total price', function (r) { return money(r.totals.price); }, 1], ['Changed', function (r) { return fdate((r.decided_at || r.sent_at || r.created_at || '').slice(0, 10)); }]], d.cos, 'co', 'No change orders yet.');
+      table([['CO #', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.status === 'pending' ? 'Waiting on client' : r.status.charAt(0).toUpperCase() + r.status.slice(1)); }], ['Builder cost', function (r) { return money(r.totals.builder); }, 1], ['Total price', function (r) { return money(r.totals.price); }, 1], ['Changed', function (r) { return fdate((r.decided_at || r.sent_at || r.created_at || '').slice(0, 10)); }]], d.cos, 'co', 'No change orders yet.');
   }
   function invList(d) {
     return '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
-      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">BT</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && r.qb.status === 'ready' ? 'Ready' : '—'; }]], d.invoices, 'inv', 'No invoices yet.');
+      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && r.qb.status === 'ready' ? 'Ready' : '—'; }]], d.invoices, 'inv', 'No invoices yet.');
   }
 
   // ---------- editor (one panel for all three, same grid as the current job software)
