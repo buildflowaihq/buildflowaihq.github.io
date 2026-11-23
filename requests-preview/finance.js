@@ -22,7 +22,8 @@
   function load() {
     return call('GET', 'job?job=' + encodeURIComponent(S.job.id)).then(function (d) {
       if (!d.ok) { S.err = d.error || 'Could not load'; S.data = null; draw(); return; }
-      S.err = ''; S.data = d; draw();
+      S.err = ''; S.data = d;
+      return call('GET', 'vendors').then(function (v) { S.vendors = v.ok ? v.vendors : []; draw(); });
     });
   }
   // One-time (safe to repeat) copy of what's already in the client's current software, so numbers carry on from there.
@@ -53,9 +54,9 @@
     h += '<div class="ch"><h2>Financial</h2><span class="dk-src" style="margin:0">Live in BuildFlowAI · numbers start from your current software</span></div>';
     if (S.err) { el.innerHTML = h + '<p class="dk-empty">' + esc(S.err) + '</p>'; return; }
     if (!d) { el.innerHTML = h + '<p class="dk-empty">Loading…</p>'; return; }
-    var T = [['overview', 'Overview'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft]];
+    var T = [['overview', 'Overview'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft], ['vendors', 'Vendors']];
     h += '<div class="dk-tabs bf-tabs" role="tablist">' + T.map(function (t) { return '<button role="tab" data-bf-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
-    h += S.tab === 'overview' ? overview(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : invList(d);
+    h += S.tab === 'overview' ? overview(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : invList(d);
     el.innerHTML = h;
     if (S.ed) drawEditor();
   }
@@ -85,6 +86,13 @@
     if (!rows.length) return '<p class="dk-empty">' + empty + '</p>';
     return '<div class="tw"><table class="bt bf-click"><thead><tr>' + cols.map(function (c) { return '<th' + (c[2] ? ' class="r"' : '') + '>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.map(function (r) { return '<tr data-bf-open="' + kind + ':' + r.id + '" tabindex="0">' + cols.map(function (c) { var v = c[1](r); return '<td' + (c[2] ? ' class="r"' : '') + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function insBadge(v) { return v.insurance_status === 'ok' ? badge('Insured') : v.insurance_status === 'expiring' ? badge('Draft').replace('Draft', 'Expires ' + fdate(v.insurance_expires)) : v.insurance_status === 'expired' ? badge('Void').replace('Void', 'Insurance expired') : '<span class="dk-m">None on file</span>'; }
+  function vendorTab() {
+    var vs = S.vendors || [], ev = S.vEdit || null;
+    var f = '<form class="bf-form" data-bf-vendor><input type="hidden" name="id" value="' + esc(ev ? ev.id : '') + '"><div class="bf-row"><label>Name<input name="name" required value="' + esc(ev ? ev.name : '') + '"></label><label>Trade<input name="trade" value="' + esc(ev ? ev.trade : '') + '"></label></div><div class="bf-row"><label>Email<input name="email" type="email" value="' + esc(ev ? ev.email : '') + '"></label><label>Phone<input name="phone" value="' + esc(ev ? ev.phone : '') + '"></label></div><div class="bf-row"><label>Insurance expires<input name="insurance_expires" type="date" value="' + esc(ev ? ev.insurance_expires : '') + '"></label><label class="bf-chk"><input name="w9_on_file" type="checkbox" ' + (ev && ev.w9_on_file ? 'checked' : '') + '> W-9 on file</label></div><label>Notes<input name="notes" value="' + esc(ev ? ev.notes : '') + '"></label><div class="bf-bar"><button class="bf-btn" type="submit">' + (ev ? 'Save changes' : 'Add vendor') + '</button>' + (ev ? '<button class="bf-btn alt" type="button" data-bf-vcancel>Cancel</button>' : '') + '</div></form>';
+    var t = vs.length ? '<div class="tw"><table class="bt"><thead><tr><th>Name</th><th>Trade</th><th>Email</th><th>Phone</th><th>Insurance</th><th>W-9</th><th></th></tr></thead><tbody>' + vs.map(function (v) { return '<tr><td>' + esc(v.name) + '</td><td>' + esc(v.trade) + '</td><td>' + esc(v.email) + '</td><td>' + esc(v.phone) + '</td><td>' + insBadge(v) + '</td><td>' + (v.w9_on_file ? 'Yes' : '') + '</td><td><button class="link" data-bf-vedit="' + esc(v.id) + '">Edit</button> <button class="bf-x" data-bf-vdel="' + esc(v.id) + '" title="Remove">×</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="dk-empty">No vendors yet. Add the subs and suppliers you use; they show up when you make a purchase order.</p>';
+    return '<div class="bf-bar"><span class="dk-m">Everyone you buy from, shared by all jobs.</span></div>' + t + '<details class="fold sub"' + (ev || !vs.length ? ' open' : '') + '><summary><h3>' + (ev ? 'Edit vendor' : 'Add a vendor') + '</h3></summary>' + f + '</details>';
   }
   function poList(d) {
     return '<div class="bf-bar"><button class="bf-btn" data-bf-new="po">+ Purchase order</button><span class="dk-m">Approved POs count as committed costs.</span></div>' +
@@ -135,11 +143,12 @@
     var title = (k === 'po' ? 'Purchase order' : k === 'co' ? 'Change order' : 'Invoice') + (r.number ? ' ' + r.number : ' (new)');
     var stat = k === 'po' ? r.display || 'Draft' : k === 'co' ? ({ draft: 'Draft', pending: 'Waiting on client', approved: 'Approved', declined: 'Declined', void: 'Void' }[r.status]) : r.display || 'Draft';
     var h = '<div class="bf-head"><div><b>' + esc(title) + '</b> ' + badge(stat) + (r.imported ? ' <small class="bf-imp">from your current software</small>' : '') + '</div><button class="bf-x big" data-bf-close aria-label="Close">×</button></div><div class="bf-body">';
+    if (k === 'po' && r.status === 'draft' && r.vendor && r.vendor.name) { var vv = (S.vendors || []).filter(function (x) { return x.name.toLowerCase() === r.vendor.name.toLowerCase(); })[0]; if (vv && (vv.insurance_status === 'expired' || vv.insurance_status === 'none')) h += '<p class="bf-warn">' + esc(vv.name) + ' has ' + (vv.insurance_status === 'expired' ? 'insurance that expired ' + fdate(vv.insurance_expires) : 'no insurance on file') + '. Check before you approve.</p>'; else if (!vv) h += '<p class="dk-m">Not in your vendor list yet. Add them under Vendors to track insurance.</p>'; }
     if (r.imported) h += '<p class="bf-warn">This came from your current software. Totals and status are copied; line detail was not available. It is read-only here.</p>';
     if (k === 'po' && r.approved_by) h += '<p class="dk-m">Approved by ' + esc(r.approved_by) + ' on ' + fdate((r.approved_at || '').slice(0, 10)) + '</p>';
     h += '<form class="bf-form" data-bf-form autocomplete="off"><fieldset ' + (locked ? 'disabled' : '') + '>';
     h += '<label>Title<input data-f="title" value="' + esc(r.title) + '"></label>';
-    if (k === 'po') h += '<div class="bf-row"><label>Assigned to (who is doing the work)<input data-f="vendor.name" value="' + esc(r.vendor.name) + '"></label><label>Their email<input data-f="vendor.email" type="email" value="' + esc(r.vendor.email) + '"></label></div><div class="bf-row"><label>Scheduled completion<input data-f="due_date" type="date" value="' + esc(r.due_date) + '"></label><label class="bf-chk"><input data-f="materials_only" type="checkbox" ' + (r.materials_only ? 'checked' : '') + '> Materials only</label><label class="bf-chk"><input data-f="variance.is" type="checkbox" ' + (r.variance && r.variance.is ? 'checked' : '') + '> Variance PO</label></div><label>Scope of work<textarea data-f="scope" rows="3">' + esc(r.scope) + '</textarea></label>';
+    if (k === 'po') h += '<div class="bf-row"><label>Assigned to (who is doing the work)<input data-f="vendor.name" list="bf-vendors" value="' + esc(r.vendor.name) + '"></label><datalist id="bf-vendors">' + (S.vendors || []).map(function (v) { return '<option value="' + esc(v.name) + '">'; }).join('') + '</datalist><label>Their email<input data-f="vendor.email" type="email" value="' + esc(r.vendor.email) + '"></label></div><div class="bf-row"><label>Scheduled completion<input data-f="due_date" type="date" value="' + esc(r.due_date) + '"></label><label class="bf-chk"><input data-f="materials_only" type="checkbox" ' + (r.materials_only ? 'checked' : '') + '> Materials only</label><label class="bf-chk"><input data-f="variance.is" type="checkbox" ' + (r.variance && r.variance.is ? 'checked' : '') + '> Variance PO</label></div><label>Scope of work<textarea data-f="scope" rows="3">' + esc(r.scope) + '</textarea></label>';
     if (k === 'co') h += '<label>Description for the client<textarea data-f="description" rows="3">' + esc(r.description) + '</textarea></label><div class="bf-row"><label>Days added to schedule<input data-f="days_impact" inputmode="numeric" value="' + esc(r.days_impact || 0) + '"></label><label>Respond by<input data-f="approval_deadline" type="date" value="' + esc(r.approval_deadline) + '"></label></div>';
     if (k === 'inv') {
       var draws = (d.job.draws || []).filter(function (x) { return !x.invoice_id || x.invoice_id === r.id; });
@@ -259,6 +268,9 @@
     if ((b = t.closest('[data-bf-new]'))) { openEditor(b.dataset.bfNew); return; }
     if ((b = t.closest('[data-bf-open]'))) { var p = b.dataset.bfOpen.split(':'); S.tab = p[0]; openEditor(p[0], p[1]); return; }
     if (t.closest('[data-bf-close]')) { closeEditor(); return; }
+    if ((b = t.closest('[data-bf-vedit]'))) { S.vEdit = (S.vendors || []).filter(function (v) { return v.id === b.dataset.bfVedit; })[0]; draw(); return; }
+    if (t.closest('[data-bf-vcancel]')) { S.vEdit = null; draw(); return; }
+    if ((b = t.closest('[data-bf-vdel]'))) { if (confirm('Remove this vendor from your list? Existing purchase orders keep their name.')) call('POST', 'vendor/delete', { id: b.dataset.bfVdel }).then(function () { flash('Vendor removed.'); load(); }); return; }
     if (t.closest('[data-bf-draws]')) { openDraws(); return; }
     if (t.closest('[data-bf-qb]')) { call('GET', 'qb-export?job=' + encodeURIComponent(S.job.id)).then(function (r) { openText('QuickBooks-ready invoices', r.ok ? JSON.stringify(r.invoices, null, 2) : r.error, 'Not sent to QuickBooks. This is the shape a later sync will use. ' + r.invoices.length + ' invoice(s).'); }); return; }
     if (!S.ed) return;
@@ -292,6 +304,10 @@
     if (f.hasAttribute('data-bf-client')) {
       e.preventDefault(); var sg = [0, 1].map(function (i) { return { name: f['n' + i].value.trim(), email: f['e' + i].value.trim() }; }).filter(function (s) { return s.name || s.email; });
       call('POST', 'job/setup', { job: S.job.id, client: { name: sg[0] ? sg[0].name : '', email: sg[0] ? sg[0].email : '', signers: sg } }).then(function (r) { if (!r.ok) return flash(r.error, true); flash('Saved.'); load(); }); return;
+    }
+    if (f.hasAttribute('data-bf-vendor')) {
+      e.preventDefault(); var vb = {}; ['id', 'name', 'trade', 'email', 'phone', 'insurance_expires', 'notes'].forEach(function (n) { vb[n] = f[n].value.trim(); }); vb.w9_on_file = f.w9_on_file.checked; if (!vb.id) delete vb.id;
+      call('POST', 'vendor/save', vb).then(function (r) { if (!r.ok) return flash(r.error, true); S.vEdit = null; flash('Saved ' + r.vendor.name + '.'); load(); }); return;
     }
     if (f.hasAttribute('data-bf-pay')) {
       e.preventDefault(); var kind = f.getAttribute('data-bf-pay'), body = { amount: f.amount.value, date: f.date.value, method: f.method.value, ref: f.ref.value };
@@ -338,7 +354,7 @@
     if (bound.has(el)) return; bound.add(el);
     el.addEventListener('click', onClick); el.addEventListener('submit', onSubmit);
     el.addEventListener('input', function (e) { if (!S.ed || !e.target.closest('.bf-modal')) return; syncField(e.target); if (e.target.dataset.f === 'mode') drawEditor(); else refreshTotals(); });
-    el.addEventListener('change', function (e) { if (!S.ed || !e.target.closest('.bf-modal')) return; syncField(e.target); if (e.target.dataset.f === 'mode') drawEditor(); else refreshTotals(); });
+    el.addEventListener('change', function (e) { if (!S.ed || !e.target.closest('.bf-modal')) return; syncField(e.target); if (e.target.dataset.f === 'vendor.name') { var vm = (S.vendors || []).filter(function (x) { return x.name.toLowerCase() === e.target.value.toLowerCase(); })[0]; if (vm && !S.ed.rec.vendor.email) { S.ed.rec.vendor.email = vm.email; drawEditor(); return; } } if (e.target.dataset.f === 'mode') drawEditor(); else refreshTotals(); });
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.ed) closeEditor(); if (e.key === 'Enter' && e.target.matches('tr[data-bf-open]')) e.target.click(); });
   }
 
