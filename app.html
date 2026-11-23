@@ -502,7 +502,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230350";
+(function(){var BUILD="202611230358";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  location.reload();}}).catch(function(){})}
@@ -581,7 +581,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var later = items.filter(function (e) { return e.date > new Date(start.getTime() + (days - 1) * 864e5).toISOString().slice(0, 10); });
     if (later.length) h += '<li><div class="dk-d"><b>Later</b></div><div>' + later.map(function (e) { return '<div class="ev ' + (e.auto ? 'auto' : e.bt ? 'btv' : '') + '"><span class="dk-t">' + dayName(e.date, { month: 'short', day: 'numeric' }) + '</span><b>' + esc(e.title) + '</b><span>' + (e.job && S.view === 'all' ? tag(e.job) + (e.note ? ' · ' : '') : '') + esc(e.note || '') + '</span></div>'; }).join('') + '</div></li>';
     return '<section class="card"><div class="ch"><h2>Schedule</h2><button class="link" data-add>+ Add a date</button></div>' +
-      '<form class="addd" id="dash-addd" hidden><input name="title" placeholder="What is it? e.g. Tile delivery" aria-label="What" required><input name="date" type="date" aria-label="Date" required><input name="time" type="time" aria-label="Time (optional)"><button type="submit">Save</button><button type="button" data-addx>Cancel</button><p class="dk-err" id="dash-adderr" hidden></p></form><ul class="ag">' + h + '</ul><div class="lg"><span><i class="s"></i>KDB Schedule</span><span><i class="a"></i>Dates BuildFlow found in contracts and emails</span>' + (DATA.btSchedule ? '<span><i class="b"></i>Buildertrend schedule</span>' : '') + '</div><p class="dk-src">' + (S.live === false ? 'Couldn’t reach the KDB Schedule calendar just now. Showing saved dates.' : S.live ? 'Live from the KDB Schedule Google calendar. Changes there show here.' : 'Loading the KDB Schedule calendar…') + '</p></section>';
+      '<form class="addd" id="dash-addd" hidden><input name="title" placeholder="What is it? e.g. Tile delivery" aria-label="What" required><input name="date" type="date" aria-label="Date" required><input name="time" type="time" aria-label="Time (optional)"><button type="submit">Save</button><button type="button" data-addx>Cancel</button><p class="dk-err" id="dash-adderr" hidden></p></form><ul class="ag">' + h + '</ul><div class="lg"><span><i class="s"></i>KDB Schedule</span><span><i class="a"></i>Dates BuildFlow found in contracts and emails</span>' + (DATA.btSchedule ? '<span><i class="b"></i>Job schedule</span>' : '') + '</div><p class="dk-src">' + (S.live === false ? 'Couldn’t reach the KDB Schedule calendar just now. Showing saved dates.' : S.live ? 'Live from the KDB Schedule Google calendar. Changes there show here.' : 'Loading the KDB Schedule calendar…') + '</p></section>';
   }
 
   function glanceHtml() {
@@ -886,7 +886,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     DATA.btSchedule = (T.Schedule || []).map(function (r) {
       var j = jobFor(r.job || r.Job), st = btDate(r.Start), en = btDate(r.End) || st, done = String(r.Complete) === '100%' || num(r.Complete) === 1;
       if (!st || done || en < today) return null;
-      return { date: st < today ? today : st, job: j ? j.id : '', title: r.Title, note: (st < today ? 'In progress, ends ' + dayName(en, { month: 'short', day: 'numeric' }) : r.Duration || '') + (r['Assigned To'] ? ' · ' + r['Assigned To'] : ''), time: num(r.Complete) ? r.Complete + ' done' : 'Buildertrend', bt: true };
+      return { date: st < today ? today : st, job: j ? j.id : '', title: r.Title, note: (st < today ? 'In progress, ends ' + dayName(en, { month: 'short', day: 'numeric' }) : r.Duration || '') + (r['Assigned To'] ? ' · ' + r['Assigned To'] : ''), time: num(r.Complete) ? r.Complete + ' done' : 'Schedule', bt: true };
     }).filter(Boolean);
     var act = (T.Activity || []).filter(function (r) { return r.text; }).sort(function (a, b) { return String(b.date) > String(a.date) ? 1 : -1; }).map(function (r) {
       var j = jobFor(r.job || r.Job), d = btDate(r.date);
