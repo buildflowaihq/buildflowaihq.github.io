@@ -447,7 +447,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="pv"><b>Preview v4 (in-app send)</b> of the new Requests tab. Not live for Kyle or Mary. Requests you send here are real.</div>
+  <div class="pv"><b>Preview v5 (in-app send)</b> of the new Requests tab. Not live for Kyle or Mary. Requests you send here are real.</div>
   <div class="top">
     <div class="tabs" role="tablist">
       <button type="button" id="tabChat" class="on" role="tab">Chat</button>
@@ -1411,7 +1411,9 @@ window.dashJobMounted = function (el, job) {
       }
     }
   };
+  try { redraw(); } catch (e) {}
   function drawCard(host, msg) {
+    if (typeof ACT === 'undefined' || !ACT) return;
     var c = msg.card, a = ACT[c.type], cbox = document.createElement('div'); cbox.className = 'acard'; host.appendChild(cbox);
     if (c.type === 'choose') {
       var q = document.createElement('div'); q.className = 'h'; q.textContent = c.question || 'Pick one'; cbox.appendChild(q);
