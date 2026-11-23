@@ -23,7 +23,7 @@
     return call('GET', 'job?job=' + encodeURIComponent(S.job.id)).then(function (d) {
       if (!d.ok) { S.err = d.error || 'Could not load'; S.data = null; draw(); return; }
       S.err = ''; S.data = d;
-      return call('GET', 'vendors').then(function (v) { S.vendors = v.ok ? v.vendors : []; draw(); });
+      return Promise.all([call('GET', 'vendors'), call('GET', 'payments?job=' + encodeURIComponent(S.job.id))]).then(function (a) { S.vendors = a[0].ok ? a[0].vendors : []; S.pays = a[1].ok ? a[1] : null; draw(); });
     });
   }
   // One-time (safe to repeat) copy of what's already in the client's current software, so numbers carry on from there.
@@ -58,9 +58,9 @@
     h += '<div class="ch"><h2>Financial</h2><span class="dk-src" style="margin:0">Live in BuildFlowAI · numbers start from your current software</span></div>';
     if (S.err) { el.innerHTML = h + '<p class="dk-empty">' + esc(S.err) + '</p>'; return; }
     if (!d) { el.innerHTML = h + '<p class="dk-empty">Loading…</p>'; return; }
-    var T = [['overview', 'Overview'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft], ['bills', 'Bills', (d.rollup.pending.bills || 0)], ['vendors', 'Vendors']];
+    var T = [['overview', 'Overview'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft], ['bills', 'Bills', (d.rollup.pending.bills || 0)], ['pay', 'Payments'], ['cm', 'Credit memos'], ['dep', 'Deposits', (d.rollup.billing.deposits_held > 0 ? 1 : 0)], ['rfi', 'RFIs', (d.rollup.pending.rfis || 0)], ['vendors', 'Vendors']];
     h += '<div class="dk-tabs bf-tabs" role="tablist">' + T.map(function (t) { return '<button role="tab" data-bf-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
-    h += S.tab === 'overview' ? overview(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : S.tab === 'bills' ? billList(d) : invList(d);
+    h += S.tab === 'overview' ? overview(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : S.tab === 'bills' ? billList(d) : S.tab === 'pay' ? payTab() : S.tab === 'cm' ? cmTab(d) : S.tab === 'dep' ? depTab(d) : S.tab === 'rfi' ? rfiTab(d) : invList(d);
     el.innerHTML = h;
     keepM.forEach(function (m) { el.appendChild(m); });
     if (S.ed) drawEditor();
@@ -228,6 +228,7 @@
         ((d.pos || []).length ? '<h4>Related purchase orders</h4><div class="bf-checks">' + d.pos.map(function (x) { return '<label class="bf-chk"><input type="checkbox" data-poid="' + esc(x.id) + '"' + ((r.po_ids || []).indexOf(x.id) >= 0 ? ' checked' : '') + '> ' + esc(x.number + ' ' + x.title) + '</label>'; }).join('') + '</div>' : '');
     }
     h += '</fieldset></form>';
+    if (!S.ed.isNew) h += attachBox(r, k) + (k === 'po' ? waiverBox(r) : '');
     // bills / payments
     if (k === 'po' && r.status === 'approved') h += '<h4>Bills</h4>' + payTable(r.bills, 'bill_delete', 'bill_id') + (r.totals.remaining > 0.004 ? '<form class="bf-form bf-inline" data-bf-pay="bill"><input name="amount" inputmode="decimal" placeholder="Amount" required><input name="date" type="date" value="' + ymd(new Date()) + '"><input name="method" placeholder="Method (check, ACH, card)"><input name="ref" placeholder="Bill / ref #"><button class="bf-btn" type="submit">Record bill</button></form>' : '');
     if (k === 'inv' && r.status !== 'draft' && r.status !== 'void') h += '<h4>Payments</h4>' + payTable(r.payments, 'payment_delete', 'payment_id') + (r.totals.balance > 0.004 ? '<form class="bf-form bf-inline" data-bf-pay="payment"><input name="amount" inputmode="decimal" placeholder="Amount" value="' + r.totals.balance + '" required><input name="date" type="date" value="' + ymd(new Date()) + '"><input name="method" placeholder="Method" value="Check"><input name="ref" placeholder="Check # / ref"><button class="bf-btn" type="submit">Record payment</button></form>' : '');
@@ -331,9 +332,85 @@
     S.review = { action: 'send', to: to, subject: subj, body: body }; drawEditor();
   }
 
+
+  // ---------- batch 2: attachments, lien waivers, payments, credit memos, deposits, RFIs
+  function fileB64(f) {
+    if (/^image\//.test(f.type)) return shrink(f).then(function (b) { return { mime: 'image/jpeg', data: b, name: f.name.replace(/\.[^.]+$/, '') + '.jpg' }; });
+    return new Promise(function (ok, no) { var rd = new FileReader(); rd.onload = function () { ok({ mime: f.type, data: String(rd.result).split(',')[1] || '', name: f.name }); }; rd.onerror = function () { no(new Error('Could not read that file.')); }; rd.readAsDataURL(f); });
+  }
+  function attachBox(r, k) {
+    var at = r.attachments || [];
+    return '<h4>Attachments</h4>' + (at.length ? '<ul class="bf-hist">' + at.map(function (a) { return '<li><button class="link" type="button" data-bf-fdl="' + esc(a.id) + '">' + esc(a.name) + '</button> ' + (a.stage ? '<span class="dk-m">' + (a.stage === 'pre' ? 'before work' : 'after work') + '</span> ' : '') + '<span class="dk-m">' + Math.max(1, Math.round((a.size || 0) / 1024)) + ' KB · ' + esc(a.by || '') + '</span> <button class="link" type="button" data-bf-fdel="' + esc(a.id) + '">Remove</button></li>'; }).join('') + '</ul>' : '<p class="dk-empty">No files yet.</p>') +
+      '<div class="bf-bar">' + (k === 'po' ? '<select data-bf-stage><option value="">Attach as…</option><option value="pre">Before work</option><option value="post">After work</option></select>' : '') + '<label class="bf-btn alt bf-file">Attach photo or file<input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" multiple hidden data-bf-att></label><span class="dk-m">Photos are shrunk to fit. Files up to about 2 MB.</span></div>';
+  }
+  function waiverBox(r) {
+    var w = r.waivers || [], nm = { conditional: 'Conditional', unconditional: 'Unconditional', progress: 'progress', final: 'final' };
+    return '<h4>Lien waivers</h4>' + (w.length ? '<div class="tw"><table class="bt"><thead><tr><th>Type</th><th>Through</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead><tbody>' + w.map(function (x) { return '<tr><td>' + nm[x.type] + ' ' + nm[x.stage] + '</td><td>' + fdate(x.through_date) + '</td><td class="r">' + money(x.amount) + '</td><td>' + badge(x.status === 'received' ? 'Approved' : x.status === 'not_needed' ? 'Void' : 'Draft').replace(/>[^<]*</, '>' + (x.status === 'received' ? 'Received' : x.status === 'not_needed' ? 'Not needed' : 'Requested') + '<') + '</td><td>' +
+      (x.file_id ? '<button class="link" type="button" data-bf-fdl="' + esc(x.file_id) + '">View</button> ' : '<label class="bf-file link">Upload<input type="file" accept=".pdf,image/*" hidden data-bf-att data-waiver="' + esc(x.id) + '"></label> ') +
+      (x.status === 'requested' ? '<button class="link" type="button" data-bf-wa="waiver_update:' + esc(x.id) + ':received">Mark received</button> ' : '') + '<button class="link" type="button" data-bf-wa="waiver_delete:' + esc(x.id) + '">Remove</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="dk-empty">None requested.</p>') +
+      '<form class="bf-form bf-inline" data-bf-waiver><select name="type"><option value="conditional">Conditional</option><option value="unconditional">Unconditional</option></select><select name="stage"><option value="progress">Progress</option><option value="final">Final</option></select><input name="amount" inputmode="decimal" placeholder="Amount"><input name="through_date" type="date"><button class="bf-btn alt" type="submit">Request waiver</button></form>';
+  }
+  function dlFile(id) {
+    call('GET', 'file/get?job=' + encodeURIComponent(S.job.id) + '&id=' + encodeURIComponent(id)).then(function (r) {
+      if (!r.ok) return flash(r.error, true);
+      var bin = atob(r.data), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      var url = URL.createObjectURL(new Blob([u8], { type: r.mime })), a = document.createElement('a'); a.href = url; a.download = r.name; if (/^(image|application\/pdf)/.test(r.mime)) { a.target = '_blank'; a.removeAttribute('download'); } document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    });
+  }
+  function attachFiles(files, waiverId, stage) {
+    var ed = S.ed; if (!ed) return; var list = [].slice.call(files); flash('Attaching…');
+    return list.reduce(function (p, f) {
+      return p.then(function () { return fileB64(f).then(function (x) { return call('POST', 'file/upload', { job: S.job.id, kind: ed.kind, id: ed.rec.id, name: x.name, mime: x.mime, data: x.data, stage: stage || '', waiver_id: waiverId || undefined }); }).then(function (r) { if (!r.ok) { flash(r.error, true); return; } ed.rec.attachments = r.attachments; if (r.waivers) ed.rec.waivers = r.waivers; }).catch(function (e) { flash(e.message, true); }); });
+    }, Promise.resolve()).then(function () { flash('Attached.'); drawEditor(); load(); });
+  }
+  function pill(t) { return '<span class="bf-st">' + esc(t) + '</span>'; }
+  function payTab() {
+    var p = S.pays; if (!p) return '<p class="dk-empty">Loading…</p>';
+    return '<div class="big">' + kpi('Payments received', money(p.total_payments)) + kpi('Credits applied', money(p.total_credits)) + kpi('Deposits held', money(p.deposits_held)) + '</div>' + (p.rows.length ? '<div class="tw"><table class="bt"><thead><tr><th>Date</th><th>Type</th><th>For</th><th>Method</th><th>Ref</th><th class="r">Amount</th></tr></thead><tbody>' + p.rows.map(function (x) { return '<tr><td>' + fdate(x.date) + '</td><td>' + esc(x.type) + '</td><td>' + esc((x.ref_number || '') + ' ' + (x.title || '')) + '</td><td>' + esc(x.method || '') + '</td><td>' + esc(x.ref || '') + '</td><td class="r">' + money(x.amount) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="dk-empty">No payments yet. Record them on an invoice.</p>');
+  }
+  function invSelect(d) { return '<select name="inv_id" required><option value="">Apply to invoice…</option>' + d.invoices.filter(function (i) { return i.status !== 'draft' && i.status !== 'void' && i.totals.balance > 0.004; }).map(function (i) { return '<option value="' + esc(i.id) + '">' + esc(i.number + ' ' + i.title + ' (' + money(i.totals.balance) + ' due)') + '</option>'; }).join('') + '</select>'; }
+  function cmTab(d) {
+    var l = d.cms || [];
+    return '<form class="bf-form bf-inline" data-bf-cm><input name="title" placeholder="Credit memo title" required><input name="amount" inputmode="decimal" placeholder="Amount" required><input name="reason" placeholder="Reason"><button class="bf-btn" type="submit">Add credit memo</button></form><p class="dk-m">A credit memo lowers what the client owes. Apply it to a sent invoice.</p>' +
+      (l.length ? l.map(function (c) { return '<div class="bf-card"><b>' + esc(c.number + ' ' + c.title) + '</b> ' + pill(c.status === 'void' ? 'Void' : money(c.remaining) + ' left of ' + money(c.amount)) + (c.reason ? '<div class="dk-m">' + esc(c.reason) + '</div>' : '') + (c.applied || []).map(function (a) { return '<div class="dk-m">Applied ' + money(a.amount) + ' to ' + esc(a.inv_number) + ' · <button class="link" data-bf-x2="cm:unapply:' + esc(c.id) + ':' + esc(a.id) + '">Remove</button></div>'; }).join('') + (c.status !== 'void' && c.remaining > 0.004 ? '<form class="bf-form bf-inline" data-bf-apply="cm:' + esc(c.id) + '">' + invSelect(d) + '<input name="amount" inputmode="decimal" value="' + c.remaining + '"><button class="bf-btn alt" type="submit">Apply</button></form>' : '') + (c.status !== 'void' && !(c.applied || []).length ? '<button class="link" data-bf-x2="cm:void:' + esc(c.id) + '">Void</button> <button class="link" data-bf-x2="cm:delete:' + esc(c.id) + '">Delete</button>' : '') + '</div>'; }).join('') : '<p class="dk-empty">No credit memos.</p>');
+  }
+  function depTab(d) {
+    var l = d.deps || [];
+    return '<form class="bf-form bf-inline" data-bf-dep><input name="title" placeholder="Deposit (for example Retainer)"><input name="amount" inputmode="decimal" placeholder="Amount" required><input name="method" placeholder="Method (check, wire)"><input name="ref" placeholder="Check # / ref"><button class="bf-btn" type="submit">Record deposit</button></form><p class="dk-m">A deposit is money received before an invoice. Apply it to an invoice and it becomes a payment on it.</p>' +
+      (l.length ? l.map(function (c) { return '<div class="bf-card"><b>' + esc(c.number + ' ' + c.title) + '</b> ' + pill(c.status === 'void' ? 'Void' : money(c.remaining) + ' left of ' + money(c.amount)) + '<div class="dk-m">' + fdate(c.date) + (c.method ? ' · ' + esc(c.method) : '') + (c.ref ? ' · ' + esc(c.ref) : '') + '</div>' + (c.applied || []).map(function (a) { return '<div class="dk-m">Applied ' + money(a.amount) + ' to ' + esc(a.inv_number) + ' · <button class="link" data-bf-x2="dep:unapply:' + esc(c.id) + ':' + esc(a.id) + '">Remove</button></div>'; }).join('') + (c.status !== 'void' && c.remaining > 0.004 ? '<form class="bf-form bf-inline" data-bf-apply="dep:' + esc(c.id) + '">' + invSelect(d) + '<input name="amount" inputmode="decimal" value="' + c.remaining + '"><button class="bf-btn alt" type="submit">Apply</button></form>' : '') + (c.status !== 'void' && !(c.applied || []).length ? '<button class="link" data-bf-x2="dep:void:' + esc(c.id) + '">Void</button> <button class="link" data-bf-x2="dep:delete:' + esc(c.id) + '">Delete</button>' : '') + '</div>'; }).join('') : '<p class="dk-empty">No deposits.</p>');
+  }
+  function rfiTab(d) {
+    var l = d.rfis || [];
+    return '<form class="bf-form bf-inline" data-bf-rfi><input name="title" placeholder="RFI title" required><input name="to" placeholder="Ask who"><input name="question" placeholder="Question" required><input name="due_date" type="date"><button class="bf-btn" type="submit">Add RFI</button></form>' +
+      (l.length ? l.map(function (x) { return '<div class="bf-card"><b>' + esc(x.number + ' ' + x.title) + '</b> ' + pill(x.status) + '<div class="dk-m">' + (x.to ? 'To ' + esc(x.to) + ' · ' : '') + (x.due_date ? 'due ' + fdate(x.due_date) : '') + '</div><div>' + esc(x.question) + '</div>' + (x.answer ? '<div class="dk-m">Answer: ' + esc(x.answer) + '</div>' : '') + (x.status === 'open' ? '<form class="bf-form bf-inline" data-bf-rfians="' + esc(x.id) + '"><input name="answer" placeholder="Answer" required><button class="bf-btn alt" type="submit">Record answer</button></form>' : '') + '<button class="link" data-bf-x2="rfi:' + (x.status === 'closed' ? 'reopen' : 'close') + ':' + esc(x.id) + '">' + (x.status === 'closed' ? 'Reopen' : 'Close') + '</button> <button class="link" data-bf-x2="rfi:delete:' + esc(x.id) + '">Delete</button></div>'; }).join('') : '<p class="dk-empty">No RFIs.</p>');
+  }
+  function b2Click(t) {
+    var b;
+    if ((b = t.closest('[data-bf-fdl]'))) { dlFile(b.dataset.bfFdl); return true; }
+    if ((b = t.closest('[data-bf-x2]'))) {
+      var p = b.dataset.bfX2.split(':'), body = { job: S.job.id, id: p[2], action: p[1] }; if (p[3]) body.applied_id = p[3];
+      if ((p[1] === 'delete' || p[1] === 'void') && !confirm((p[1] === 'void' ? 'Void' : 'Delete') + ' this?')) return true;
+      call('POST', p[0] + '/act', body).then(function (r) { if (!r.ok) return flash(r.error, true); flash('Done.'); load(); }); return true;
+    }
+    if (S.ed && (b = t.closest('[data-bf-fdel]'))) { if (!confirm('Remove this file?')) return true; call('POST', 'file/delete', { job: S.job.id, kind: S.ed.kind, id: S.ed.rec.id, file_id: b.dataset.bfFdel }).then(function (r) { if (!r.ok) return flash(r.error, true); S.ed.rec.attachments = r.attachments; if (r.waivers) S.ed.rec.waivers = r.waivers; drawEditor(); load(); }); return true; }
+    if (S.ed && (b = t.closest('[data-bf-wa]'))) { var q = b.dataset.bfWa.split(':'); call('POST', 'po/act', { job: S.job.id, id: S.ed.rec.id, action: q[0], waiver_id: q[1], status: q[2] }).then(function (r) { if (!r.ok) return flash(r.error, true); S.ed.rec.waivers = r.po.waivers; S.ed.rec.events = r.po.events; drawEditor(); load(); }); return true; }
+    return false;
+  }
+  function b2Submit(f, e) {
+    var job = S.job.id, done = function (m) { return function (r) { if (!r.ok) return flash(r.error, true); flash(m); load(); }; };
+    if (f.hasAttribute('data-bf-cm')) { e.preventDefault(); call('POST', 'cm/save', { job: job, title: f.title.value, amount: f.amount.value, reason: f.reason.value }).then(done('Credit memo added.')); return true; }
+    if (f.hasAttribute('data-bf-dep')) { e.preventDefault(); call('POST', 'dep/save', { job: job, title: f.title.value, amount: f.amount.value, method: f.method.value, ref: f.ref.value }).then(done('Deposit recorded.')); return true; }
+    if (f.hasAttribute('data-bf-rfi')) { e.preventDefault(); call('POST', 'rfi/save', { job: job, title: f.title.value, question: f.question.value, to: f.to.value, due_date: f.due_date.value }).then(done('RFI added.')); return true; }
+    if (f.hasAttribute('data-bf-rfians')) { e.preventDefault(); call('POST', 'rfi/act', { job: job, id: f.getAttribute('data-bf-rfians'), action: 'answer', answer: f.answer.value }).then(done('Answer recorded.')); return true; }
+    if (f.hasAttribute('data-bf-apply')) { e.preventDefault(); var p = f.getAttribute('data-bf-apply').split(':'); call('POST', p[0] + '/act', { job: job, id: p[1], action: 'apply', inv_id: f.inv_id.value, amount: f.amount.value }).then(done('Applied.')); return true; }
+    if (f.hasAttribute('data-bf-waiver') && S.ed) { e.preventDefault(); call('POST', 'po/act', { job: job, id: S.ed.rec.id, action: 'waiver_add', type: f.type.value, stage: f.stage.value, amount: f.amount.value, through_date: f.through_date.value }).then(function (r) { if (!r.ok) return flash(r.error, true); S.ed.rec.waivers = r.po.waivers; S.ed.rec.events = r.po.events; drawEditor(); load(); }); return true; }
+    return false;
+  }
+
   // ---------- events
   function onClick(e) {
     var t = e.target, b;
+    if (b2Click(t)) return;
     if ((b = t.closest('[data-bf-tab]'))) { S.tab = b.dataset.bfTab; draw(); return; }
     if ((b = t.closest('[data-bf-new]'))) { openEditor(b.dataset.bfNew); return; }
     if ((b = t.closest('[data-bf-open]'))) { var p = b.dataset.bfOpen.split(':'); S.tab = p[0]; if (p[0] === 'bill') openBill(p[1]); else openEditor(p[0], p[1]); return; }
@@ -373,6 +450,7 @@
   }
   function onSubmit(e) {
     var f = e.target;
+    if (b2Submit(f, e)) return;
     if (f.hasAttribute('data-bf-client')) {
       e.preventDefault(); var sg = [0, 1].map(function (i) { return { name: f['n' + i].value.trim(), email: f['e' + i].value.trim() }; }).filter(function (s) { return s.name || s.email; });
       call('POST', 'job/setup', { job: S.job.id, client: { name: sg[0] ? sg[0].name : '', email: sg[0] ? sg[0].email : '', signers: sg } }).then(function (r) { if (!r.ok) return flash(r.error, true); flash('Saved.'); load(); }); return;
@@ -426,6 +504,7 @@
   function bind(el) {
     if (bound.has(el)) return; bound.add(el);
     el.addEventListener('change', function (e) { var t = e.target; if (t && t.hasAttribute && t.hasAttribute('data-bf-rcpt') && t.files && t.files.length) { var fs = t.files; uploadReceipts(fs).then(function () { t.value = ''; }); } }); el.addEventListener('click', onClick); el.addEventListener('submit', onSubmit);
+    el.addEventListener('change', function (e) { var t = e.target; if (t && t.hasAttribute && t.hasAttribute('data-bf-att') && t.files && t.files.length) { var st = t.closest('.bf-body') && t.closest('.bf-body').querySelector('[data-bf-stage]'); attachFiles(t.files, t.dataset.waiver, st ? st.value : ''); } });
     el.addEventListener('input', function (e) { if (!S.ed || !e.target.closest('.bf-modal')) return; syncField(e.target); if (e.target.dataset.f === 'mode') drawEditor(); else refreshTotals(); });
     el.addEventListener('change', function (e) { if (!S.ed || !e.target.closest('.bf-modal')) return; syncField(e.target); if (e.target.dataset.f === 'vendor.name') { var vm = (S.vendors || []).filter(function (x) { return x.name.toLowerCase() === e.target.value.toLowerCase(); })[0]; if (vm && !S.ed.rec.vendor.email) { S.ed.rec.vendor.email = vm.email; drawEditor(); return; } } if (e.target.dataset.f === 'mode') drawEditor(); else refreshTotals(); });
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.ed) closeEditor(); if (e.key === 'Enter' && e.target.matches('tr[data-bf-open]')) e.target.click(); });

@@ -47,3 +47,5 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
 
 .dash .bf-rcpt img{max-width:100%;max-height:420px;border:1px solid var(--line);border-radius:8px;display:block}
 .dash .bf-file{cursor:pointer}
+.dash .bf-card{border:1px solid var(--line,#d9d2c2);border-radius:10px;padding:10px 12px;margin:8px 0}
+.dash .bf-card .bf-form{margin-top:6px}
