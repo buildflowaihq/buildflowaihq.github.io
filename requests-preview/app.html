@@ -998,6 +998,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var m = DATA.jobs.filter(function (j) { var w = j.name.toLowerCase().replace(/^\d+\s+(w |e )?/, '').replace(/ (st|ave|dr)$/, ''); return t.indexOf(w) >= 0 && (j.id !== 'alameda700' || t.indexOf('700') >= 0); })[0];
     return m ? m.id : '';
   }
+  // A meeting title is written by whoever scheduled it ("Meeting with Kyle"). Whoever it names sees it from their own side: "Meeting with <the person who scheduled it>".
+  function fromMySide(title, by) {
+    var me = String((DATA.me && DATA.me.name) || '').trim().split(/\s+/)[0].toLowerCase(), b = String(by || '').trim().split(/\s+/)[0];
+    if (!me || !b || b.toLowerCase() === me) return title;
+    return String(title).replace(/\b(with)\s+([A-Z][a-z]+)\b/, function (m, w, n) { return n.toLowerCase() === me ? w + ' ' + b : m; });
+  }
   function loadCal() {
     if (!S.cal) { S.live = false; render(); return; }
     fetch(S.cal + '?action=week&k=' + encodeURIComponent(S.key) + '&start=' + DATA.today + '&days=60')
@@ -1010,7 +1016,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
           var isJob = function (x) { if (!J) return false; var a = x.toLowerCase(), n = J.name.toLowerCase(); return n.indexOf(a) >= 0 || n.replace(/^\d+\s+(w |e )?/, '').replace(/ (st|ave|dr)$/, '') === a.replace(/^\d+\s+(w |e )?/, '').replace(/ (st|ave|dr)$/, ''); };
           var keep = parts.filter(function (x) { return !isJob(x); });
           if (!keep.length) keep = parts;
-          return { date: ev.allDay ? ev.start.slice(0, 10) : ymd(new Date(ev.start)), job: jid, title: keep[0], note: keep.slice(1).concat(paren).join(' · ') || ev.where || '',
+          return { date: ev.allDay ? ev.start.slice(0, 10) : ymd(new Date(ev.start)), job: jid, title: fromMySide(keep[0], ev.by), note: keep.slice(1).concat(paren).join(' · ') || ev.where || '',
             time: ev.timeToConfirm ? 'Time TBD' : ev.allDay ? 'All day' : fmtTime(ev.start), auto: ev.auto, live: !ev.auto, link: ev.link };
         });
         var hol = SNAP.filter(function (e) { return e.hol && e.date >= DATA.today; });
