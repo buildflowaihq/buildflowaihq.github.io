@@ -560,7 +560,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231545";
+(function(){var BUILD="202611231600";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1120,12 +1120,51 @@ window.dashJobMounted = function (el, job) {
       });
     });
   }
+  // ---- Printable prep sheet: a clean one-page-style view of a Help me result, with Print / Save as PDF ----
+  function prepHtml(text) {
+    var out = [], list = '';
+    function close() { if (list) { out.push('</' + list + '>'); list = ''; } }
+    function inl(x) { return esc(x).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'); }
+    String(text || '').split('\n').forEach(function (l) {
+      var m;
+      if ((m = l.match(/^\s*#{1,2}\s+(.*)/))) { close(); out.push('<h2>' + inl(m[1]) + '</h2>'); }
+      else if ((m = l.match(/^\s*#{3,6}\s+(.*)/))) { close(); out.push('<h3>' + inl(m[1]) + '</h3>'); }
+      else if (/^\s*-{3,}\s*$/.test(l)) { close(); out.push('<hr>'); }
+      else if ((m = l.match(/^\s*[*\-•]\s+(.*)/))) { if (list !== 'ul') { close(); out.push('<ul>'); list = 'ul'; } out.push('<li>' + inl(m[1]) + '</li>'); }
+      else if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== 'ol') { close(); out.push('<ol>'); list = 'ol'; } out.push('<li>' + inl(m[1]) + '</li>'); }
+      else if (l.trim()) { close(); out.push('<p>' + inl(l.trim()) + '</p>'); }
+      else close();
+    });
+    close(); return out.join('\n');
+  }
+  function printPrep(title, text, when) {
+    var w = window.open('', '_blank');
+    if (!w) { alert('Allow pop-ups for this page to open the prep sheet.'); return; }
+    var d = new Date(when || Date.now());
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + ' - prep sheet</title><style>' +
+      'body{font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#111;max-width:760px;margin:24px auto;padding:0 18px}' +
+      'h1{font-size:22px;margin:0 0 2px}.sub{color:#555;font-size:12px;margin-bottom:14px;border-bottom:2px solid #111;padding-bottom:8px}' +
+      'h2{font-size:16px;margin:16px 0 4px;border-bottom:1px solid #bbb;padding-bottom:2px}h3{font-size:14px;margin:12px 0 2px}' +
+      'p{margin:4px 0}ul,ol{margin:4px 0 4px 20px;padding:0}li{margin:2px 0}hr{border:0;border-top:1px solid #ccc;margin:12px 0}' +
+      '.bar{position:sticky;top:0;background:#fff;padding:8px 0;margin-bottom:6px}.bar button{font:inherit;padding:8px 16px;border-radius:8px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}' +
+      '@media print{.bar{display:none}body{margin:0;max-width:none}h2,h3{page-break-after:avoid}li,p{page-break-inside:avoid}}</style></head><body>' +
+      '<div class="bar"><button onclick="window.print()">Print / Save as PDF</button></div>' +
+      '<h1>' + esc(title) + '</h1><div class="sub">Prep sheet · BuildFlowAI · ' + esc(d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
+      prepHtml(text) + '</body></html>');
+    w.document.close();
+  }
+  function prepSave(id, title, text) { try { localStorage.setItem('bf_prep:' + id, JSON.stringify({ title: title, text: text, at: Date.now() })); } catch (_) {} }
+  function prepGet(id) { try { return JSON.parse(localStorage.getItem('bf_prep:' + id) || 'null'); } catch (_) { return null; } }
   function bubble(msg) {
     var d = document.createElement('div'); d.className = 'm ' + (msg.role === 'user' ? 'me' : 'ai');
     var b = document.createElement('div'); b.className = 'b';
     if (msg.role !== 'user') b.innerHTML = '<div class="who">BuildFlowAI</div>';
     var t = document.createElement('div'); linkify(t, msg.role === 'user' ? msg.text : split(msg.text || '').text); b.appendChild(t); // also cleans older saved replies
     if (msg.files) { var f = document.createElement('div'); f.className = 'src'; f.textContent = 'Attached: ' + msg.files; b.appendChild(f); }
+    if (msg.onTodo && msg.role !== 'user' && split(msg.text || '').text.length > 150) {
+      var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'chip'; pb.style.cssText = 'cursor:pointer;margin-top:8px'; pb.textContent = 'Print / save as PDF';
+      pb.onclick = function () { printPrep(msg.onTodoTitle || 'Prep sheet', split(msg.text).text, msg.at); }; b.appendChild(pb);
+    }
     if (msg.links && msg.links.length) {
       // Files first: a tappable preview of each image or PDF. Everything else is one quiet "From:" line.
       var pics = document.createElement('div'); pics.className = 'pics'; var shown = 0, rest = [];
@@ -1404,10 +1443,10 @@ window.dashJobMounted = function (el, job) {
     var files = picked.slice(); picked = []; drawFiles();
     var me = { role: 'user', text: what || 'Photos and files', files: files.map(function (f) { return f.name || 'photo'; }).join(', ') };
     hist.push(me); save(); box.value = ''; box.style.height = ''; redraw();
-    var ai = { role: 'assistant', text: '' }, view = bubble(ai); if (pendingTodo) { ai.todo = pendingTodo; pendingTodo = ''; } if (pendingOn) { ai.onTodo = pendingOn; pendingOn = ''; }
+    var ai = { role: 'assistant', text: '' }, view = bubble(ai); if (pendingTodo) { ai.todo = pendingTodo; pendingTodo = ''; } if (pendingOn) { ai.onTodo = pendingOn; ai.onTodoTitle = pendingTitle; ai.at = Date.now(); pendingOn = ''; pendingTitle = ''; }
     view.text.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
     $('chat').classList.add('talking'); $('msgs').scrollTop = $('msgs').scrollHeight;
-    function finish() { hist.push(ai); save(); redraw(); busy = false; $('send').disabled = false; }
+    function finish() { if (ai.onTodo && (ai.text || '').length > 150) prepSave(ai.onTodo, ai.onTodoTitle, ai.text); hist.push(ai); save(); redraw(); busy = false; $('send').disabled = false; }
     function asRequest(text, reply) {
       return Promise.all(files.map(shrink)).then(function (data) { return fileRequest(text, data); }).then(function (d) {
         ai.req = d.num; ai.text = d.reply || reply || 'Got it. BuildFlowAI is on it. You\'ll hear back here or by email.';
@@ -1474,15 +1513,15 @@ window.dashJobMounted = function (el, job) {
   function isMeeting(t) { return /\b(meeting|walkthrough|walk-through|call with)\b/i.test(t.title); }
   // "Do it": BuildFlowAI takes the item as a task (drafts the email, builds the doc...). Anything to a client or vendor
   // still comes back for the person's OK before it goes out. The item comes off the list when the work is done.
-  var pendingTodo = '', pendingOn = '';   // pendingOn: the chat message is work ON an existing To-do (Do it / Help me): it never files a new request or To-do
+  var pendingTodo = '', pendingOn = '', pendingTitle = '';   // pendingOn: the chat message is work ON an existing To-do (Do it / Help me): it never files a new request or To-do
   function doIt(t) { // the assistant does the work now: the draft (email, invite...) opens in chat ready to edit and Send; the item checks off when it is sent
-    pendingTodo = t.id; pendingOn = t.id; show('chat');
+    pendingTodo = t.id; pendingOn = t.id; pendingTitle = t.title; show('chat');
     box.value = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '') +
       ' Prepare it ready to send. Anything to a client or vendor comes back to me as a draft to review first. This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
-    pendingOn = t.id; show('chat'); box.value = (isMeeting(t) ? 'Help me prepare for this meeting: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep now from what you know about our app and this company: (1) a plain-words walkthrough of every feature in order, each with what to show and its status (live, preview, or coming soon) and its link if you have one; (2) every agenda item or ask in the notes below, each with why it matters and exactly what to say. Never mention pricing or the old software. Notes: ' + (t.detail || '') : 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '')) + ' This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
+    pendingOn = t.id; pendingTitle = t.title; show('chat'); box.value = (isMeeting(t) ? 'Help me prepare for this meeting: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep now from what you know about our app and this company: (1) a plain-words walkthrough of every feature in order, each with what to show and its status (live, preview, or coming soon) and its link if you have one; (2) every agenda item or ask in the notes below, each with why it matters and exactly what to say. Never mention pricing or the old software. Notes: ' + (t.detail || '') : 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '')) + ' Format the answer as a printable one-page prep sheet with short headed sections (Purpose and time; People and phone numbers; What to have on hand; Checklist; What will be looked at or decided; Questions to ask or say; Open problems; After). Short lines, no filler, no pricing. This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
@@ -1550,6 +1589,7 @@ window.dashJobMounted = function (el, job) {
         btn('Already done', function () { act(t.id, 'done'); });
       }
       else {
+        var pp = prepGet(t.id); if (pp) btn('Prep sheet', function () { printPrep(pp.title, pp.text, pp.at); });
         if (humanOnly(t)) btn('Help me', function () { helpWith(t); }, true);
         else btn('Do it', function (ev) { ev.target.disabled = true; doIt(t); }, true);
         btn('Snooze', function () { openSnooze = openSnooze === t.id ? '' : t.id; openMore = ''; drawTodos(); });
