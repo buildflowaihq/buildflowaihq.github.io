@@ -229,8 +229,32 @@
         var item = { id: recId, seq: seq++, part: myPart, b: e.data };
         idb('chunks', 'readwrite', function (s2) { s2.put(item, recId + '-' + ('00000' + item.seq).slice(-6)); });
       };
-      mr.onstop = finish;
+      mr.onstop = function () { if (st === 'rec' && !rolling) unexpectedStop(); else finish(); };
       mr.start(5000);
+    }
+    // The phone's recorder sometimes stops by itself. Keep the recording going as the next part, reusing the same
+    // microphone (asking again can pop up "Allow the microphone?" every time). Only ask again if the phone took the mic away.
+    function liveStream(s) { var t = s && s.getAudioTracks()[0]; return !!(t && t.readyState === 'live'); }
+    function unexpectedStop() {
+      var stoppedAt = Date.now();
+      elapsed += Date.now() - runFrom; runFrom = Date.now();
+      if (chunks.length) { parts.push(new Blob(chunks, { type: mime })); chunks = []; part++; }
+      gaps.push(clockStr(new Date()) + ' (the phone stopped the microphone; it was started again)'); saveMeta();
+      var again = liveStream(stream) ? Promise.resolve(stream) : (function () {
+        if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+        return navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: true, autoGainControl: true } });
+      })();
+      again.then(function (s) {
+        if (st !== 'rec') { s.getTracks().forEach(function (t) { t.stop(); }); finish(); return; }
+        stream = s; newRecorder(); cancelAnimationFrame(raf); meter(s);
+        var ms = Date.now() - stoppedAt;
+        if (ms >= 4000) {
+          missMs += ms;
+          q('missLive').textContent = 'About ' + Math.max(1, Math.round(ms / 1000)) + ' seconds were NOT recorded (' + clockStr(new Date(stoppedAt)) + ' to ' + clockStr(new Date()) + '). The phone stopped the microphone. Keep this screen on and open while you record.';
+          q('missLive').hidden = false;
+        }
+        q('liveWarn').textContent = 'The phone stopped the microphone for a moment. It started again by itself. Keep going.'; q('liveWarn').hidden = false;
+      }).catch(function () { finish(); });
     }
     var rolling = false;
     function rollover() {
@@ -301,7 +325,7 @@
       if (ac) { try { ac.close(); } catch (e) {} ac = null; }
       if (lock) { try { lock.release(); } catch (e) {} lock = null; }
     }
-    function finish() { release(); parts.push(new Blob(chunks, { type: mime })); chunks = []; saveMeta(); blob = parts[0]; ready(); set('done'); }
+    function finish() { release(); if (chunks.length || !parts.length) parts.push(new Blob(chunks, { type: mime })); chunks = []; saveMeta(); blob = parts[0]; ready(); set('done'); }
     function ready() {
       q('player').src = URL.createObjectURL(blob);
       q('gotLen').textContent = elapsed ? 'Recording, ' + fmt(elapsed) : 'Recording';
