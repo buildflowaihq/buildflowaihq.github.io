@@ -192,7 +192,7 @@
 <script>
 // Home-screen apps can hold an old copy of this page. If a newer one is online, reload once.
 (function () {
-  var V = 'record-2';
+  var V = 'record-3';
   try {
     fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
       var m = t.match(/var V = '([^']+)'/);

@@ -30,6 +30,7 @@
     '.bfv-mic:active{transform:scale(.98)}.bfv-mic:disabled{opacity:.5}',
     '.bfv-note{color:var(--muted,#A9A79F);font-size:15px;margin:10px 2px 0}',
     '.bfv-warn{color:#FFC46B;font-size:15px;margin:10px 2px 0}',
+    '.bfv-miss{background:#B3261E;color:#fff;font-size:17px;font-weight:700;line-height:1.35;border-radius:12px;padding:12px 14px;margin:12px 0 0}',
     '.bfv-notice{font-size:22px;font-weight:600;line-height:1.35;margin:4px 0 14px}',
     '.bfv-notice small{display:block;font-size:15px;font-weight:400;color:var(--muted,#A9A79F);margin-top:8px}',
     '.bfv-live{display:flex;align-items:center;gap:12px;margin-bottom:14px}',
@@ -71,9 +72,11 @@
       '<div class="bfv-meter"><i data-t="meter"></i></div>' +
       '<div class="bfv-row"><button type="button" class="bfv-b2" data-a="pause">Pause</button><button type="button" class="bfv-stop" data-a="stop">Stop</button></div>' +
       '<p class="bfv-note">Keep this screen open while you record.</p>' +
+      '<p class="bfv-miss" data-t="missLive" hidden></p>' +
       '<p class="bfv-warn" data-t="liveWarn" hidden></p>' +
     '</div>' +
     '<div data-v="done" hidden>' +
+      '<p class="bfv-miss" data-t="missDone" hidden></p>' +
       '<div class="bfv-got"><b data-t="gotLen">Recording</b><span data-t="gotSize"></span></div>' +
       '<audio data-t="player" controls preload="metadata"></audio>' +
       '<button type="button" class="bfv-link" data-a="redo">Delete and record again</button>' +
@@ -127,7 +130,8 @@
     var st = 'idle', mr = null, stream = null, chunks = [], parts = [], part = 0, mime = '', startAt = 0, elapsed = 0, runFrom = 0, tick = null;
     var notice = null, blob = null, recId = '', seq = 0, lock = null, ac = null, raf = 0, hiddenAt = 0, gaps = [];
     var api, audioEl = null;
-    function set(s) { st = s; if (opts.onChange) try { opts.onChange(s, api); } catch (e) {} }
+    var missMs = 0;
+    function set(s) { st = s; if (s === 'done' && missMs) { q('missDone').textContent = q('missLive').textContent; q('missDone').hidden = false; } if (opts.onChange) try { opts.onChange(s, api); } catch (e) {} }
     function show(v) { Array.prototype.forEach.call(views, function (x) { x.hidden = x.getAttribute('data-v') !== v; }); }
 
     var canRec = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && global.MediaRecorder);
@@ -202,10 +206,10 @@
       .then(function (s) {
         if (st !== 'announce') { s.getTracks().forEach(function (t) { t.stop(); }); return; }
         stream = s; mime = pickMime();
-        chunks = []; parts = []; part = 0; seq = 0; gaps = []; elapsed = 0; startAt = Date.now(); runFrom = startAt; recId = 'r' + startAt;
+        chunks = []; parts = []; part = 0; seq = 0; gaps = []; missMs = 0; elapsed = 0; startAt = Date.now(); runFrom = startAt; recId = 'r' + startAt;
         newRecorder();
         set('rec'); saveMeta(); show('live'); root.classList.remove('paused');
-        btn('pause').textContent = 'Pause'; q('liveState').textContent = 'Recording'; q('liveWarn').hidden = true;
+        btn('pause').textContent = 'Pause'; q('liveState').textContent = 'Recording'; q('liveWarn').hidden = true; q('missLive').hidden = true; q('missDone').hidden = true;
         tick = setInterval(draw, 250); draw(); keepAwake(); meter(s);
       }).catch(function () {
         set('idle'); show('idle');
@@ -269,7 +273,10 @@
       if (document.hidden) { hiddenAt = Date.now(); return; }
       keepAwake();
       if (hiddenAt && Date.now() - hiddenAt > 3000) {
-        gaps.push(clockStr(new Date(hiddenAt)) + ' to ' + clockStr(new Date())); saveMeta();
+        var ms = Date.now() - hiddenAt; missMs += ms; var mins = Math.round(ms / 60000);
+        var t = (ms < 90000 ? 'About ' + Math.round(ms / 1000) + ' seconds' : 'About ' + Math.max(1, mins) + ' minute' + (mins === 1 ? '' : 's')) + ' may NOT have been recorded (' + clockStr(new Date(hiddenAt)) + ' to ' + clockStr(new Date()) + '). The app was closed or the screen went off. Keep this screen on and open while you record.';
+        q('missLive').textContent = t; q('missLive').hidden = false;
+        gaps.push('NOT RECORDED: ' + clockStr(new Date(hiddenAt)) + ' to ' + clockStr(new Date()) + ' (about ' + Math.round(ms / 1000) + ' s)'); saveMeta();
         q('liveWarn').textContent = 'The app was closed or the screen went off for a bit. Some of that time may be missing.'; q('liveWarn').hidden = false;
       }
       hiddenAt = 0;
@@ -351,7 +358,8 @@
         var name = nameOf(0);
         var log = 'Recording: ' + fmt(elapsed) + ', started ' + d.toLocaleString() + '.\nRecording notice: "' + NOTICE + '" ' +
           (notice ? notice.how + ' at ' + new Date(notice.at).toLocaleString() + ', before the mic started.' : 'NOT LOGGED.') +
-          (gaps.length ? '\nPossible gaps (app closed or screen off): ' + gaps.join('; ') + '.' : '') +
+          (missMs ? '\nWARNING: up to about ' + Math.round(missMs / 60000 * 10) / 10 + ' minutes of this meeting may NOT have been recorded.' : '') +
+          (gaps.length ? '\nGaps: ' + gaps.join('; ') + '.' : '') +
           (n > 1 ? '\nLong recording sent in ' + n + ' parts.' : '');
         var b = blob;
         return { blob: b, mime: mime, name: name, ms: elapsed, log: log, notice: notice, gaps: gaps.slice(),
