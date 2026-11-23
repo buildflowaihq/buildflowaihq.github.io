@@ -1433,7 +1433,7 @@ window.dashJobMounted = function (el, job) {
     var lines = raw.replace(/\s+$/, '').split('\n').filter(function (l) {
       var s = l.match(/^\s*SOURCES:\s*(.*)$/i), t = l.match(/^\s*TASK:\s*(.*)$/i), mb = l.match(/^\s*MAYBE_TASK:\s*(.*)$/i);
       // Control lines from the answers service are never shown as text (known ones, and any NEW_KIND: line it adds later).
-      if (/^\s*(SHOW|FEEDBACK|FILES?|ACTION|INTENT|[A-Z]+_[A-Z_]+):/.test(l) && !/^\s*(SOURCES_JSON|EMAIL_DRAFT|MAYBE_TASK):/i.test(l)) return false;
+      if (/^\s*(SHOW|FEEDBACK|FILES?|ACTION|INTENT|[A-Z]+_[A-Z_]+):/.test(l) && !/^\s*(SOURCES_JSON|EMAIL_DRAFT|MAYBE_TASK|ACTION_CARD):/i.test(l)) return false;
       var ac = l.match(/^\s*ACTION_CARD:\s*(.*)$/i); if (ac) { try { card = JSON.parse(ac[1]); } catch (e) { card = null; } return false; }
       var sj = l.match(/^\s*SOURCES_JSON:\s*(.*)$/i);
       if (sj) { try { links = JSON.parse(sj[1]); } catch (e) {} return false; }
