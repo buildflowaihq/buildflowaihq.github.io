@@ -695,7 +695,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // Weekend / non-work-day flag: one shared rule (workweek.js) from the client's settings.
   var WKOK = {}; try { WKOK = JSON.parse(localStorage.getItem('bf_wkok') || '{}'); } catch (_) {}
   function wkFlag(e) {
-    if (!window.BFWeek || e.hol) return '';
+    if (!window.BFWeek || e.hol || !e.auto) return '';   // Michael 11/23: only system-made dates are flagged; a Saturday Kyle, Mary or a worker schedules on purpose is never flagged
     var c = DATA.workweek, k = BFWeek.key(e);
     if (WKOK[k]) return '<div class="wk" style="color:var(--muted)">Weekend work approved by ' + esc(WKOK[k]) + '</div>';
     if (!BFWeek.needsApproval(e, WKOK, c)) return '';

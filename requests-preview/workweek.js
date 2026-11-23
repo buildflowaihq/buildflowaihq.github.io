@@ -14,8 +14,9 @@
   }
   // key for an approval: date + job + title, so one OK covers exactly that item
   function key(item) { return [item.date || item.iso || '', item.job || '', String(item.title || item.text || '').toLowerCase().slice(0, 60)].join('|'); }
-  // needsApproval: item is on a non-work day and no owner has approved it
-  function needsApproval(item, approvals, c) { return !isWorkDay(item.date || item.iso, c) && !(approvals && approvals[key(item)]); }
+  // needsApproval: ONLY for system-generated dates (item.system or item.auto) on a non-work day with no owner OK.
+  // A date a person (owner, worker) set on purpose is never flagged.
+  function needsApproval(item, approvals, c) { if (!(item.system || item.auto)) return false; return !isWorkDay(item.date || item.iso, c) && !(approvals && approvals[key(item)]); }
   function canApprove(personId, c) { return cfg(c).approvers.indexOf(String(personId || '').toLowerCase()) >= 0; }
   // auto-set dates (inbox agent, gap check, scheduling engine): move to next work day unless the deadline is real
   function autoDate(iso, real, c) { return real || isWorkDay(iso, c) ? iso : nextWorkDay(iso, c); }
