@@ -1,0 +1,17 @@
+# Browser smoke test on every push that touches the app pages. Dry run: all network calls are mocked.
+name: preview-smoke
+on:
+  push: { paths: ['requests-preview/**', 'app.html', 'voice/**', 'voice-preview/**', 'test/smoke/**'] }
+  pull_request: { paths: ['requests-preview/**', 'app.html', 'voice/**', 'test/smoke/**'] }
+  workflow_dispatch: {}
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm i --no-save --no-package-lock playwright@1.49.1 && npx playwright install --with-deps chromium
+      - run: node test/smoke/smoke.mjs requests-preview/app.html
+      - run: node test/smoke/smoke.mjs app.html
+        continue-on-error: true   # live page: reported, not blocking, until it is brought up to the same checks
