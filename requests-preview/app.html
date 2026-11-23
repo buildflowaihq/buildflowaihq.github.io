@@ -1642,7 +1642,11 @@ window.dashJobMounted = function (el, job) {
         (t.status === 'ask' ? '<div class="q">' + esc(t.note || 'Did this get done?') + '</div>' : '');
       var a = document.createElement('div'); a.className = 'acts';
       function btn(label, fn, pri) { var b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (pri) b.className = 'pri'; b.onclick = fn; a.appendChild(b); }
-      if (t.status === 'ask') { btn('Yes, done', function () { act(t.id, 'yes'); }, true); btn('Not yet', function () { act(t.id, 'notyet'); }); }
+      if (t.status === 'ask') {
+        // A task that BuildFlowAI can do (an email, a message) and that hasn't been confirmed sent still gets Do it, which opens the draft.
+        if (!humanOnly(t)) btn('Do it', function (ev) { ev.target.disabled = true; doIt(t); }, true);
+        btn('Yes, done', function () { act(t.id, 'yes'); }, humanOnly(t)); btn('Not yet', function () { act(t.id, 'notyet'); });
+      }
       else if (t.status === 'working') {
         c.insertAdjacentHTML('beforeend', '<div class="q">' + esc(t.note || 'BuildFlowAI is on it.') + '</div>');
         btn('Already done', function () { act(t.id, 'done'); });
