@@ -1,4 +1,4 @@
-/* BuildFlowAI Financial module: budget, purchase orders, change orders, invoices (modeled on Buildertrend).
+/* BuildFlowAI Financial module: budget, purchase orders, change orders, invoices (modeled on the client's current job software).
    Defines only window.BFFinance.mount(el, {api, key, job, snap}). Nothing client-specific here; the client's names, numbers
    and rules come from the finance worker (per-client settings). Data never lives in this public repo. */
 (function () {
@@ -40,8 +40,8 @@
       invoices: (x.inv || []).map(function (r) { return { number: r['Invoice ID'], title: r.Title, status: r.Status, total: num(r['Total price']), paid_amount: num(r['Amount paid']), due_date: String(r.Due || '').slice(0, 10), date_paid: String(r['Date paid'] || '').slice(0, 10), qb: r['QuickBooks invoice'] }; })
     };
     return call('POST', 'import', body).then(function (r) {
-      if (!r.ok) { flash('Could not copy numbers from Buildertrend: ' + r.error, true); return; }
-      flash('Copied this job’s purchase orders, change orders, invoices and budget from Buildertrend (' + r.added.pos + ' POs, ' + r.added.cos + ' COs, ' + r.added.invoices + ' invoices).');
+      if (!r.ok) { flash('Could not copy numbers from the current job software: ' + r.error, true); return; }
+      flash('Copied this job’s purchase orders, change orders, invoices and budget from the current job software (' + r.added.pos + ' POs, ' + r.added.cos + ' COs, ' + r.added.invoices + ' invoices).');
       return load();
     });
   }
@@ -50,7 +50,7 @@
   function draw() {
     var el = S.el; if (!el) return;
     var d = S.data, h = '<div class="bf-note' + (S.note ? ' show' + (S.noteBad ? ' bad' : '') : '') + '">' + esc(S.note) + '</div>';
-    h += '<div class="ch"><h2>Financial</h2><span class="dk-src" style="margin:0">Live in BuildFlowAI · numbers start from Buildertrend</span></div>';
+    h += '<div class="ch"><h2>Financial</h2><span class="dk-src" style="margin:0">Live in BuildFlowAI · numbers start from your current software</span></div>';
     if (S.err) { el.innerHTML = h + '<p class="dk-empty">' + esc(S.err) + '</p>'; return; }
     if (!d) { el.innerHTML = h + '<p class="dk-empty">Loading…</p>'; return; }
     var T = [['overview', 'Overview'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft]];
@@ -99,7 +99,7 @@
       table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">BT</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && r.qb.status === 'ready' ? 'Ready' : '—'; }]], d.invoices, 'inv', 'No invoices yet.');
   }
 
-  // ---------- editor (one panel for all three, same grid as Buildertrend)
+  // ---------- editor (one panel for all three, same grid as the current job software)
   function blankLine(kind) { return { desc: '', cost_type: '', cost_code: '', qty: 1, unit: '', unit_cost: '', markup_pct: kind === 'po' ? null : '' }; }
   function openEditor(kind, id) {
     var d = S.data, rec = id ? (kind === 'po' ? d.pos : kind === 'co' ? d.cos : d.invoices).filter(function (x) { return x.id === id; })[0] : null;
@@ -134,8 +134,8 @@
     var locked = (k === 'po' && r.status === 'void') || (k === 'co' && r.status !== 'draft') || (k === 'inv' && r.status === 'void') || r.imported;
     var title = (k === 'po' ? 'Purchase order' : k === 'co' ? 'Change order' : 'Invoice') + (r.number ? ' ' + r.number : ' (new)');
     var stat = k === 'po' ? r.display || 'Draft' : k === 'co' ? ({ draft: 'Draft', pending: 'Waiting on client', approved: 'Approved', declined: 'Declined', void: 'Void' }[r.status]) : r.display || 'Draft';
-    var h = '<div class="bf-head"><div><b>' + esc(title) + '</b> ' + badge(stat) + (r.imported ? ' <small class="bf-imp">from Buildertrend</small>' : '') + '</div><button class="bf-x big" data-bf-close aria-label="Close">×</button></div><div class="bf-body">';
-    if (r.imported) h += '<p class="bf-warn">This came from Buildertrend. Totals and status are copied; line detail was not available. It is read-only here.</p>';
+    var h = '<div class="bf-head"><div><b>' + esc(title) + '</b> ' + badge(stat) + (r.imported ? ' <small class="bf-imp">from your current software</small>' : '') + '</div><button class="bf-x big" data-bf-close aria-label="Close">×</button></div><div class="bf-body">';
+    if (r.imported) h += '<p class="bf-warn">This came from your current software. Totals and status are copied; line detail was not available. It is read-only here.</p>';
     if (k === 'po' && r.approved_by) h += '<p class="dk-m">Approved by ' + esc(r.approved_by) + ' on ' + fdate((r.approved_at || '').slice(0, 10)) + '</p>';
     h += '<form class="bf-form" data-bf-form autocomplete="off"><fieldset ' + (locked ? 'disabled' : '') + '>';
     h += '<label>Title<input data-f="title" value="' + esc(r.title) + '"></label>';
@@ -309,7 +309,7 @@
     var m = document.createElement('div'); m.className = 'bf-modal'; document.documentElement.classList.add('bf-lock');
     function paint() {
       var rev = d.rollup.price.revised;
-      m.innerHTML = '<div class="bf-panel"><div class="bf-head"><b>Payment schedule</b><button class="bf-x big" data-x>×</button></div><div class="bf-body"><p class="dk-m">Draws billed at milestones, like Buildertrend’s payment schedule. Percent is of the revised contract price (' + money(rev) + '). “Make invoice” creates a draft you can review.</p><div class="tw"><table class="bf-lines"><thead><tr><th>Draw</th><th>Milestone</th><th class="q">%</th><th class="q">Amount</th><th>Invoice</th><th></th></tr></thead><tbody>' +
+      m.innerHTML = '<div class="bf-panel"><div class="bf-head"><b>Payment schedule</b><button class="bf-x big" data-x>×</button></div><div class="bf-body"><p class="dk-m">Draws billed at milestones, like the current job software’s payment schedule. Percent is of the revised contract price (' + money(rev) + '). “Make invoice” creates a draft you can review.</p><div class="tw"><table class="bf-lines"><thead><tr><th>Draw</th><th>Milestone</th><th class="q">%</th><th class="q">Amount</th><th>Invoice</th><th></th></tr></thead><tbody>' +
         draws.map(function (x, i) { var amt = x.amount != null && x.amount !== '' ? n2(x.amount) : r2(rev * n2(x.pct) / 100); var inv = x.invoice_id && d.invoices.filter(function (v) { return v.id === x.invoice_id; })[0]; return '<tr><td><input data-d="' + i + ':name" value="' + esc(x.name) + '"></td><td><input data-d="' + i + ':milestone" value="' + esc(x.milestone) + '"></td><td class="q"><input data-d="' + i + ':pct" value="' + esc(x.pct == null ? '' : x.pct) + '"></td><td class="q"><input data-d="' + i + ':amount" value="' + esc(x.amount == null ? '' : x.amount) + '" placeholder="' + amt + '"></td><td>' + (inv ? esc(inv.number) + ' ' + badge(inv.display) : (x.id && !x.id.startsWith('new') ? '<button class="bf-btn alt" data-mk="' + i + '">Make invoice</button>' : '<small>Save first</small>')) + '</td><td><button class="bf-x" data-rm="' + i + '">×</button></td></tr>'; }).join('') + '</tbody></table></div><div class="bf-bar"><button class="bf-btn alt" data-add>+ Add draw</button><button class="bf-btn" data-save>Save schedule</button></div></div></div>';
     }
     paint();
