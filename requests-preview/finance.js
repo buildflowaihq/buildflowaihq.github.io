@@ -135,7 +135,7 @@
     flash('Reading ' + list.length + ' receipt' + (list.length > 1 ? 's' : '') + '…');
     return list.reduce(function (p, f) {
       return p.then(function () { return shrink(f).then(function (b64) { return call('POST', 'receipt/upload', { job: S.job.id, mime: 'image/jpeg', image: b64 }); }).then(function (r) { if (r.ok) { n++; if (r.bill.possible_duplicate) dup++; if (!r.read) bad++; } else bad++; }).catch(function () { bad++; }); });
-    }, Promise.resolve()).then(function () { flash(n + ' receipt' + (n === 1 ? '' : 's') + ' added as draft bills. Check each one, then approve.' + (dup ? ' ' + dup + ' may be duplicates.' : '') + (bad ? ' ' + bad + ' could not be read; open them and fill in the details.' : ''), bad > 0); return load(); });
+    }, Promise.resolve()).then(function () { flash(n + ' receipt' + (n === 1 ? '' : 's') + ' added as draft ' + (n === 1 ? 'bill' : 'bills') + '. Check ' + (n === 1 ? 'it' : 'each one') + ', then approve.' + (dup ? ' ' + dup + ' may be duplicates.' : '') + (bad ? ' ' + bad + ' could not be read; open them and fill in the details.' : ''), bad > 0); return load(); });
   }
   function vendorTab() {
     var vs = S.vendors || [], ev = S.vEdit || null;
