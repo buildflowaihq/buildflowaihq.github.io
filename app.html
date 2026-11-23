@@ -45,6 +45,25 @@
   .badge { min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--coral); color:#fff; font-size:12px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
   .tabs button.on .badge { background:var(--bg); color:var(--ink); }
   .spacer { flex:1; }
+  @media (max-width:420px) { .tabs button { padding:8px 9px; font-size:14px; } .tabs { padding:2px; } }
+  /* Requests */
+  .reqs { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:4px 0 max(30px, env(safe-area-inset-bottom)); }
+  .reqs h1 { font-size:26px; font-weight:600; margin:6px 0 4px; }
+  .reqs .sub { color:var(--muted); font-size:15px; margin:0 0 14px; }
+  .reqs .newbtn { width:100%; padding:16px; border-radius:16px; border:0; background:var(--accent); color:var(--bg); font-size:18px; font-weight:600; cursor:pointer; }
+  .reqs .form { background:var(--card); border:1.5px solid var(--accent); border-radius:16px; padding:10px 10px 10px 14px; }
+  .reqs .form textarea { width:100%; box-sizing:border-box; min-height:96px; border:0; background:transparent; color:var(--ink); resize:none; outline:none; font:inherit; font-size:18px; line-height:1.35; padding:6px 0; }
+  .reqs .form .frow { display:flex; align-items:center; gap:8px; }
+  .reqs .form .frow .sp { flex:1; }
+  .reqs .form .cancel { background:none; border:0; color:var(--muted); font-size:16px; padding:10px; cursor:pointer; }
+  .reqs .form .sendb { padding:11px 20px; border-radius:12px; border:0; background:var(--accent); color:var(--bg); font-size:16px; font-weight:600; cursor:pointer; }
+  .reqs .form .sendb:disabled { opacity:.4; }
+  .reqs .ritem { background:var(--card); border:1.5px solid var(--line); border-radius:16px; padding:12px 14px; margin:0 0 10px; }
+  .reqs .ritem .t { font-size:17px; line-height:1.3; font-weight:600; }
+  .reqs .ritem .st { display:inline-flex; margin-top:8px; padding:4px 10px; border-radius:999px; font-size:14px; background:#232A16; border:1px solid rgba(180,238,58,.35); color:var(--accent); }
+  .reqs .ritem .st.done { background:transparent; border-color:var(--line); color:var(--muted); }
+  .reqs .ritem .meta { font-size:14px; color:var(--muted); margin-top:6px; }
+  .chip a { color:inherit; text-decoration:underline; margin-left:4px; cursor:pointer; }
   .call { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; background:var(--card);
           border:1.5px solid var(--line); font-size:16px; font-weight:500; cursor:pointer; }
   .call svg { color:var(--accent); }
@@ -85,6 +104,17 @@
   .mail .sub { font-weight:600; margin:4px 0 8px; }
   .mail .body { white-space:pre-wrap; font-size:15px; color:var(--ink); max-height:240px; overflow:auto; border-top:1px solid var(--line); padding-top:8px; }
   .mail .acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .acard { margin-top:12px; border:1.5px solid var(--line); border-radius:14px; background:var(--card); padding:12px 14px; }
+  .acard .h { font-size:13px; color:var(--muted); margin-bottom:8px; font-weight:600; }
+  .acard label { display:block; font-size:12px; color:var(--muted); margin:8px 0 3px; }
+  .acard input, .acard textarea, .acard select { width:100%; box-sizing:border-box; font:inherit; font-size:16px; color:var(--ink); background:var(--bg); border:1.5px solid var(--line); border-radius:10px; padding:8px 10px; }
+  .acard textarea { min-height:150px; resize:vertical; line-height:1.4; }
+  .acard .row { display:flex; gap:8px; } .acard .row > div { flex:1; min-width:0; }
+  .acard .acts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center; }
+  .acard button { padding:9px 16px; border-radius:12px; border:1.5px solid var(--line); background:transparent; color:var(--ink); font-size:15px; cursor:pointer; }
+  .acard button.pri { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:600; }
+  .acard .fine { font-size:12px; color:var(--muted); margin-top:8px; } .acard .ok { color:var(--accent); font-weight:600; font-size:15px; }
+  .acard .bad { color:#b3261e; font-size:13px; margin-top:6px; }
   .mail a, .mail button { padding:8px 14px; border-radius:12px; border:1.5px solid var(--line); background:transparent; color:var(--ink); font-size:15px; text-decoration:none; cursor:pointer; }
   .mail a.pri { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:600; }
   .maybe { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
@@ -191,10 +221,9 @@
   .sheet button { width:100%; padding:14px; border-radius:12px; border:0; background:var(--accent); color:var(--bg); font-weight:600; cursor:pointer; }
   .dropover { position:fixed; inset:0; z-index:30; background:rgba(22,24,27,.93); border:3px dashed var(--accent); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:600; color:var(--accent); pointer-events:none; }
   .dropover span { background:var(--card); border:1.5px solid var(--accent); border-radius:999px; padding:14px 26px; }
-.dash .dlg-r2l{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:520px){.dash .dlg-r2l{grid-template-columns:1fr}}
 </style>
 <style>
-/* BuildFlowAI Dashboard tab v3 (layout of the client's own software; KDB's own summary layout). All rules under .dash. Generated by tools/make_handoff2.py */
+/* BuildFlowAI Dashboard tab v3 (layout of the client's own software; KDB = the client's old system Summary). All rules under .dash. Generated by tools/make_handoff2.py */
 .dash{--bg:#16181B;--card:#1F2226;--card2:#262A2F;--line:#33373D;--line2:#2A2E33;--ink:#F1EEE6;--muted:#A9A79F;--faint:#7A786F;
   --accent:#B4EE3A;--accent-bg:#2B3320;--coral:#E8796E;--coral-bg:#3A2523;--amber:#E9B95A;--amber-bg:#352D1C;--blue:#8DB8F2;--blue-bg:#1D2836;
   display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100%;background:var(--bg);color:var(--ink);font:400 15px/1.45 "Outfit",-apple-system,system-ui,sans-serif;font-variant-numeric:tabular-nums}
@@ -280,7 +309,7 @@
 .dash .lg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
 .dash .lg .s{background:var(--blue)}.dash .lg .a{border:1.5px dashed var(--muted)}
 
-/* job glance rows (ours) */
+/* job glance rows (ours, not in the client's old system) */
 .dash .gl{list-style:none;margin:0;padding:0}
 .dash .gl li{border-top:1px solid var(--line2)}
 .dash .gl li:first-child{border-top:0}
@@ -407,6 +436,13 @@
 .dash .dlg-rv .pre{white-space:pre-wrap}
 .dash .dlg-err{margin:0}
 @media(max-width:520px){.dash .dlg-r{grid-template-columns:1fr}.dash .dlg-r2{grid-template-columns:22px 1fr}}
+
+.dash .dlg-r2l{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:520px){.dash .dlg-r2l{grid-template-columns:1fr}}
+
+.dash .dk-as{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;font-size:13px;color:var(--mute,#9a9aa2)}
+.dash .dk-as select{margin-left:6px;background:var(--card,#1c1c20);color:inherit;border:1px solid var(--line,#34343c);border-radius:8px;padding:5px 8px;font:inherit}
+.dash .dk-asn{color:#e9b95a}
 </style>
 </head>
 <body>
@@ -414,6 +450,7 @@
   <div class="top">
     <div class="tabs" role="tablist">
       <button type="button" id="tabChat" class="on" role="tab">Chat</button>
+      <button type="button" id="tabReq" role="tab">Requests</button>
       <button type="button" id="tabDash" role="tab">Dashboard</button>
       <button type="button" id="tabTodo" role="tab">To-do <span class="badge" id="todoCount" hidden></span></button>
       <a id="tabOwner" class="ownerTab" href="https://claude.ai/artifact/DP2UrvnCcBbyLDq4NuEPYz" target="_blank" rel="noopener" hidden>Desk</a>
@@ -431,7 +468,7 @@
   <section class="chat" id="chat">
     <div class="hello">
       <img src="icons/logo.png" alt="BuildFlowAI, AI Business Builder">
-      <h1>New request</h1>
+      <h1>Ask BuildFlowAI</h1>
       <a class="recA" href="#record" data-rec><span class="dot"><i></i></span><span><b>Record a meeting</b><small>Saved to the job folder</small></span></a>
     </div>
     <div class="msgs" id="msgs" aria-live="polite"></div>
@@ -440,7 +477,7 @@
         <div class="composer" id="composer">
           <ul class="flist" id="flist"></ul>
           <div class="row">
-            <textarea id="what" rows="1" placeholder="Ask BuildFlowAI a question or start a task…" aria-label="Message"></textarea>
+            <textarea id="what" rows="1" placeholder="Ask BuildFlowAI a question…" aria-label="Message"></textarea>
             <button class="go" id="send" type="submit" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
           </div>
         </div>
@@ -460,6 +497,25 @@
         <input type="file" id="files" multiple>
       </form>
     </div>
+  </section>
+
+  <!-- REQUESTS: things BuildFlowAI is asked to do, and where each one stands -->
+  <section class="reqs" id="reqs" hidden>
+    <h1>Requests</h1>
+    <p class="sub">Tell BuildFlowAI what you need done. Each request shows where it stands.</p>
+    <button type="button" class="newbtn" id="reqNew">New request</button>
+    <div class="form" id="reqForm" hidden>
+      <textarea id="reqText" placeholder="What do you need done? Type it, or tap the mic and say it." aria-label="New request"></textarea>
+      <p class="hint" id="reqHint" hidden></p>
+      <div class="frow">
+        <button class="tool" id="reqMic" type="button" aria-label="Talk instead of typing"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <span class="sp"></span>
+        <button type="button" class="cancel" id="reqCancel">Cancel</button>
+        <button type="button" class="sendb" id="reqSend">Send request</button>
+      </div>
+    </div>
+    <p class="err" id="reqErr" hidden></p>
+    <div id="reqList"></div>
   </section>
 
   <!-- TO-DO -->
@@ -502,7 +558,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230455";
+(function(){var BUILD="202611230514";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -638,9 +694,11 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         '</div><div>' + todoHtml() +
         contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
-        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div>';
+        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div><div id="dash-ext"></div>';
     }
     $('dash-main').innerHTML = h;
+    // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
+    if (S.view !== 'all' && !S.ro && window.dashJobMounted) { var jj = job(S.view); try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client }); } catch (e) { } }
   }
 
   var root = $('dash');
@@ -972,10 +1030,22 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
+<link rel="stylesheet" href="finance.css?v=202611230520">
+<script src="finance.js?v=202611230520"></script>
+<script>
+/* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
+window.dashJobMounted = function (el, job) {
+  if (!el || !window.BFFinance || !job) return;
+  var k = new URLSearchParams(location.search).get('k') || '';
+  window.BFFinance.mount(el, { api: 'https://kdb-finance.mekovacs22.workers.dev', key: k, job: { id: job.id, name: job.name, client: job.client }, snap: null });
+};
+</script>
 <script src="voice/recorder-next.js?v=202611211900"></script>
 <script>
 (function () {
   var API = "https://script.google.com/macros/s/AKfycbzi4KHTN8AChENP4Ar28nSZCsBPkSzxQ2dytwbO-GTAX0x5VGnK60bLJXq3WZm_A7zU9g/exec"; // requests + To-do
+  // The company's people (the assistant looks anyone else up in the company files and emails). Per-client setting.
+  var TEAM = [{ name: 'Michael Kovacs', email: 'mike@kdbla.com', role: 'BuildFlowAI, runs the system' }, { name: 'Kyle Kovacs', email: 'kyle@kdbla.com', role: 'owner, builder' }, { name: 'Mary Kovacs', email: 'mary@aramyankovacsdesign.com', role: 'owner, designer' }, { name: 'Sam', email: 'sam@kdbla.com', role: 'team' }];
   var CHAT = "https://buildflowai-chat.mekovacs22.workers.dev";  // answers from the brain (Gemini)
   var $ = function (id) { return document.getElementById(id); };
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
@@ -984,22 +1054,24 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   if (m) store('abf_k', key);
   var HKEY = 'abf_chat_' + (key || 'x').slice(0, 6);
   // The service worker keeps the app fresh (newest pages when online) and delivers alerts.
-  if (key && 'serviceWorker' in navigator && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js?k=' + encodeURIComponent(key)); } catch (e) {} }
+  if (key && false && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js?k=' + encodeURIComponent(key)); } catch (e) {} }
 
   // ---------- tabs ----------
   var CAL = "https://script.google.com/macros/s/AKfycbz8NKJmoMnxsom1doFYSXwNOqH-maD2LmQwKoSEOMN7AbroST3juikf4Q4RASJejsjKqQ/exec"; // KDB Schedule (temporary, Michael only)
   var dashReady = false;
   function show(tab) {
     $('tabChat').classList.toggle('on', tab === 'chat'); $('tabTodo').classList.toggle('on', tab === 'todo'); $('tabDash').classList.toggle('on', tab === 'dash');
+    $('tabReq').classList.toggle('on', tab === 'reqs'); $('reqs').hidden = tab !== 'reqs'; if (tab === 'reqs') { loadReqStatus(); drawReqs(); }
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: true, wx: { lat: 34.19, lon: -118.13 } }); }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
   $('tabChat').onclick = function () { show('chat'); };
   $('tabTodo').onclick = function () { show('todo'); };
+  $('tabReq').onclick = function () { show('reqs'); };
   $('tabDash').onclick = function () { show('dash'); };
   $('call').onclick = function () { $('callSheet').hidden = false; };
   $('callClose').onclick = function () { $('callSheet').hidden = true; };
@@ -1054,7 +1126,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         b.appendChild(fr);
       }
     } else if (msg.sources && msg.sources !== 'general') { var s = document.createElement('div'); s.className = 'src'; s.textContent = 'From: ' + msg.sources.split('|').map(function (x) { return x.trim(); }).join(' · '); b.appendChild(s); }
-    if (msg.req) { var c = document.createElement('div'); c.className = 'chip'; var st = reqState[msg.req]; c.textContent = st === 'done' ? '✓ Done' : st === 'team' ? '✓ With the team. You\'ll get an update.' : '✓ Got it. Working on it.'; b.appendChild(c); }
+    if (msg.req) { var c = document.createElement('div'); c.className = 'chip'; var st = reqState[msg.req]; c.textContent = st === 'done' ? '✓ Done' : st === 'team' ? '✓ With the team. You\'ll get an update.' : '✓ Filed as a request. Working on it.'; var sl = document.createElement('a'); sl.textContent = 'See Requests'; sl.onclick = function () { show('reqs'); }; c.appendChild(sl); b.appendChild(c); }
     if (msg.mail) {
       var m = msg.mail, mc = document.createElement('div'); mc.className = 'mail';
       var to = m.to ? (m.to_name ? m.to_name + ' <' + m.to + '>' : m.to) : (m.to_name || 'Add who it goes to');
@@ -1067,6 +1139,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       cp.onclick = function () { try { navigator.clipboard.writeText((m.subject ? 'Subject: ' + m.subject + '\n\n' : '') + (m.body || '')); cp.textContent = 'Copied'; } catch (e) {} };
       ma.appendChild(go); ma.appendChild(cp); mc.appendChild(ma); b.appendChild(mc);
     }
+    if (msg.card) drawCard(b, msg);
     if (msg.retry && !msg.req) {
       var rq = document.createElement('div'); rq.className = 'maybe';
       var ag = document.createElement('button'); ag.type = 'button'; ag.className = 'pri'; ag.textContent = 'Try again';
@@ -1144,8 +1217,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // One short utterance per recognizer (iPhone repeats earlier words in "continuous" mode), restarted
   // after each pause while the mic is on. Sending stops the mic, so old words never come back.
   var stopMic = function () {};
-  (function () {
-    var SR = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null, on = false, base = '', run = 0, mic = $('mic'), hint = $('hint');
+  function dictate(mic, box, hint) {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null, on = false, base = '', run = 0;
     function listen(id) {
       if (!on || id !== run) return;
       var r = new SR(); rec = r; r.lang = 'en-US'; r.continuous = false; r.interimResults = true;
@@ -1170,7 +1243,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       try { r.start(); } catch (x) { end(); }
     }
     function end() { on = false; run++; mic.classList.remove('on'); if (rec) { try { rec.abort(); } catch (x) {} rec = null; } if (!/Allow|catch/.test(hint.textContent)) hint.hidden = true; }
-    stopMic = function () { if (on) end(); base = ''; };
+    var stop = function () { if (on) end(); base = ''; };
     mic.onclick = function () {
       if (!SR) { hint.hidden = false; hint.textContent = 'Talking to type isn\'t available in this browser. Try Safari or Chrome.'; return; }
       if (on) { // finish: keep what was heard
@@ -1181,7 +1254,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       on = true; run++; mic.classList.add('on'); hint.hidden = false; hint.textContent = 'Listening. Tap the mic again when you\'re done, then the arrow to send.';
       listen(run);
     };
-  })();
+    return stop;
+  }
+  stopMic = dictate($('mic'), box, $('hint'));
 
   // ---------- send ----------
   function fileRequest(what, files) { // files the work in the tracker; the receiver wakes the inbox agent at once
@@ -1192,26 +1267,105 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function askBrain(onText) { // streams an answer from the brain + Gemini chat worker
     var msgs = hist.filter(function (x) { return x.text; }).slice(-24).map(function (x) { return { role: x.role, text: x.text }; });
     return fetch(CHAT + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({ messages: msgs, extras: true }) }).then(function (r) {
+      body: JSON.stringify({ messages: msgs, extras: true, team: TEAM }) }).then(function (r) {
       if (!r.ok || !r.body) throw new Error('chat ' + r.status);
       var rd = r.body.getReader(), dec = new TextDecoder(), all = '';
       function pump() { return rd.read().then(function (x) { if (x.done) return all; all += dec.decode(x.value, { stream: true }); onText(all); return pump(); }); }
       return pump();
     });
   }
+  // ---------- Action cards: the assistant prepares it, you edit and send (nothing goes out until you press Send) ----------
+  var ACT = {   // one executor per card type; new kinds (PO, estimate...) only add an entry here
+    email: {
+      title: 'Email draft', hint: 'Sends from your own address, with the files attached.',
+      fields: function (c) { return [{ k: 'to', l: 'To', v: (c.to || []).map(function (x) { return x.email; }).join(', ') }, { k: 'subject', l: 'Subject', v: c.subject || '' }, { k: 'body', l: 'Message', v: c.body || '', area: 1 }]; },
+      send: function (v, c) {
+        var to = v.to.split(/[,;\s]+/).filter(Boolean); if (!to.length || !to.every(function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); })) return Promise.reject(new Error('Add who it goes to (a full email address).'));
+        if (!v.subject.trim() || !v.body.trim()) return Promise.reject(new Error('Add a subject and a message.'));
+        var files = (c.attachments || []).filter(function (f) { return !f.off; }).map(function (f) { return { title: f.title, url: f.url }; });
+        return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: key, action: 'mail', mail: { to: to, subject: v.subject, body: v.body, attachments: files } }) })
+          .then(function (r) { return r.json(); }).then(function (r) {
+            if (r.ok) return 'Sent to ' + to.join(', ') + (r.attached ? ' with ' + r.attached + ' file' + (r.attached > 1 ? 's' : '') + ' attached' : '') + (r.linked ? ' (' + r.linked + ' link' + (r.linked > 1 ? 's' : '') + ' in the message)' : '') + '.';
+            if (r.error === 'held_for_approval') throw new Error('That address isn\u2019t on the approved list yet, so I saved it as a draft in your Gmail instead of sending. Nothing went out.');
+            if (r.error === 'not_enabled') throw new Error('One-tap sending isn\u2019t switched on for you yet. Nothing was sent.');
+            throw new Error('That didn\u2019t send. Nothing went out. Try again in a moment.');
+          });
+      }
+    },
+    meeting: {
+      title: 'Meeting invite', hint: 'Sends the invite with a Google Meet link and puts it on the calendars.',
+      fields: function (c) { return [{ k: 'title', l: 'Title', v: c.title || '' }, { k: 'date', l: 'Date', v: c.date || '', type: 'date', half: 1 }, { k: 'time', l: 'Start time', v: c.time || '', type: 'time', half: 1 },
+        { k: 'minutes', l: 'Length (minutes)', v: String(c.minutes || 30), half: 1 }, { k: 'attendees', l: 'Who (emails)', v: (c.attendees || []).map(function (x) { return x.email; }).join(', ') }, { k: 'note', l: 'Note for the invite', v: c.note || '', area: 1 }]; },
+      send: function (v, c) {
+        var at = v.attendees.split(/[,;\s]+/).filter(Boolean); if (!at.length || !at.every(function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); })) return Promise.reject(new Error('Add who it goes to (full email addresses).'));
+        if (!v.date || !v.time) return Promise.reject(new Error('Pick a date and time.'));
+        var first = (c.attendees || []).filter(function (x) { return x.email === at[0]; })[0] || {};
+        var m = { job: c.job || '', lead: { name: first.name || at[0], email: at[0] }, title: v.title, date: v.date, time: v.time, minutes: +v.minutes || 30, attendees: at, note: v.note, record: true };
+        return fetch(CAL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'meeting', k: key, meeting: m }) }).then(function (r) { return r.json(); })
+          .then(function (r) { if (!r.ok) throw new Error(/unknown_action/.test(r.error || '') ? 'Meeting invites aren’t switched on yet. Nothing was sent.' : 'That didn’t send. Nothing went out.'); return 'Invite sent. The Google Meet link is in it.'; });
+      }
+    }
+  };
+  try { redraw(); } catch (e) {}
+  function drawCard(host, msg) {
+    if (typeof ACT === 'undefined' || !ACT) return;
+    var c = msg.card, a = ACT[c.type], cbox = document.createElement('div'); cbox.className = 'acard'; host.appendChild(cbox);
+    if (c.type === 'choose') {
+      var q = document.createElement('div'); q.className = 'h'; q.textContent = c.question || 'Pick one'; cbox.appendChild(q);
+      var bs = document.createElement('div'); bs.className = 'acts'; cbox.appendChild(bs);
+      (c.options || []).forEach(function (o) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = o.label; if (msg.cardDone) b.disabled = true;
+        if (msg.cardDone === o.label) b.className = 'pri';
+        b.onclick = function () { if (busy) return; msg.cardDone = o.label; save(); cbox.querySelectorAll('button').forEach(function (x) { x.disabled = true; }); b.className = 'pri'; box.value = o.reply; box.dispatchEvent(new Event('input')); $('f').requestSubmit(); };
+        bs.appendChild(b);
+      });
+      return;
+    }
+    if (!a) return;
+    var h = document.createElement('div'); h.className = 'h'; h.textContent = a.title; cbox.appendChild(h);
+    if (c.note) { var nt = document.createElement('div'); nt.className = 'fine'; nt.style.marginBottom = '4px'; nt.textContent = c.note; cbox.appendChild(nt); }
+    if (msg.cardDone) { var d = document.createElement('div'); d.className = 'ok'; d.textContent = '✓ ' + msg.cardDone; cbox.appendChild(d); return; }
+    var els = {}, row = null;
+    a.fields(c).forEach(function (f) {
+      var wrap = document.createElement('div'), lb = document.createElement('label'); lb.textContent = f.l; wrap.appendChild(lb);
+      var inp = document.createElement(f.area ? 'textarea' : 'input'); if (!f.area) inp.type = f.type || 'text'; inp.value = f.v; wrap.appendChild(inp); els[f.k] = inp;
+      if (f.half) { if (!row) { row = document.createElement('div'); row.className = 'row'; cbox.appendChild(row); } row.appendChild(wrap); } else { row = null; cbox.appendChild(wrap); }
+    });
+    if ((c.attachments || []).length) {
+      var at = document.createElement('div'); at.className = 'fine'; at.style.marginTop = '8px'; at.textContent = 'Attached (untick to leave one out):'; cbox.appendChild(at);
+      c.attachments.forEach(function (f) {
+        var row2 = document.createElement('label'); row2.style.cssText = 'display:flex;gap:8px;align-items:center;margin:4px 0;font-size:14px;color:var(--ink)';
+        var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !f.off; cb.style.cssText = 'width:auto;margin:0'; cb.onchange = function () { f.off = !cb.checked; save(); };
+        var l = document.createElement('a'); l.href = f.url; l.target = '_blank'; l.rel = 'noopener'; l.textContent = f.title; l.style.color = 'var(--accent)';
+        row2.appendChild(cb); row2.appendChild(l); cbox.appendChild(row2);
+      });
+    }
+    var acts = document.createElement('div'); acts.className = 'acts';
+    var go = document.createElement('button'); go.type = 'button'; go.className = 'pri'; go.textContent = 'Send';
+    var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'Copy text';
+    cp.onclick = function () { var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value; }); try { navigator.clipboard.writeText(Object.keys(v).map(function (k) { return v[k]; }).join('\n\n')); cp.textContent = 'Copied'; } catch (e) {} };
+    var er = document.createElement('div'); er.className = 'bad'; er.hidden = true;
+    go.onclick = function () {
+      var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value.trim(); }); er.hidden = true; go.disabled = true; go.textContent = 'Sending…';
+      a.send(v, c).then(function (m) { msg.cardDone = m; if (msg.todo) { try { act(msg.todo, 'done'); } catch (x) {} } save(); redraw(); }, function (e) { go.disabled = false; go.textContent = 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
+    };
+    acts.appendChild(go); acts.appendChild(cp); cbox.appendChild(acts); cbox.appendChild(er);
+    var fn = document.createElement('div'); fn.className = 'fine'; fn.textContent = 'Nothing is sent until you press Send. ' + a.hint; cbox.appendChild(fn);
+  }
   function split(raw) { // reply text, SOURCES line, TASK line (work), MAYBE_TASK line (not sure), EMAIL_DRAFT line (JSON)
-    var src = '', task = '', maybe = '', mail = null, links = null;
+    var src = '', task = '', maybe = '', mail = null, links = null, card = null;
     var lines = raw.replace(/\s+$/, '').split('\n').filter(function (l) {
       var s = l.match(/^\s*SOURCES:\s*(.*)$/i), t = l.match(/^\s*TASK:\s*(.*)$/i), mb = l.match(/^\s*MAYBE_TASK:\s*(.*)$/i);
       // Control lines from the answers service are never shown as text (known ones, and any NEW_KIND: line it adds later).
-      if (/^\s*(SHOW|FEEDBACK|FILES?|ACTION|INTENT|[A-Z]+_[A-Z_]+):/.test(l) && !/^\s*(SOURCES_JSON|EMAIL_DRAFT|MAYBE_TASK):/i.test(l)) return false;
+      if (/^\s*(SHOW|FEEDBACK|FILES?|ACTION|INTENT|[A-Z]+_[A-Z_]+):/.test(l) && !/^\s*(SOURCES_JSON|EMAIL_DRAFT|MAYBE_TASK|ACTION_CARD):/i.test(l)) return false;
+      var ac = l.match(/^\s*ACTION_CARD:\s*(.*)$/i); if (ac) { try { card = JSON.parse(ac[1]); } catch (e) { card = null; } return false; }
       var sj = l.match(/^\s*SOURCES_JSON:\s*(.*)$/i);
       if (sj) { try { links = JSON.parse(sj[1]); } catch (e) {} return false; }
       var em = l.match(/^\s*EMAIL_DRAFT:\s*(.*)$/i); // hidden while it streams in
       if (em) { try { mail = JSON.parse(em[1]); } catch (e) { mail = null; } return false; }
       if (s) { src = s[1].trim(); return false; } if (t) { task = t[1].trim(); return false; } if (mb) { maybe = mb[1].trim(); return false; } return true;
     });
-    return { text: lines.join('\n').replace(/\s+$/, ''), sources: src, task: task, maybe: maybe, mail: mail, links: Array.isArray(links) ? links : null };
+    return { text: lines.join('\n').replace(/\s+$/, ''), sources: src, task: task, maybe: maybe, mail: mail, card: card, links: Array.isArray(links) ? links : null };
   }
   var busy = false;
   $('f').onsubmit = function (ev) {
@@ -1224,7 +1378,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var files = picked.slice(); picked = []; drawFiles();
     var me = { role: 'user', text: what || 'Photos and files', files: files.map(function (f) { return f.name || 'photo'; }).join(', ') };
     hist.push(me); save(); box.value = ''; box.style.height = ''; redraw();
-    var ai = { role: 'assistant', text: '' }, view = bubble(ai);
+    var ai = { role: 'assistant', text: '' }, view = bubble(ai); if (pendingTodo) { ai.todo = pendingTodo; pendingTodo = ''; }
     view.text.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
     $('chat').classList.add('talking'); $('msgs').scrollTop = $('msgs').scrollHeight;
     function finish() { hist.push(ai); save(); redraw(); busy = false; $('send').disabled = false; }
@@ -1238,13 +1392,52 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     else p = askBrain(function (raw) { view.text.textContent = ''; linkify(view.text, split(raw).text); $('msgs').scrollTop = $('msgs').scrollHeight; })
       .then(function (raw) {
         var r = split(raw); ai.text = r.text; ai.sources = r.sources; ai.links = r.links;
+        if (r.card) { ai.card = r.card; if (!r.task) return; }
         if (r.mail) { ai.mail = r.mail; return; } // a draft for them to send from their own email
         if (r.maybe && !r.task) { ai.maybe = r.maybe; ai.ask = what; return; }
-        if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; });
+        if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; if (ai.todo) act(ai.todo, 'doit'); });
       }, function () { // answers service down: say so, and let them choose to send it as a task (never file one by itself)
         ai.text = 'I couldn\'t get an answer just now. Try again in a minute, or send this to BuildFlowAI as a task.'; ai.retry = what;
       });
     p.then(finish, function () { ai.text = 'That didn\'t go through. Check your connection and tap send again.'; hist.pop(); box.value = what; finish(); });
+  };
+
+  // ---------- Requests ----------
+  var reqStop = dictate($('reqMic'), $('reqText'), $('reqHint'));
+  function reqLabel(st) { return st === 'done' ? 'Done' : st === 'team' ? 'With the team' : 'Got it'; }
+  function reqItems() { // server list when available; otherwise the ones filed from this device
+    if (srvReqs) return srvReqs.map(function (x) { return { n: x.n, title: x.title, state: x.state, at: x.at }; });
+    var out = [];
+    hist.forEach(function (m, i) { if (m.req) { var u = hist[i - 1]; out.push({ n: m.req, title: (u && u.role === 'user' ? u.text : m.text || 'Request').split('\n')[0].slice(0, 80), state: reqState[m.req] || 'working', at: '' }); } });
+    return out.reverse();
+  }
+  function drawReqs() {
+    var out = $('reqList'); out.innerHTML = '';
+    var items = reqItems().sort(function (a, b) { return (b.n || 0) - (a.n || 0); });
+    var open = items.filter(function (x) { return x.state !== 'done'; }), done = items.filter(function (x) { return x.state === 'done'; });
+    function sec(t) { var h = document.createElement('p'); h.className = 'sec'; h.textContent = t; out.appendChild(h); }
+    function card(x) {
+      var c = document.createElement('div'); c.className = 'ritem';
+      var t = document.createElement('div'); t.className = 't'; t.textContent = String(x.title || 'Request').replace(/^Do this to-do for [^:]+:\s*/i, ''); c.appendChild(t);
+      var s = document.createElement('span'); s.className = 'st' + (x.state === 'done' ? ' done' : ''); s.textContent = (x.state === 'done' ? '✓ ' : '') + reqLabel(x.state); c.appendChild(s);
+      if (x.at) { var m = document.createElement('div'); m.className = 'meta'; m.textContent = 'Sent ' + (ago(x.at) === 'today' ? 'today' : ago(x.at) + ' ago'); c.appendChild(m); }
+      out.appendChild(c);
+    }
+    if (!items.length) { var e = document.createElement('p'); e.className = 'empty'; e.textContent = 'No requests yet. Tap New request to start one.'; out.appendChild(e); return; }
+    if (open.length) { sec('In progress'); open.forEach(card); }
+    if (done.length) { sec('Done'); done.slice(0, 15).forEach(card); }
+  }
+  $('reqNew').onclick = function () { $('reqNew').hidden = true; $('reqForm').hidden = false; $('reqText').focus(); };
+  function closeForm() { reqStop(); $('reqText').value = ''; $('reqForm').hidden = true; $('reqNew').hidden = false; $('reqHint').hidden = true; }
+  $('reqCancel').onclick = closeForm;
+  $('reqSend').onclick = function () {
+    var text = $('reqText').value.trim(); if (!text) return;
+    reqStop(); var b = $('reqSend'); b.disabled = true; $('reqErr').hidden = true;
+    fileRequest(text, []).then(function (d) {
+      hist.push({ role: 'user', text: text }); hist.push({ role: 'assistant', text: 'Got it. BuildFlowAI is on it.', req: d.num }); save(); redraw();
+      if (srvReqs) srvReqs.push({ n: d.num, title: text.split('\n')[0].slice(0, 80), state: 'working', at: new Date().toISOString() });
+      b.disabled = false; closeForm(); drawReqs(); loadReqStatus();
+    }, function () { b.disabled = false; $('reqErr').hidden = false; $('reqErr').textContent = 'That didn\'t go through. Your words are still here. Tap Send request to try again.'; });
   };
 
   // ---------- To-do ----------
@@ -1253,18 +1446,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function humanOnly(t) { return t.kind === 'human' || /\b(site ready|on site|site walk|inspection|walkthrough|walk-through|meet (him|her|them) at|in person)\b/i.test(t.title + ' ' + t.detail); }
   // "Do it": BuildFlowAI takes the item as a task (drafts the email, builds the doc...). Anything to a client or vendor
   // still comes back for the person's OK before it goes out. The item comes off the list when the work is done.
-  function doIt(t) {
-    var text = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '\n\n' + (t.detail || '') +
-      '\n\n(From the To-do list, item ' + t.id + '. Anything that goes to a client or vendor must be shown to ' + (t.person || me) +
-      ' for OK before it is sent. When the work is sent or finished, check the item off with todo_agent op autodone, id ' + t.id + '.)';
-    fileRequest(text, []).then(function (d) {
-      return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ k: key, action: 'todo', id: t.id, op: 'doit', req: d.num }) }).then(function () { return d; });
-    }).then(function (d) {
-      hist.push({ role: 'user', text: 'Do it: ' + t.title });
-      hist.push({ role: 'assistant', text: 'On it. I\'ll do "' + t.title + '" and show you anything that goes to a client or vendor before it\'s sent. It comes off your To-do list when it\'s done.', req: d.num });
-      save(); redraw(); loadTodos();
-    }, function () { $('todoErr').hidden = false; $('todoErr').textContent = 'That didn\'t go through. Try again.'; drawTodos(); });
+  var pendingTodo = '';
+  function doIt(t) { // the assistant does the work now: the draft (email, invite...) opens in chat ready to edit and Send; the item checks off when it is sent
+    pendingTodo = t.id; show('chat');
+    box.value = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '') +
+      ' Prepare it ready to send. Anything to a client or vendor comes back to me as a draft to review first.';
+    box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
     show('chat'); box.value = 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
@@ -1272,10 +1459,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
   // Where each of my requests stands (working / team / done), shown on the request in plain words.
+  var srvReqs = null;
   function loadReqStatus() {
-    if (!key || !hist.some(function (m) { return m.req; })) return;
+    if (!key) return;
     fetch(API + '?action=reqstatus&k=' + encodeURIComponent(key), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!d || !d.ok || !d.s) return;
+      if (d.l) { srvReqs = d.l; if (!$('reqs').hidden) drawReqs(); }
       var changed = hist.some(function (m) { return m.req && d.s[m.req] && d.s[m.req] !== reqState[m.req]; });
       reqState = d.s; try { localStorage.setItem('abf_reqstate', JSON.stringify(d.s)); } catch (e) { }
       if (changed) redraw();
@@ -1545,7 +1734,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   loadTodos();
   loadReqStatus(); document.addEventListener('visibilitychange', function () { if (!document.hidden) loadReqStatus(); }); setInterval(function () { if (!document.hidden) loadReqStatus(); }, 60000);
-  if (location.hash === '#todo') show('todo'); else if (location.hash === '#dash') show('dash');
+  if (location.hash === '#requests') show('reqs'); else if (location.hash === '#todo') show('todo'); else if (location.hash === '#dash') show('dash');
 
   // Keep the app exactly as tall as what's visible, so the iPhone keyboard never hides the box or scrolls the header away.
   (function fitToScreen() {
@@ -1560,7 +1749,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---------- app alerts (web push; same service worker and server as before) ----------
   (function () {
     var ua = navigator.userAgent, standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
-    if (!key || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+    if (!key || !(false) || !('PushManager' in window) || !('Notification' in window)) return;
     if (/iphone|ipad|ipod/i.test(ua) && !standalone) return; // iPhone/iPad: only works from the Home Screen app
     fetch(API + '?k=' + encodeURIComponent(key)).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.ok || ['Michael'].indexOf(d.name) < 0) return; // alerts: Michael first, then everyone
