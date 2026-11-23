@@ -509,7 +509,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230440";
+(function(){var BUILD="202611230455";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -671,6 +671,21 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return '<section class="card"><div class="ch"><h2>To-Do</h2></div><form class="qa" data-qa><input placeholder="Add a to-do, or just say it…" aria-label="New to-do"><button type="submit">Add</button></form><p class="qn"><span>' + mine + ' open for you</span><button class="link" data-todo>Open To-do →</button></p></section>';
   }
 
+  // "New since yesterday": entries the team made in the client's own system during the last day, from the nightly read.
+  function whenText(w) {
+    var m = String(w || '').match(/^(\d{4})-(\d\d)-(\d\d)[ T](\d\d?):(\d\d)/); if (!m) return String(w || '');
+    var d = ymd(new Date(+m[1], m[2] - 1, +m[3])), t = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    var yest = ymd(new Date(new Date(DATA.today + 'T12:00:00').getTime() - 864e5));
+    return (d === DATA.today ? 'Today' : d === yest ? 'Yesterday' : dayName(d, { weekday: 'short', month: 'short', day: 'numeric' })) + ' · ' + t;
+  }
+  function newHtml(jobId) {
+    if (!DATA.newItems) return '';
+    var list = DATA.newItems.filter(function (n) { return !jobId || n.job === jobId; });
+    var more = list.length > 8 && !jobId ? list.length - 8 : 0; if (!jobId) list = list.slice(0, 8);
+    return '<section class="card"><div class="ch"><h2>New since yesterday</h2></div>' + (list.length ? '<ul class="feed">' + list.map(function (n) {
+      return '<li><time>' + esc(whenText(n.when)) + '</time><span>' + (!jobId ? tag(n.job) : '') + '<b>' + esc(n.kind) + '</b> · ' + esc(n.who) + ': ' + esc(n.text) + '</span></li>';
+    }).join('') + '</ul>' + (more ? '<p class="dk-src">and ' + more + ' more</p>' : '') : '<p class="dk-src">Nothing new since yesterday.</p>') + '</section>';
+  }
   function activityHtml(list) {
     return '<section class="card"><div class="ch"><h2>Recent activity</h2></div><ul class="feed">' + list.map(function (a) {
       return '<li><time>' + esc(a.date) + '</time><span>' + (S.view === 'all' ? tag(a.job) : '') + esc(a.text) + '</span></li>';
@@ -696,7 +711,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (v === 'all') {
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + DATA.jobs.length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Schedule web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + actionsHtml(DATA.actions) + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
+        '<div class="cols"><div>' + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
         todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
     } else {
       var j = job(v);
@@ -707,13 +722,15 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var first = j.client.split(/ & | /)[0];
       h = '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span>' + esc(j.name) + ' <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + '</p>' +
         '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Schedule web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + actionsHtml(acts) + scheduleHtml(sch, 7) +
+        '<div class="cols"><div>' + actionsHtml(acts) + newHtml(v) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         '</div><div>' + todoHtml() +
         '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
-        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div>';
+        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div><div id="dash-ext"></div>';
     }
     $('dash-main').innerHTML = asHtml() + h;
+    // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
+    if (S.view !== 'all' && !S.ro && window.dashJobMounted) { var jj = job(S.view); try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client }); } catch (e) { } }
   }
 
   // ---- "View as": an owner sees another person's real dashboard, read-only. Uses the owner's own key; never acts as the other person. ----
@@ -855,8 +872,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Web meeting with someone who is not a job yet (a prospect). Recording goes to the brain's Leads folder; it moves into the job folder if it becomes a job. ----
   function openLead() {
     var t = nextHour(), me = DATA.me.id;
-    dlgShell('Schedule web meeting', '<p class="dlg-sub">For someone who is not a job yet. The notes are filed under Leads.</p><form class="dlg-f" data-form="lead">' +
-      '<div class="dlg-r2l"><label>Their name<input name="ln" required placeholder="e.g. Pat Rivera"></label><label>Their email<input name="le" type="email" required placeholder="name@example.com"></label></div>' +
+    dlgShell('Schedule web meeting', '<p class="dlg-sub">For anyone who doesn’t have a job yet. The notes are filed under Leads until it becomes a job.</p><form class="dlg-f" data-form="lead">' +
+      '<div class="dlg-r2l"><label>Name<input name="ln" required placeholder="e.g. Pat Rivera"></label><label>Email<input name="le" type="email" required placeholder="name@example.com"></label></div>' +
       '<label>Meeting title<input name="title" required value="Introduction meeting"></label>' +
       '<div class="dlg-r"><label>Date<input name="date" type="date" required value="' + ymd(t) + '"></label><label>Start time<input name="time" type="time" required value="' + t.toTimeString().slice(0, 5) + '"></label>' +
       '<label>Length<select name="mins"><option value="30" selected>30 min</option><option value="60">1 hour</option><option value="90">90 min</option></select></label></div>' +
@@ -960,6 +977,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function applySnap(snap) {
     var T = snap.tabs || {};
     DATA.btWhen = snap.when;
+    DATA.newItems = T['New since yesterday'] ? T['New since yesterday'].filter(function (r) { return r.text; }).map(function (r) { var j = jobFor(r.job); return { job: j ? j.id : '', when: r.when, who: r.who || '', kind: r.kind || 'Update', text: r.text }; }).sort(function (a, b) { return String(b.when) > String(a.when) ? 1 : -1; }) : null;
     DATA.jobs.forEach(function (j) {
       var f = rowsFor(T, 'Job financials', j.id)[0], jr = rowsFor(T, 'Jobs', j.id)[0];
       if (jr && jr.client) j.client = jr.client;
@@ -1089,7 +1107,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: String(me || '').toLowerCase() === 'michael', wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: true, wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
