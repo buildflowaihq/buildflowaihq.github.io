@@ -560,7 +560,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231915";
+(function(){var BUILD="202611231925";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1449,16 +1449,16 @@ window.dashJobMounted = function (el, job) {
       pw.appendChild(pb); pw.appendChild(pf); pw.appendChild(pl); cbox.appendChild(pw);
     }
     var acts = document.createElement('div'); acts.className = 'acts';
-    var go = document.createElement('button'); go.type = 'button'; go.className = 'pri'; go.textContent = 'Send';
+    var go = document.createElement('button'); go.type = 'button'; go.className = 'pri'; go.textContent = a.btn || 'Send';
     var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'Copy text';
     cp.onclick = function () { var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value; }); try { navigator.clipboard.writeText(Object.keys(v).map(function (k) { return v[k]; }).join('\n\n')); cp.textContent = 'Copied'; } catch (e) {} };
     var er = document.createElement('div'); er.className = 'bad'; er.hidden = true;
     go.onclick = function () {
       var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value.trim(); }); er.hidden = true; go.disabled = true; go.textContent = 'Sending…';
-      a.send(v, c, photos).then(function (m) { msg.cardDone = m; if (msg.todo) { try { act(msg.todo, 'done'); } catch (x) {} } save(); redraw(); }, function (e) { go.disabled = false; go.textContent = 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
+      a.send(v, c, photos).then(function (m) { msg.cardDone = m; if (msg.todo) { try { act(msg.todo, 'done'); } catch (x) {} } save(); redraw(); }, function (e) { go.disabled = false; go.textContent = a.btn || 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
     };
     acts.appendChild(go); acts.appendChild(cp); cbox.appendChild(acts); cbox.appendChild(er);
-    var fn = document.createElement('div'); fn.className = 'fine'; fn.textContent = 'Nothing is sent until you press Send. ' + a.hint; cbox.appendChild(fn);
+    var fn = document.createElement('div'); fn.className = 'fine'; fn.textContent = a.foot || ('Nothing is sent until you press Send. ' + a.hint); cbox.appendChild(fn);
   }
   function split(raw) { // reply text, SOURCES line, TASK line (work), MAYBE_TASK line (not sure), EMAIL_DRAFT line (JSON)
     var src = '', task = '', maybe = '', mail = null, links = null, card = null;
