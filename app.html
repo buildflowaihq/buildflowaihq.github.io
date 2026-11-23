@@ -560,7 +560,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231955";
+(function(){var BUILD="202611232155";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1344,9 +1344,11 @@ window.dashJobMounted = function (el, job) {
   stopMic = dictate($('mic'), box, $('hint'));
 
   // ---------- send ----------
+  // Kyle asked (request #62) that all his notes on Nov 23 (Pacific) go to Glenrose; it ends by itself after today.
+  function dayJob() { try { var d = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); if (d === '2026-11-23' && String(typeof me !== 'undefined' ? me : '').toLowerCase() === 'kyle') return '3501 Glenrose Ave'; } catch (e) {} return ''; }
   function fileRequest(what, files) { // files the work in the tracker; the receiver wakes the inbox agent at once
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ k: key, what: what, job: '', when: '', files: files || [] }) }).then(function (r) { return r.json(); })
+      body: JSON.stringify({ k: key, what: what, job: dayJob(), when: '', files: files || [] }) }).then(function (r) { return r.json(); })
       .then(function (d) { if (!d.ok) throw new Error(d.error || 'fail'); return d; });
   }
   function askBrain(onText) { // streams an answer from the brain + Gemini chat worker
