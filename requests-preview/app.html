@@ -561,7 +561,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231730";
+(function(){var BUILD="202611231800";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1666,18 +1666,51 @@ window.dashJobMounted = function (el, job) {
       ' Prepare it ready to send. Anything to a client or vendor comes back to me as a draft to review first. This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
+  // Prep-sheet templates are a per-client setting (prep-templates.json next to the app); this default is used if the file can't be read.
+  var PREP = {
+    "rules": "Use only facts from the To-do notes and what is known about this job and these people. Never invent numbers, names or dates. Leave a section out if there is nothing real for it. Every section has at most 5 short bullets, one line each, plain words. No tables, no long paragraphs, no feature tours, no filler or intro line. Never mention pricing or the old software.",
+    "kinds": [
+      { "id": "inspection", "label": "inspection", "match": "\\binspection\\b",
+        "sections": [
+          { "h": "Where and when", "d": "address, inspector, permit numbers, time" },
+          { "h": "What they will check", "d": "bullets" },
+          { "h": "Have on site", "d": "documents, access, people" },
+          { "h": "Open risks", "d": "what could fail it and what to do now" },
+          { "h": "After", "d": "what happens next" } ] },
+      { "id": "walkthrough", "label": "walk-through", "match": "\\b(walkthrough|walk-through|site walk|site visit|on site|site ready)\\b",
+        "sections": [
+          { "h": "Where and when", "d": "address, who is meeting us, time" },
+          { "h": "Look at, room by room", "d": "what to look at in each area" },
+          { "h": "Open issues on this job", "d": "real open items only" },
+          { "h": "Questions for the client or sub", "d": "at most 5" },
+          { "h": "Remember", "fixed": "- Hit record when you walk in." } ] },
+      { "id": "meeting", "label": "meeting", "match": "\\b(meeting|call with)\\b",
+        "sections": [
+          { "h": "Decisions to make today", "d": "FIRST and the point of the meeting: 2 to 4 numbered decisions, each a question to settle, then a dash and the recommended answer" },
+          { "h": "Purpose", "d": "one sentence" },
+          { "h": "Talking points", "d": "only the 3 or 4 main items, in order, one line each" },
+          { "h": "Questions to ask", "d": "at most 3" },
+          { "h": "Bring", "d": "at most 3" } ] },
+      { "id": "other", "label": "task", "match": "",
+        "sections": [
+          { "h": "Goal", "d": "one sentence" },
+          { "h": "Steps", "d": "numbered" },
+          { "h": "Have on hand", "d": "" },
+          { "h": "Watch out for", "d": "" } ] }
+    ]
+  };
+  try { fetch('prep-templates.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) { if (j && j.kinds && j.kinds.length) PREP = j; }).catch(function () {}); } catch (_) {}
+  function prepKind(t) {
+    for (var i = 0; i < PREP.kinds.length; i++) { var k = PREP.kinds[i]; if (!k.match || new RegExp(k.match, 'i').test(t.title)) return k; }
+    return PREP.kinds[PREP.kinds.length - 1];
+  }
   function helpWith(t) {
     pendingOn = t.id; pendingTitle = t.title; show('chat');
-    var kind = isMeeting(t) ? 'meeting' : (/\binspection\b/i.test(t.title) ? 'inspection' : (/\b(site|on site|site walk|site visit)\b/i.test(t.title) ? 'site visit' : 'task'));
-    var spec = {
-      'meeting': 'Sections, in this order: ### Decisions to make today (this comes FIRST and is the point of the meeting: 2 to 4 numbered decisions, each written as a question to settle, then a dash and your recommended answer); ### Agenda (only the 3 or 4 main items, in order, one line each, with minutes); ### Questions to ask (at most 3); ### Bring (at most 3). This is a meeting about decisions, not a tour: do not walk through features or list everything we built.',
-      'inspection': 'Sections, in this order: ### Where and when (address, inspector, permit numbers, time); ### What they will check (bullets); ### Have on site; ### Open risks (what could fail it and what to do now); ### After.',
-      'site visit': 'Sections, in this order: ### Where and when; ### Goal of the visit; ### Check while there (bullets); ### Have on hand; ### Open issues.',
-      'task': 'Sections, in this order: ### Goal (one sentence); ### Steps (numbered); ### Have on hand; ### Watch out for.'
-    }[kind];
-    box.value = 'Help me get ready for this ' + kind + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Notes on the To-do: ' + (t.detail || 'none') +
-      '\n\nWrite ONE specific, scannable prep sheet for exactly this and nothing else. ' + spec +
-      ' Rules: use only facts from the notes and what you know about this job and these people, never invent numbers or names, and leave a section out if you have nothing real for it. Every section has at most 5 short bullets, one line each, plain words. No tables, no long paragraphs, no lists of data, no feature dumps, no filler or intro line. Never mention pricing or the old software. This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
+    var k = prepKind(t);
+    var spec = 'Sections, in this order: ' + k.sections.map(function (x) { return '### ' + x.h + (x.fixed ? ' (write exactly: ' + x.fixed + ')' : x.d ? ' (' + x.d + ')' : ''); }).join('; ') + '.';
+    box.value = 'Help me get ready for this ' + k.label + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Notes on the To-do: ' + (t.detail || 'none') +
+      '\n\nWrite ONE specific, scannable prep sheet for exactly this and nothing else. ' + spec + ' Rules: ' + PREP.rules +
+      ' This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
   // Where each of my requests stands (working / team / done), shown on the request in plain words.
