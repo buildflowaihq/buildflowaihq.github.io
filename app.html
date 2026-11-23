@@ -1779,8 +1779,9 @@ window.dashJobMounted = function (el, job) {
     }
     // The phone stopped its own microphone mid-recording and the recorder started it again: the first stretch is
     // sent and filed by itself (own request, "part N"), with the same checks as the last one.
+    var earlierParts = 0, TINY_FINAL = 60000; // a last stretch under ~60 KB (about 3 s) is leftover, not a recording
     function finishPart(info, attempt) {
-      var id = info.rec;
+      var id = info.rec; if (!attempt) earlierParts++;
       rec.piecesAfter(id, -1).then(function (all) {
         if (!all.length) return;
         var total = all.reduce(function (n, x) { return n + x.b.size; }, 0);
@@ -1809,6 +1810,7 @@ window.dashJobMounted = function (el, job) {
         if (!all.length) throw new Error('empty');
         var last = all[all.length - 1].seq, total = all.reduce(function (n, x) { return n + x.b.size; }, 0);
         if (total < 2000) throw new Error('empty');
+        if (total < TINY_FINAL && (earlierParts > 0 || (clip.gaps && clip.gaps.length))) return { tiny: true };
         return pump(id, mime, c.startAt).then(function () {
           return post({ k: key, action: 'recdone', rec: id, last: last, bytes: total,
             what: 'Meeting recording from the app. Please transcribe it, write up the notes and action items, and file them to the right job.\n\n' + clip.log });
@@ -1819,8 +1821,14 @@ window.dashJobMounted = function (el, job) {
           var sec = Math.max(1, Math.round((clip.ms || 0) / 1000)); return { num: d.num, mins: (sec >= 60 ? Math.floor(sec / 60) + ' min ' + (sec % 60) + ' sec' : sec + ' sec').replace(/ 0 sec$/, '') };
         });
       }).then(function (r) {
-        up = null; rec.sent(); rec.reset();
+        up = null; rec.sent(); rec.reset(); earlierParts = 0;
         try { localStorage.removeItem(sentKey(id)); } catch (e) {}
+        if (r.tiny) {
+          try { rec.drop(id); } catch (e) {}
+          hist.push({ role: 'assistant', text: 'The earlier part(s) of your recording were sent. The last few seconds were too short to file on their own, so they were left out.' });
+          save(); redraw(); show('chat'); $('recSheet').hidden = true; status('');
+          btn.disabled = false; btn.textContent = 'Send to BuildFlowAI'; return;
+        }
         hist.push({ role: 'user', text: 'Meeting recording (' + r.mins + ')' });
         hist.push({ role: 'assistant', text: 'Got your whole recording (' + r.mins + '). I\'ll write up the notes and action items and file them to the right job.', req: r.num || '' });
         save(); redraw(); show('chat'); $('recSheet').hidden = true; status('');

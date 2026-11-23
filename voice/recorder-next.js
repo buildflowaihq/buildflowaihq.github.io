@@ -40,6 +40,7 @@
     '.bfv-mic{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;background:#FF3B30;color:#fff;border:0;border-radius:14px;font:inherit;font-size:18px;font-weight:600;cursor:pointer;touch-action:manipulation}',
     '.bfv-note{color:var(--muted,#A9A79F);font-size:15px;margin:10px 2px 0}',
     '.bfv-warn{color:#FFC46B;font-size:15px;margin:10px 2px 0}',
+    '.bfv-miss{background:#B3261E;color:#fff;font-size:17px;font-weight:700;line-height:1.35;border-radius:12px;padding:12px 14px;margin:12px 0 0}',
     '.bfv-notice{font-size:22px;font-weight:600;line-height:1.35;margin:4px 0 14px}',
     '.bfv-notice small{display:block;font-size:15px;font-weight:400;color:var(--muted,#A9A79F);margin-top:8px}',
     '.bfv-live{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}',
@@ -81,9 +82,11 @@
       '<div class="bfv-controls"><button type="button" class="bfv-round bfv-small" data-a="pause" aria-label="Pause"></button>' +
         '<button type="button" class="bfv-round sq" data-a="stop" aria-label="Stop"><i></i></button><span></span></div>' +
       '<p class="bfv-note">Keep this screen open while you record.</p>' +
+      '<p class="bfv-miss" data-t="missLive" hidden></p>' +
       '<p class="bfv-warn" data-t="liveWarn" hidden></p>' +
     '</div>' +
     '<div data-v="done" hidden>' +
+      '<p class="bfv-miss" data-t="missDone" hidden></p>' +
       '<div class="bfv-got"><b data-t="gotLen">Recording</b><span data-t="gotSize"></span></div>' +
       '<audio data-t="player" controls preload="metadata"></audio>' +
       '<button type="button" class="bfv-link" data-a="redo">Delete and record again</button>' +
@@ -138,7 +141,7 @@
     var st = 'idle', mr = null, stream = null, chunks = [], parts = [], part = 0, mime = '', startAt = 0, elapsed = 0, runFrom = 0, tick = null;
     var notice = null, blob = null, recId = '', seq = 0, lock = null, ac = null, raf = 0, hiddenAt = 0, gaps = [];
     var api, audioEl = null;
-    function set(s) { st = s; if (opts.onChange) try { opts.onChange(s, api); } catch (e) {} }
+    function set(s) { st = s; if (s === 'done' && missMs) { q('missDone').textContent = q('missLive').textContent; q('missDone').hidden = false; } if (opts.onChange) try { opts.onChange(s, api); } catch (e) {} }
     function show(v) { Array.prototype.forEach.call(views, function (x) { x.hidden = x.getAttribute('data-v') !== v; }); }
 
     var canRec = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && global.MediaRecorder);
@@ -225,7 +228,7 @@
         total = 0; restarts = 0; root.classList.remove('bfv-bad');
         newRecorder();
         set('rec'); saveMeta(); show('live'); root.classList.remove('paused');
-        pauseIcon(false); q('liveState').textContent = 'Recording'; q('liveWarn').hidden = true;
+        pauseIcon(false); q('liveState').textContent = 'Recording'; q('liveWarn').hidden = true; missMs = 0; missEnd = 0; lastDataAt = 0; q('missLive').hidden = true; q('missDone').hidden = true;
         tick = setInterval(draw, 250); draw(); keepAwake(); meter(s);
       }).catch(function () {
         set('idle'); show('idle');
@@ -241,7 +244,7 @@
       var myPart = part;
       mr.ondataavailable = function (e) {
         if (!e.data || !e.data.size) return;
-        gotData = true; total += e.data.size;
+        gotData = true; lastDataAt = Date.now(); total += e.data.size;
         chunks.push(e.data);
         var item = { id: recId, seq: seq++, part: myPart, b: e.data };
         idb('chunks', 'readwrite', function (s2) { s2.put(item, recId + '-' + ('00000' + item.seq).slice(-6)); })
@@ -253,7 +256,7 @@
     }
     // Watchdog: a phone that records silence-with-no-data (seen on iPhone) is caught within ~12 seconds,
     // restarted once on a fresh microphone, and if it still records nothing the person is told right away.
-    var gotData = false, total = 0, wd1 = 0, wd2 = 0, restarts = 0;
+    var lastDataAt = 0, missMs = 0, missEnd = 0, gotData = false, total = 0, wd1 = 0, wd2 = 0, restarts = 0;
     function watch() {
       clearTimeout(wd1); clearTimeout(wd2); gotData = false;
       wd1 = setTimeout(function () {
@@ -282,7 +285,18 @@
     // The phone's recorder sometimes stops by itself (seen on iPhone at exactly 2:00). Never end the recording for it:
     // close that stretch as its own piece-set, open the microphone again and keep going until the person taps Stop.
     var cont = 0;
+    function noteMissing(fromMs, toMs, why) {
+      fromMs = Math.max(fromMs, missEnd); var ms = toMs - fromMs; if (ms < 4000) return; missEnd = toMs;
+      missMs += ms;
+      var mins = Math.max(1, Math.round(ms / 60000)), tot = Math.max(1, Math.round(missMs / 60000));
+      var t = (ms < 90000 ? 'About ' + Math.round(ms / 1000) + ' seconds' : 'About ' + mins + ' minute' + (mins === 1 ? '' : 's')) +
+        ' were NOT recorded (' + clockStr(new Date(fromMs)) + ' to ' + clockStr(new Date(toMs)) + '). ' + why +
+        (missMs > ms ? ' Total not recorded so far: about ' + tot + ' minute' + (tot === 1 ? '' : 's') + '.' : '');
+      q('missLive').textContent = t; q('missLive').hidden = false;
+      gaps.push('NOT RECORDED: ' + clockStr(new Date(fromMs)) + ' to ' + clockStr(new Date(toMs)) + ' (about ' + Math.round(ms / 1000) + ' s)'); saveMeta();
+    }
     function unexpectedStop() {
+      var stoppedAt = lastDataAt || Date.now();
       var endedId = recId, lastSeq = seq - 1, endedMime = mime, endedStart = startAt;
       elapsed += Date.now() - runFrom; runFrom = Date.now();
       clearTimeout(wd1); clearTimeout(wd2);
@@ -292,6 +306,7 @@
       if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
       navigator.mediaDevices.getUserMedia(AUDIO).then(function (s) {
         if (st !== 'rec') { s.getTracks().forEach(function (t) { t.stop(); }); finish(); return; }
+        noteMissing(stoppedAt, Date.now(), 'The phone stopped the microphone. Keep this screen on and open while you record.');
         stream = s; chunks = []; seq = 0; total = 0; restarts = 0; recId = 'r' + Date.now() + 'c' + cont; elapsed = keepElapsed; saveMeta();
         newRecorder(); cancelAnimationFrame(raf); meter(s);
         q('liveWarn').textContent = 'The phone stopped the microphone for a moment. It started again by itself. Keep going.'; q('liveWarn').hidden = false;
@@ -341,7 +356,7 @@
       if (document.hidden) { hiddenAt = Date.now(); return; }
       keepAwake();
       if (hiddenAt && Date.now() - hiddenAt > 3000) {
-        gaps.push(clockStr(new Date(hiddenAt)) + ' to ' + clockStr(new Date())); saveMeta();
+        if (!(lastDataAt && lastDataAt > Date.now() - 15000)) noteMissing(hiddenAt, Date.now(), 'The app was closed or the screen went off.'); else { gaps.push(clockStr(new Date(hiddenAt)) + ' to ' + clockStr(new Date())); saveMeta(); }
         q('liveWarn').textContent = 'The app was closed or the screen went off for a bit. Some of that time may be missing.'; q('liveWarn').hidden = false;
       }
       hiddenAt = 0;
@@ -418,7 +433,8 @@
       var d = new Date(startAt);
       return 'Recording: ' + fmt(durMs()) + ', started ' + d.toLocaleString() + '.\nRecording notice: "' + NOTICE + '" ' +
         (notice ? notice.how + ' at ' + new Date(notice.at).toLocaleString() + ', before the mic started.' : 'NOT LOGGED.') +
-        (gaps.length ? '\nPossible gaps (app closed or screen off): ' + gaps.join('; ') + '.' : '');
+        (missMs ? '\nWARNING: about ' + Math.round(missMs / 60000 * 10) / 10 + ' minutes of this meeting were NOT recorded.' : '') +
+        (gaps.length ? '\nGaps: ' + gaps.join('; ') + '.' : '');
     }
     api = {
       state: function () { return st; },
