@@ -443,6 +443,23 @@
 .dash .dk-as{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;font-size:13px;color:var(--mute,#9a9aa2)}
 .dash .dk-as select{margin-left:6px;background:var(--card,#1c1c20);color:inherit;border:1px solid var(--line,#34343c);border-radius:8px;padding:5px 8px;font:inherit}
 .dash .dk-asn{color:#e9b95a}
+
+/* ===== Job pages in the client's familiar layout (people row, past due triptych, week agenda, jobs list) ===== */
+.dash .dk-people .dk-pt{font-size:18px}.dash .dk-people .dk-pa{color:var(--muted,#9aa);font-size:13px;margin:4px 0 14px}
+.dash .dk-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(120,160,255,.18);vertical-align:middle}.dash .dk-badge.on{background:rgba(110,200,140,.2)}
+.dash .dk-pr{display:grid;grid-template-columns:1fr 1fr;gap:16px}.dash .dk-pr h3,.dash .dk-tc h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px;font-weight:600;opacity:.7}
+.dash .dk-avs{display:flex;gap:6px;flex-wrap:wrap}.dash .dk-av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:rgba(255,255,255,.12)}
+.dash .dk-trip{display:grid;grid-template-columns:repeat(3,1fr);gap:0}.dash .dk-tc{padding:0 14px;border-left:1px solid rgba(255,255,255,.1);min-width:0}.dash .dk-tc:first-child{padding-left:0;border-left:0}
+.dash .dk-tc ul{margin:0;padding:0;list-style:none;font-size:13px}.dash .dk-tc li{padding:3px 0}.dash .dk-tc .dk-ok{font-size:28px;margin:6px 0 2px;text-align:center}.dash .dk-tc .dk-src{text-align:center}
+.dash .dk-cu{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}.dash .dk-cu b{font-size:28px}.dash .dk-cu span{flex:1;min-width:140px;font-size:13px;opacity:.8}.dash .dk-cu .dk-acts{width:100%;margin:0}
+.dash .dk-week{list-style:none;margin:0;padding:0}.dash .dk-week li{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}.dash .dk-week li.wk{opacity:.65}
+.dash .dk-wd{display:flex;gap:8px;align-items:flex-start}.dash .dk-wd b{font-size:20px;min-width:28px}.dash .dk-wd span{font-size:12px;font-weight:600}.dash .dk-wd small{display:block;font-weight:400;opacity:.7}
+.dash .dk-week li.now .dk-wd b{background:var(--accent,#c6f04a);color:#101;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;min-width:30px;font-size:15px}
+.dash .dk-wev{font-size:12px}.dash .dk-wev span{display:block;opacity:.7}.dash .dk-wn{font-size:12px;opacity:.7}
+.dash .dk-fd .dk-ad{font-size:15px;font-weight:700;padding:12px 0 4px;border:0}
+.dash .dk-tw{overflow-x:auto}.dash .dk-tbl{width:100%;border-collapse:collapse;font-size:13px}.dash .dk-tbl th{text-align:left;font-weight:600;font-size:12px;padding:8px 10px;white-space:nowrap;opacity:.75;border-bottom:1px solid rgba(255,255,255,.12)}.dash .dk-tbl td{padding:10px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top;white-space:nowrap}
+@media(max-width:700px){.dash .dk-trip{grid-template-columns:1fr}.dash .dk-tc{border-left:0;padding:8px 0}.dash .dk-pr{grid-template-columns:1fr}}
+.dash .dk-fd li{display:block;grid-template-columns:none}.dash .dk-fd li span{display:block}
 </style>
 </head>
 <body>
@@ -559,7 +576,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611232325";
+(function(){var BUILD="202611232252";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -605,7 +622,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var q = S.q.toLowerCase();
     var jobs = DATA.jobs.filter(function (j) { return !q || (j.name + ' ' + j.client).toLowerCase().indexOf(q) >= 0; });
     var h = '<li><button class="all" data-view="all" aria-current="' + (S.view === 'all') + '"><span class="dk-dot"></span><b>Summary</b><small>All jobs</small></button></li>';
-    h += '<li class="sl" aria-hidden="true">Jobs</li>';
+    h += '<li><button data-view="list" aria-current="' + (S.view === 'list') + '"><span class="dk-dot"></span><b>Jobs list</b><small>Table of all jobs</small></button></li><li class="sl" aria-hidden="true">Jobs</li>';
     var jb = function (j) { return '<li><button data-view="' + j.id + '" aria-current="' + (S.view === j.id) + '"><span class="dk-dot" style="background:' + j.color + '"></span><b>' + esc(j.name) + '</b><small>' + esc(j.stage) + '</small></button></li>'; };
     h += jobs.filter(function (j) { return !j.presale; }).map(jb).join('');
     var ps = jobs.filter(function (j) { return j.presale && S.presale; });
@@ -698,15 +715,66 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     }).join('') + '</dl></details></section>';
   }
 
+  // ---- Job pages laid out like the client's own system: people row, past due / due today / action items, day-grouped activity, week agenda, jobs list ----
+  function initials(n) { return String(n || '?').split(/\s+/).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase(); }
+  function peopleHtml(j) {
+    var cl = (j.client || '').replace(/\s*\(to confirm\)/, '').split(/\s*(?:&|,| and )\s*/).filter(Boolean);
+    var pm = j.contacts.filter(function (c) { return /project (lead|manager)/i.test(c[0]); }).map(function (c) { return c[1]; });
+    var av = function (n) { return '<span class="dk-av" title="' + esc(n) + '">' + esc(initials(n)) + '</span>'; };
+    var stat = j.presale ? 'Pre-sale' : /hold/i.test(j.stage) ? 'On hold' : 'Open';
+    return '<section class="card dk-people"><div class="dk-pt"><b>' + esc(j.name) + '</b> <span class="dk-badge">' + stat + '</span></div><div class="dk-pa">' + esc(j.addr || '') + (j.zip ? ' ' + esc(j.zip) : '') + '</div>' +
+      '<div class="dk-pr"><div><h3>Clients</h3><div class="dk-avs">' + (cl.map(av).join('') || '<span class="dk-src">None yet</span>') + '</div></div><div><h3>Project managers</h3><div class="dk-avs">' + (pm.map(av).join('') || '<span class="dk-src">None yet</span>') + '</div></div></div></section>';
+  }
+  function triptychHtml(list) {
+    var by = function (d) { return list.filter(function (a) { return a.due === d; }); };
+    var col = function (title, items, empty) {
+      return '<div class="dk-tc"><h3>' + title + '</h3>' + (items.length ? '<ul>' + items.slice(0, 5).map(function (a) { return '<li>' + (S.view === 'all' ? tag(a.job) + ' ' : '') + esc(a.text) + '</li>'; }).join('') + (items.length > 5 ? '<li class="dk-src">and ' + (items.length - 5) + ' more</li>' : '') + '</ul>' : '<p class="dk-ok">✓</p><p class="dk-src">' + empty + '</p>') + '</div>';
+    };
+    return '<section class="card dk-trip">' + col('Past due for your team', by('over'), 'Nothing is past due.') + col('Due today', by('today'), 'You have nothing due today.') + col('Action items', [], 'Nothing requires your attention at the moment.') + '</section>';
+  }
+  function weekHtml(items) {
+    var t = new Date(DATA.today + 'T12:00'), dow = (t.getDay() + 6) % 7, mon = new Date(t.getTime() - dow * 864e5), h = '';
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(mon.getTime() + i * 864e5), iso = d.toISOString().slice(0, 10), evs = items.filter(function (e) { return e.date === iso; });
+      var wk = i > 4, body = evs.map(function (e) { return '<div class="dk-wev' + (e.hol ? ' hol' : '') + '"><b>' + esc(e.title) + '</b><span>' + esc(e.time || (e.hol ? '' : 'all day')) + '</span></div>'; }).join('') || (wk ? '<div class="dk-wn">Non-workday</div>' : '');
+      h += '<li class="' + (iso === DATA.today ? 'now ' : '') + (wk ? 'wk' : '') + '"><div class="dk-wd"><b>' + d.getDate() + '</b><span>' + dayName(iso, { weekday: 'long' }) + '<small>' + dayName(iso, { month: 'short', year: 'numeric' }) + '</small></span></div><div class="dk-wb">' + body + '</div></li>';
+    }
+    return '<section class="card"><div class="ch"><h2>This week’s agenda</h2><button class="link" data-say="Show me the schedule">View schedule</button></div><ul class="dk-week">' + h + '</ul></section>';
+  }
+  function updatesHtml() {
+    return '<section class="card dk-cu"><b>0</b><span>Updates shared with clients this month</span><div class="dk-acts"><button class="dk-chip" data-say="Draft a client update">Client updates</button><button class="dk-chip" data-say="Show me the daily logs">Daily logs</button></div></section>';
+  }
+  function jobsListHtml() {
+    var f = S.jf || 'open', all = DATA.jobs.filter(shown);
+    var st = function (j) { return j.presale ? 'pre' : /hold/i.test(j.stage) ? 'hold' : 'open'; };
+    var cnt = { open: all.filter(function (j) { return st(j) === 'open'; }).length, pre: all.filter(function (j) { return st(j) === 'pre'; }).length, hold: all.filter(function (j) { return st(j) === 'hold'; }).length };
+    var rows = all.filter(function (j) { return st(j) === f; }).sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (j) {
+      var cl = j.contacts.filter(function (c) { return c[0].indexOf('Client') === 0; }), pm = j.contacts.filter(function (c) { return /project (lead|manager)/i.test(c[0]); })[0];
+      var parts = (j.addr || '').split(',').map(function (x) { return x.trim(); });
+      return '<tr><td><i class="dk-dot" style="background:' + j.color + '"></i></td><td><button class="link" data-view="' + j.id + '">' + esc(j.name) + '</button></td><td>' + esc(parts[0] || '') + '</td><td>' + esc(parts[1] || j.city || '') + '</td><td>' + esc((parts[2] || '').split(' ')[0]) + '</td><td>' + esc(j.zip || '') + '</td><td>' + esc(pm ? pm[1] : '') + '</td><td>' + cl.map(function (c) { return esc(c[1]); }).join('<br>') + '</td><td>' + cl.map(function (c) { return esc(c[3] || ''); }).join('<br>') + '</td><td>' + cl.map(function (c) { return esc(c[2] || ''); }).join('<br>') + '</td><td><span class="dk-badge on">ONLINE</span></td></tr>';
+    }).join('') || '<tr><td colspan="11" class="dk-src">No jobs here.</td></tr>';
+    var tabs = [['open', 'Open'], ['pre', 'Pre-sale'], ['hold', 'On hold']].filter(function (t) { return t[0] !== 'pre' || S.presale; }).map(function (t) { return '<button role="tab" data-jf="' + t[0] + '" aria-selected="' + (f === t[0]) + '">' + t[1] + ' <span class="n">' + cnt[t[0]] + '</span></button>'; }).join('');
+    return '<div class="dk-top"><div><h1>Jobs</h1><p>' + all.length + ' jobs</p></div></div><section class="card"><div class="dk-tabs" role="tablist">' + tabs + '</div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th></th><th>Job name</th><th>Street address</th><th>City</th><th>State</th><th>Zip code</th><th>Project manager</th><th>Clients</th><th>Client phone</th><th>Client email</th><th>Schedule status</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+  }
+  function activityGrouped(list) {
+    var seen = {}, h = '';
+    list.forEach(function (a) { (seen[a.date] = seen[a.date] || []).push(a); });
+    Object.keys(seen).forEach(function (d) {
+      h += '<li class="dk-ad">' + esc(d) + '</li>' + seen[d].map(function (a) { return '<li><span>' + (S.view === 'all' ? tag(a.job) : '') + esc(a.text) + '</span></li>'; }).join('');
+    });
+    return '<section class="card"><div class="ch"><h2>Recent activity from your team</h2></div><ul class="feed dk-fd">' + h + '</ul></section>';
+  }
+
   function render() {
     sideHtml();
     loadWx(); DATA.wx = WX[wxKey()] || { time: [], code: [], hi: [], rain: [] };
     var h, v = S.view;
-    if (v === 'all') {
+    if (v === 'list') { h = jobsListHtml(); }
+    else if (v === 'all') {
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Schedule web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
-        todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
+        '<div class="cols"><div>' + triptychHtml(DATA.actions) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
+        updatesHtml() + weekHtml(DATA.schedule) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
     } else {
       var j = job(v);
       var acts = DATA.actions.filter(function (a) { return a.job === v; });
@@ -716,11 +784,11 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var first = j.client.split(/ & | /)[0];
       h = '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span>' + esc(j.name) + ' <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + '</p>' +
         '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Schedule web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + actionsHtml(acts) + newHtml(v) + scheduleHtml(sch, 7) +
+        '<div class="cols"><div>' + peopleHtml(j) + triptychHtml(acts) + actionsHtml(acts) + newHtml(v) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
-        '</div><div>' + todoHtml() +
+        '</div><div>' + updatesHtml() + weekHtml(sch) + todoHtml() +
         contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
-        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div><div id="dash-ext"></div>';
+        (act.length ? activityGrouped(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div><div id="dash-ext"></div>';
     }
     $('dash-main').innerHTML = asHtml() + h;
     // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
@@ -754,6 +822,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var b;
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-lead]'))) { toast('Leads open in their own page. Coming next.'); return; }
+    if ((b = e.target.closest('[data-jf]'))) { S.jf = b.getAttribute('data-jf'); render(); return; }
     if ((b = e.target.closest('[data-tab]'))) { S.tab = b.getAttribute('data-tab'); render(); return; }
     if (e.target.closest('[data-todo]')) { if (window.showTab) window.showTab('todo'); return; }
     if ((b = e.target.closest('[data-say]'))) { if (window.chatDraft) window.chatDraft(b.getAttribute('data-say')); else if (window.showTab) window.showTab('chat'); return; }
