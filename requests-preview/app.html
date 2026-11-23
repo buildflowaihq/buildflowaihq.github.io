@@ -1382,7 +1382,7 @@ window.dashJobMounted = function (el, job) {
   // ---------- Action cards: the assistant prepares it, you edit and send (nothing goes out until you press Send) ----------
   var ACT = {   // one executor per card type; new kinds (PO, estimate...) only add an entry here
     email: {
-      title: 'Email draft', hint: 'Sends from your own address, with the files attached.',
+      title: 'Email draft', hint: 'Sends from BuildFlowAI in your name, with the files attached. Replies come to you.',
       fields: function (c) { return [{ k: 'to', l: 'To', v: (c.to || []).map(function (x) { return x.email; }).join(', ') }, { k: 'subject', l: 'Subject', v: c.subject || '' }, { k: 'body', l: 'Message', v: c.body || '', area: 1 }]; },
       send: function (v, c) {
         var to = v.to.split(/[,;\s]+/).filter(Boolean); if (!to.length || !to.every(function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); })) return Promise.reject(new Error('Add who it goes to (a full email address).'));
