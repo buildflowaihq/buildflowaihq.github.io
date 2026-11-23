@@ -561,7 +561,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){return; var BUILD="202611230455";
+(function(){var BUILD="202611231730";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1247,7 +1247,7 @@ window.dashJobMounted = function (el, job) {
     });
     close();
     return secs.filter(function (s) { return s.h.length; }).map(function (s) {
-      return '<section' + (s.n > 4 || /talking|steps|purpose|goal|where/i.test(s.t) ? ' class="wide"' : '') + '>' + (s.t ? '<h2>' + inl(s.t) + '</h2>' : '') + s.h.join('\n') + '</section>';
+      return '<section class="' + (/decision/i.test(s.t) ? 'key ' : '') + (s.n > 4 || /talking|steps|purpose|goal|where|decision|agenda/i.test(s.t) ? 'wide' : '') + '"' + '>' + (s.t ? '<h2>' + inl(s.t) + '</h2>' : '') + s.h.join('\n') + '</section>';
     }).join('\n');
   }
   function printPrep(title, text, when) {
@@ -1265,12 +1265,12 @@ window.dashJobMounted = function (el, job) {
       '.hd h1{font:600 26px/1.15 Georgia,"Times New Roman",serif;margin:6px 0 4px}.hd .s{font-size:13px;opacity:.8}' +
       '.body{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
       '.body>section{background:#fbf7ee;border:1px solid #dcd2bb;border-radius:12px;padding:12px 16px;break-inside:avoid}' +
-      '.body>section.wide{grid-column:1/-1}' +
+      '.body>section.wide{grid-column:1/-1}.body>section.key{background:#00280F;color:#F2EBDD;border-color:#00280F}.body>section.key h2{color:#E9C97A;border-bottom-color:#E9C97A}.body>section.key li{font-size:15px}' +
       'h2{font:600 11px/1 -apple-system,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#00280F;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #00280F}' +
       'p{margin:4px 0}ul,ol{margin:4px 0 0;padding-left:20px}li{margin:3px 0}b{font-weight:600}' +
       '.ft{margin-top:12px;font-size:11px;color:#6b6a5c;text-align:center}' +
       '@media(max-width:620px){.body{grid-template-columns:1fr}}' +
-      '@media print{.bar{display:none}body{background:#fff}.pg{padding:0}.hd{-webkit-print-color-adjust:exact;print-color-adjust:exact}.body>section{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="pg">' +
+      '@media print{.body>section.key{background:#00280F!important;color:#F2EBDD!important}.bar{display:none}body{background:#fff}.pg{padding:0}.hd{-webkit-print-color-adjust:exact;print-color-adjust:exact}.body>section{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="pg">' +
       '<div class="bar"><button onclick="window.print()">Print / Save as PDF</button></div>' +
       '<div class="hd"><div class="k">Prep sheet</div><h1>' + esc(title) + '</h1><div class="s">' + sub + '</div></div>' +
       '<div class="body">' + prepHtml(text) + '</div><div class="ft">Prepared by BuildFlowAI</div></div></body></html>');
@@ -1670,7 +1670,7 @@ window.dashJobMounted = function (el, job) {
     pendingOn = t.id; pendingTitle = t.title; show('chat');
     var kind = isMeeting(t) ? 'meeting' : (/\binspection\b/i.test(t.title) ? 'inspection' : (/\b(site|on site|site walk|site visit)\b/i.test(t.title) ? 'site visit' : 'task'));
     var spec = {
-      'meeting': 'Sections, in this order: ### Purpose (one sentence); ### Talking points (3 to 5 numbered points in the order to cover them, each one line: what to say or show); ### Decisions needed (what we leave the meeting with); ### Questions to ask; ### Bring.',
+      'meeting': 'Sections, in this order: ### Decisions to make today (this comes FIRST and is the point of the meeting: 2 to 4 numbered decisions, each written as a question to settle, then a dash and your recommended answer); ### Agenda (only the 3 or 4 main items, in order, one line each, with minutes); ### Questions to ask (at most 3); ### Bring (at most 3). This is a meeting about decisions, not a tour: do not walk through features or list everything we built.',
       'inspection': 'Sections, in this order: ### Where and when (address, inspector, permit numbers, time); ### What they will check (bullets); ### Have on site; ### Open risks (what could fail it and what to do now); ### After.',
       'site visit': 'Sections, in this order: ### Where and when; ### Goal of the visit; ### Check while there (bullets); ### Have on hand; ### Open issues.',
       'task': 'Sections, in this order: ### Goal (one sentence); ### Steps (numbered); ### Have on hand; ### Watch out for.'
