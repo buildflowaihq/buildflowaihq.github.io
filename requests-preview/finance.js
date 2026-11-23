@@ -50,6 +50,8 @@
   // ---------- drawing
   function draw() {
     var el = S.el; if (!el) return;
+    var keepM = [].slice.call(el.querySelectorAll('.bf-modal:not([data-editor])'));
+    keepM.forEach(function (m) { m.remove(); });
     var d = S.data, h = '<div class="bf-note' + (S.note ? ' show' + (S.noteBad ? ' bad' : '') : '') + '">' + esc(S.note) + '</div>';
     h += '<div class="ch"><h2>Financial</h2><span class="dk-src" style="margin:0">Live in BuildFlowAI · numbers start from your current software</span></div>';
     if (S.err) { el.innerHTML = h + '<p class="dk-empty">' + esc(S.err) + '</p>'; return; }
@@ -58,6 +60,7 @@
     h += '<div class="dk-tabs bf-tabs" role="tablist">' + T.map(function (t) { return '<button role="tab" data-bf-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
     h += S.tab === 'overview' ? overview(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : S.tab === 'bills' ? billList(d) : invList(d);
     el.innerHTML = h;
+    keepM.forEach(function (m) { el.appendChild(m); });
     if (S.ed) drawEditor();
   }
   function kpi(l, v, sub) { return '<div><small>' + esc(l) + '</small><b>' + v + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; }
@@ -200,7 +203,7 @@
     h += '<details class="fold sub"><summary><h3>History</h3></summary><ul class="bf-hist">' + (r.events || []).slice().reverse().map(function (e) { return '<li><time>' + ftime(e.at) + '</time> <b>' + esc(e.who) + '</b> ' + esc(e.what) + '</li>'; }).join('') + '</ul></details>';
     h += '</div><div class="bf-foot">' + actions(k, r, locked, can) + '</div>';
     var m = S.el.querySelector('.bf-modal');
-    if (!m) { m = document.createElement('div'); m.className = 'bf-modal'; S.el.appendChild(m); document.documentElement.classList.add('bf-lock'); }
+    if (!m) { m = document.createElement('div'); m.className = 'bf-modal'; m.setAttribute('data-editor', '1'); S.el.appendChild(m); document.documentElement.classList.add('bf-lock'); }
     var keep = m.querySelector('.bf-body'), st = keep ? keep.scrollTop : 0;
     m.innerHTML = '<div class="bf-panel" role="dialog" aria-modal="true">' + h + '</div>';
     var nb = m.querySelector('.bf-body'); if (nb) nb.scrollTop = st;
