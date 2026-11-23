@@ -1423,7 +1423,7 @@ window.dashJobMounted = function (el, job) {
     var er = document.createElement('div'); er.className = 'bad'; er.hidden = true;
     go.onclick = function () {
       var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value.trim(); }); er.hidden = true; go.disabled = true; go.textContent = 'Sending…';
-      a.send(v, c).then(function (m) { msg.cardDone = m; save(); redraw(); }, function (e) { go.disabled = false; go.textContent = 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
+      a.send(v, c).then(function (m) { msg.cardDone = m; if (msg.todo) { try { act(msg.todo, 'done'); } catch (x) {} } save(); redraw(); }, function (e) { go.disabled = false; go.textContent = 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
     };
     acts.appendChild(go); acts.appendChild(cp); box.appendChild(acts); box.appendChild(er);
     var fn = document.createElement('div'); fn.className = 'fine'; fn.textContent = 'Nothing is sent until you press Send. ' + a.hint; box.appendChild(fn);
@@ -1454,7 +1454,7 @@ window.dashJobMounted = function (el, job) {
     var files = picked.slice(); picked = []; drawFiles();
     var me = { role: 'user', text: what || 'Photos and files', files: files.map(function (f) { return f.name || 'photo'; }).join(', ') };
     hist.push(me); save(); box.value = ''; box.style.height = ''; redraw();
-    var ai = { role: 'assistant', text: '' }, view = bubble(ai);
+    var ai = { role: 'assistant', text: '' }, view = bubble(ai); if (pendingTodo) { ai.todo = pendingTodo; pendingTodo = ''; }
     view.text.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
     $('chat').classList.add('talking'); $('msgs').scrollTop = $('msgs').scrollHeight;
     function finish() { hist.push(ai); save(); redraw(); busy = false; $('send').disabled = false; }
@@ -1471,7 +1471,7 @@ window.dashJobMounted = function (el, job) {
         if (r.card) { ai.card = r.card; if (!r.task) return; }
         if (r.mail) { ai.mail = r.mail; return; } // a draft for them to send from their own email
         if (r.maybe && !r.task) { ai.maybe = r.maybe; ai.ask = what; return; }
-        if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; });
+        if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; if (ai.todo) act(ai.todo, 'doit'); });
       }, function () { // answers service down: say so, and let them choose to send it as a task (never file one by itself)
         ai.text = 'I couldn\'t get an answer just now. Try again in a minute, or send this to BuildFlowAI as a task.'; ai.retry = what;
       });
@@ -1522,18 +1522,12 @@ window.dashJobMounted = function (el, job) {
   function humanOnly(t) { return t.kind === 'human' || /\b(site ready|on site|site walk|inspection|walkthrough|walk-through|meet (him|her|them) at|in person)\b/i.test(t.title + ' ' + t.detail); }
   // "Do it": BuildFlowAI takes the item as a task (drafts the email, builds the doc...). Anything to a client or vendor
   // still comes back for the person's OK before it goes out. The item comes off the list when the work is done.
-  function doIt(t) {
-    var text = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '\n\n' + (t.detail || '') +
-      '\n\n(From the To-do list, item ' + t.id + '. Anything that goes to a client or vendor must be shown to ' + (t.person || me) +
-      ' for OK before it is sent. When the work is sent or finished, check the item off with todo_agent op autodone, id ' + t.id + '.)';
-    fileRequest(text, []).then(function (d) {
-      return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ k: key, action: 'todo', id: t.id, op: 'doit', req: d.num }) }).then(function () { return d; });
-    }).then(function (d) {
-      hist.push({ role: 'user', text: 'Do it: ' + t.title });
-      hist.push({ role: 'assistant', text: 'On it. I\'ll do "' + t.title + '" and show you anything that goes to a client or vendor before it\'s sent. It comes off your To-do list when it\'s done.', req: d.num });
-      save(); redraw(); loadTodos();
-    }, function () { $('todoErr').hidden = false; $('todoErr').textContent = 'That didn\'t go through. Try again.'; drawTodos(); });
+  var pendingTodo = '';
+  function doIt(t) { // the assistant does the work now: the draft (email, invite...) opens in chat ready to edit and Send; the item checks off when it is sent
+    pendingTodo = t.id; show('chat');
+    box.value = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '') +
+      ' Prepare it ready to send. Anything to a client or vendor comes back to me as a draft to review first.';
+    box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
     show('chat'); box.value = 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
