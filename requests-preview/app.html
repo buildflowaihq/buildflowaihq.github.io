@@ -1572,7 +1572,8 @@ window.dashJobMounted = function (el, job) {
   // ---------- To-do ----------
   var todos = [], me = '', admin = false, who = 'mine', openSnooze = '', openMore = '';
   // Things only a person can do (be on site, an inspection, a meeting): offer help getting ready instead of "Do it".
-  function humanOnly(t) { return t.kind === 'human' || /\b(site ready|on site|site walk|inspection|walkthrough|walk-through|meet (him|her|them) at|in person)\b/i.test(t.title + ' ' + t.detail); }
+  function humanOnly(t) { return t.kind === 'human' || /\b(site ready|on site|site walk|inspection|walkthrough|walk-through|meet (him|her|them) at|in person|meeting|prepare for)\b/i.test(t.title + ' ' + t.detail); }
+  function isMeeting(t) { return /\b(meeting|walkthrough|walk-through|call with)\b/i.test(t.title); }
   // "Do it": BuildFlowAI takes the item as a task (drafts the email, builds the doc...). Anything to a client or vendor
   // still comes back for the person's OK before it goes out. The item comes off the list when the work is done.
   var pendingTodo = '';
@@ -1583,7 +1584,7 @@ window.dashJobMounted = function (el, job) {
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
-    show('chat'); box.value = 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
+    show('chat'); box.value = isMeeting(t) ? 'Help me prepare for this meeting: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep now from what you know about our app and this company: (1) a plain-words walkthrough of every feature in order, each with what to show and its status (live, preview, or coming soon) and its link if you have one; (2) every agenda item or ask in the notes below, each with why it matters and exactly what to say. Never mention pricing or the old software. Notes: ' + (t.detail || '') : 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
