@@ -303,8 +303,13 @@
       gaps.push(clockStr(new Date()) + ' (the phone stopped the microphone; it was started again)'); 
       if (opts.onPartEnd && lastSeq >= 0) try { opts.onPartEnd({ rec: endedId, last: lastSeq, mime: endedMime, startAt: endedStart, n: cont + 1 }); } catch (e) {}
       cont++; var keepElapsed = elapsed;
-      if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
-      navigator.mediaDevices.getUserMedia(AUDIO).then(function (s) {
+      // Reuse the microphone we already have when the phone only stopped the recorder: asking again can pop up
+      // "Allow BuildFlowAI to use the microphone?" every time. Only ask again if the microphone itself was taken away.
+      var again = liveStream(stream) ? Promise.resolve(stream) : (function () {
+        if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+        return navigator.mediaDevices.getUserMedia(AUDIO);
+      })();
+      again.then(function (s) {
         if (st !== 'rec') { s.getTracks().forEach(function (t) { t.stop(); }); finish(); return; }
         noteMissing(stoppedAt, Date.now(), 'The phone stopped the microphone. Keep this screen on and open while you record.');
         stream = s; chunks = []; seq = 0; total = 0; restarts = 0; recId = 'r' + Date.now() + 'c' + cont; elapsed = keepElapsed; saveMeta();
