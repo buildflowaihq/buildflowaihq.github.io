@@ -297,6 +297,8 @@
 .dash .ag .today b{color:var(--accent)}
 .dash .ev{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;padding:7px 10px;border-radius:9px;background:var(--blue-bg);margin-bottom:6px;text-decoration:none}
 .dash .ev:last-child{margin-bottom:0}
+.dash .wk{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;font-size:12px;color:var(--late,#E9B95A);font-weight:600}
+.dash .wk button{font:inherit;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer}
 .dash .ev .dk-t{font-size:12px;color:var(--muted);font-weight:600;grid-row:span 2;padding-top:2px;min-width:58px}
 .dash .ev b{font-weight:600;color:var(--blue)}
 .dash .ev span{font-size:13px;color:var(--muted)}
@@ -577,6 +579,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- KDB data snapshot, Nov 21 2026 (job emails + the client's old system). Calendar and weather go live in the app. ----
   var DATA = {
     me: { name: '', id: '' },
+    workweek: { workDays: [1, 2, 3, 4, 5], approvers: ['kyle', 'mary'] },   // per-client setting (KDB: no Sat/Sun; owners Kyle and Mary approve exceptions)
     today: '',
     jobs: [
       { id: 'glenrose', name: '3501 Glenrose Ave', client: 'Jaime Rodriguez', city: 'Altadena', color: '#E9B95A', stage: 'Building', build: true, team: ['kyle', 'mary'],
@@ -689,6 +692,17 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return '<section class="card"><div class="ch"><h2>Actions</h2><button class="link" data-todo>Open To-do →</button></div><div class="dk-tabs" role="tablist">' + tabs + '</div><ul class="al">' + rows + '</ul></section>';
   }
 
+  // Weekend / non-work-day flag: one shared rule (workweek.js) from the client's settings.
+  var WKOK = {}; try { WKOK = JSON.parse(localStorage.getItem('bf_wkok') || '{}'); } catch (_) {}
+  function wkFlag(e) {
+    if (!window.BFWeek || e.hol || !e.auto) return '';   // Michael 11/23: only system-made dates are flagged; a Saturday Kyle, Mary or a worker schedules on purpose is never flagged
+    var c = DATA.workweek, k = BFWeek.key(e);
+    if (WKOK[k]) return '<div class="wk" style="color:var(--muted)">Weekend work approved by ' + esc(WKOK[k]) + '</div>';
+    if (!BFWeek.needsApproval(e, WKOK, c)) return '';
+    var who = c.approvers.map(function (x) { return x.charAt(0).toUpperCase() + x.slice(1); }).join(' or ');
+    var can = !S.ro && BFWeek.canApprove(DATA.me.id, c);
+    return '<div class="wk"><span>Weekend, needs owner OK (' + esc(who) + ')</span>' + (can ? '<button type="button" data-wkok="' + esc(k) + '">Approve</button>' : '') + '</div>';
+  }
   function scheduleHtml(items, days) {
     var start = new Date(DATA.today + 'T12:00'), h = '';
     for (var i = 0; i < days; i++) {
@@ -698,7 +712,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var w = DATA.wx.time.indexOf(iso);
       h += '<li class="' + (i === 0 ? 'today' : '') + '"><div class="dk-d"><b>' + (i === 0 ? 'Today' : dayName(iso)) + '</b>' + dayName(iso, { month: 'short', day: 'numeric' }) + (w >= 0 ? '<span class="w"> · ' + icon(DATA.wx.code[w]) + ' ' + DATA.wx.hi[w] + '°</span>' : '') + '</div><div>' +
         (evs.length ? evs.map(function (e) {
-          return '<' + (e.link ? 'a href="' + esc(e.link) + '" target="_blank" rel="noopener"' : 'div') + ' class="ev ' + (e.hol ? 'hol' : e.auto ? 'auto' : e.bt ? 'btv' : 'live') + '"><span class="dk-t">' + esc(e.time || 'All day') + '</span><b>' + esc(e.title) + '</b><span>' + (e.job && S.view === 'all' ? tag(e.job) + (e.note ? ' · ' : '') : '') + esc(e.note || '') + '</span></' + (e.link ? 'a' : 'div') + '>';
+          return '<' + (e.link ? 'a href="' + esc(e.link) + '" target="_blank" rel="noopener"' : 'div') + ' class="ev ' + (e.hol ? 'hol' : e.auto ? 'auto' : e.bt ? 'btv' : 'live') + '"><span class="dk-t">' + esc(e.time || 'All day') + '</span><b>' + esc(e.title) + '</b><span>' + (e.job && S.view === 'all' ? tag(e.job) + (e.note ? ' · ' : '') : '') + esc(e.note || '') + '</span>' + wkFlag(e) + '</' + (e.link ? 'a' : 'div') + '>';
         }).join('') : '<div class="none">Nothing scheduled</div>') + '</div></li>';
     }
     var later = items.filter(function (e) { return e.date > new Date(start.getTime() + (days - 1) * 864e5).toISOString().slice(0, 10); });
@@ -805,6 +819,15 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   root.addEventListener('submit', function (e) { if (S.ro) { e.preventDefault(); e.stopPropagation(); toast('Read-only view.'); } }, true);
   root.addEventListener('change', function (e) { if (e.target.id === 'dash-as') viewAs(e.target.value); });
   root.addEventListener('click', function (e) { if (e.target.closest('[data-asback]')) viewAs(S.real.id); });
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-wkok]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    if (S.ro || !BFWeek.canApprove(DATA.me.id, DATA.workweek)) return;
+    WKOK[b.getAttribute('data-wkok')] = DATA.me.name || DATA.me.id;   // preview: remembered on this device only, until the shared approval list is wired
+    try { localStorage.setItem('bf_wkok', JSON.stringify(WKOK)); } catch (_) {}
+    if (typeof toast === 'function') toast('Approved for ' + (DATA.me.name || DATA.me.id) + '. Saved on this device for now.');
+    if (typeof render === 'function') render();
+  }, true);
   root.addEventListener('click', function (e) {
     var b;
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; render(); window.scrollTo({ top: 0 }); return; }
@@ -1136,6 +1159,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 })();
 </script>
 <link rel="stylesheet" href="finance.css?v=202611230520">
+<script src="workweek.js?v=1"></script>
 <script src="finance.js?v=202611230520"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
@@ -1382,7 +1406,7 @@ window.dashJobMounted = function (el, job) {
   // ---------- Action cards: the assistant prepares it, you edit and send (nothing goes out until you press Send) ----------
   var ACT = {   // one executor per card type; new kinds (PO, estimate...) only add an entry here
     email: {
-      title: 'Email draft', hint: 'Sends from your own address, with the files attached.',
+      title: 'Email draft', hint: 'Sends from BuildFlowAI in your name, with the files attached. Replies come to you.',
       fields: function (c) { return [{ k: 'to', l: 'To', v: (c.to || []).map(function (x) { return x.email; }).join(', ') }, { k: 'subject', l: 'Subject', v: c.subject || '' }, { k: 'body', l: 'Message', v: c.body || '', area: 1 }]; },
       send: function (v, c) {
         var to = v.to.split(/[,;\s]+/).filter(Boolean); if (!to.length || !to.every(function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); })) return Promise.reject(new Error('Add who it goes to (a full email address).'));
@@ -1548,7 +1572,8 @@ window.dashJobMounted = function (el, job) {
   // ---------- To-do ----------
   var todos = [], me = '', admin = false, who = 'mine', openSnooze = '', openMore = '';
   // Things only a person can do (be on site, an inspection, a meeting): offer help getting ready instead of "Do it".
-  function humanOnly(t) { return t.kind === 'human' || /\b(site ready|on site|site walk|inspection|walkthrough|walk-through|meet (him|her|them) at|in person)\b/i.test(t.title + ' ' + t.detail); }
+  function humanOnly(t) { return t.kind === 'human' || /\b(site ready|on site|site walk|inspection|walkthrough|walk-through|meet (him|her|them) at|in person|meeting|prepare for)\b/i.test(t.title + ' ' + t.detail); }
+  function isMeeting(t) { return /\b(meeting|walkthrough|walk-through|call with)\b/i.test(t.title); }
   // "Do it": BuildFlowAI takes the item as a task (drafts the email, builds the doc...). Anything to a client or vendor
   // still comes back for the person's OK before it goes out. The item comes off the list when the work is done.
   var pendingTodo = '';
@@ -1559,7 +1584,7 @@ window.dashJobMounted = function (el, job) {
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
-    show('chat'); box.value = 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
+    show('chat'); box.value = isMeeting(t) ? 'Help me prepare for this meeting: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep now from what you know about our app and this company: (1) a plain-words walkthrough of every feature in order, each with what to show and its status (live, preview, or coming soon) and its link if you have one; (2) every agenda item or ask in the notes below, each with why it matters and exactly what to say. Never mention pricing or the old software. Notes: ' + (t.detail || '') : 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
@@ -1617,7 +1642,11 @@ window.dashJobMounted = function (el, job) {
         (t.status === 'ask' ? '<div class="q">' + esc(t.note || 'Did this get done?') + '</div>' : '');
       var a = document.createElement('div'); a.className = 'acts';
       function btn(label, fn, pri) { var b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (pri) b.className = 'pri'; b.onclick = fn; a.appendChild(b); }
-      if (t.status === 'ask') { btn('Yes, done', function () { act(t.id, 'yes'); }, true); btn('Not yet', function () { act(t.id, 'notyet'); }); }
+      if (t.status === 'ask') {
+        // A task that BuildFlowAI can do (an email, a message) and that hasn't been confirmed sent still gets Do it, which opens the draft.
+        if (!humanOnly(t)) btn('Do it', function (ev) { ev.target.disabled = true; doIt(t); }, true);
+        btn('Yes, done', function () { act(t.id, 'yes'); }, humanOnly(t)); btn('Not yet', function () { act(t.id, 'notyet'); });
+      }
       else if (t.status === 'working') {
         c.insertAdjacentHTML('beforeend', '<div class="q">' + esc(t.note || 'BuildFlowAI is on it.') + '</div>');
         btn('Already done', function () { act(t.id, 'done'); });
