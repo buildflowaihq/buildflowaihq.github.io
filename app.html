@@ -560,7 +560,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231800";
+(function(){var BUILD="202611231830";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1352,7 +1352,7 @@ window.dashJobMounted = function (el, job) {
   function askBrain(onText) { // streams an answer from the brain + Gemini chat worker
     var msgs = hist.filter(function (x) { return x.text; }).slice(-24).map(function (x) { return { role: x.role, text: x.text }; });
     return fetch(CHAT + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({ messages: msgs, extras: true, team: TEAM }) }).then(function (r) {
+      body: JSON.stringify((function () { var b = { messages: msgs, extras: true, team: TEAM }; if (pendingPrep) { b.prep = pendingPrep; pendingPrep = null; } return b; })()) }).then(function (r) {
       if (!r.ok || !r.body) throw new Error('chat ' + r.status);
       var rd = r.body.getReader(), dec = new TextDecoder(), all = '';
       function pump() { return rd.read().then(function (x) { if (x.done) return all; all += dec.decode(x.value, { stream: true }); onText(all); return pump(); }); }
@@ -1578,13 +1578,13 @@ window.dashJobMounted = function (el, job) {
     for (var i = 0; i < PREP.kinds.length; i++) { var k = PREP.kinds[i]; if (!k.match || new RegExp(k.match, 'i').test(t.title)) return k; }
     return PREP.kinds[PREP.kinds.length - 1];
   }
+  var pendingPrep = null;   // sent with the next chat request: the server builds the sheet from recent job data
   function helpWith(t) {
     pendingOn = t.id; pendingTitle = t.title; show('chat');
     var k = prepKind(t);
     var spec = 'Sections, in this order: ' + k.sections.map(function (x) { return '### ' + x.h + (x.fixed ? ' (write exactly: ' + x.fixed + ')' : x.d ? ' (' + x.d + ')' : ''); }).join('; ') + '.';
-    box.value = 'Help me get ready for this ' + k.label + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Notes on the To-do: ' + (t.detail || 'none') +
-      '\n\nWrite ONE specific, scannable prep sheet for exactly this and nothing else. ' + spec + ' Rules: ' + PREP.rules +
-      ' This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
+    pendingPrep = { kind: k.label, title: t.title, job: t.job || '', date: t.when || t.date || '', notes: t.detail || '', sections: k.sections, rules: PREP.rules };
+    box.value = 'Help me get ready for this ' + k.label + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep sheet from the latest on this job.';
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
   // Where each of my requests stands (working / team / done), shown on the request in plain words.
