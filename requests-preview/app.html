@@ -1507,7 +1507,7 @@ window.dashJobMounted = function (el, job) {
     var files = picked.slice(); picked = []; drawFiles();
     var me = { role: 'user', text: what || 'Photos and files', files: files.map(function (f) { return f.name || 'photo'; }).join(', ') };
     hist.push(me); save(); box.value = ''; box.style.height = ''; redraw();
-    var ai = { role: 'assistant', text: '' }, view = bubble(ai); if (pendingTodo) { ai.todo = pendingTodo; pendingTodo = ''; }
+    var ai = { role: 'assistant', text: '' }, view = bubble(ai); if (pendingTodo) { ai.todo = pendingTodo; pendingTodo = ''; } if (pendingOn) { ai.onTodo = pendingOn; pendingOn = ''; }
     view.text.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
     $('chat').classList.add('talking'); $('msgs').scrollTop = $('msgs').scrollHeight;
     function finish() { hist.push(ai); save(); redraw(); busy = false; $('send').disabled = false; }
@@ -1523,7 +1523,8 @@ window.dashJobMounted = function (el, job) {
         var r = split(raw); ai.text = r.text; ai.sources = r.sources; ai.links = r.links;
         if (r.card) { ai.card = r.card; if (!r.task) return; }
         if (r.mail) { ai.mail = r.mail; return; } // a draft for them to send from their own email
-        if (r.maybe && !r.task) { ai.maybe = r.maybe; ai.ask = what; return; }
+        if (r.maybe && !r.task && !ai.onTodo) { ai.maybe = r.maybe; ai.ask = what; return; }
+        if (r.task && ai.onTodo) return;   // work on an existing To-do: the answer above is the result; no new request or To-do
         if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; if (ai.todo) act(ai.todo, 'doit'); });
       }, function () { // answers service down: say so, and let them choose to send it as a task (never file one by itself)
         ai.text = 'I couldn\'t get an answer just now. Try again in a minute, or send this to BuildFlowAI as a task.'; ai.retry = what;
@@ -1576,15 +1577,15 @@ window.dashJobMounted = function (el, job) {
   function isMeeting(t) { return /\b(meeting|walkthrough|walk-through|call with)\b/i.test(t.title); }
   // "Do it": BuildFlowAI takes the item as a task (drafts the email, builds the doc...). Anything to a client or vendor
   // still comes back for the person's OK before it goes out. The item comes off the list when the work is done.
-  var pendingTodo = '';
+  var pendingTodo = '', pendingOn = '';   // pendingOn: the chat message is work ON an existing To-do (Do it / Help me): it never files a new request or To-do
   function doIt(t) { // the assistant does the work now: the draft (email, invite...) opens in chat ready to edit and Send; the item checks off when it is sent
-    pendingTodo = t.id; show('chat');
+    pendingTodo = t.id; pendingOn = t.id; show('chat');
     box.value = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '') +
-      ' Prepare it ready to send. Anything to a client or vendor comes back to me as a draft to review first.';
+      ' Prepare it ready to send. Anything to a client or vendor comes back to me as a draft to review first. This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
-    show('chat'); box.value = isMeeting(t) ? 'Help me prepare for this meeting: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep now from what you know about our app and this company: (1) a plain-words walkthrough of every feature in order, each with what to show and its status (live, preview, or coming soon) and its link if you have one; (2) every agenda item or ask in the notes below, each with why it matters and exactly what to say. Never mention pricing or the old software. Notes: ' + (t.detail || '') : 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
+    pendingOn = t.id; show('chat'); box.value = (isMeeting(t) ? 'Help me prepare for this meeting: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep now from what you know about our app and this company: (1) a plain-words walkthrough of every feature in order, each with what to show and its status (live, preview, or coming soon) and its link if you have one; (2) every agenda item or ask in the notes below, each with why it matters and exactly what to say. Never mention pricing or the old software. Notes: ' + (t.detail || '') : 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '')) + ' This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
