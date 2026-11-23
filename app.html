@@ -560,7 +560,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231940";
+(function(){var BUILD="202611231955";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1386,13 +1386,13 @@ window.dashJobMounted = function (el, job) {
         var lines = String(v.lines || '').split('\n').map(function (l) { var m = l.match(/^(.*?)[|\t]+\s*\$?\s*([\d,]+(?:\.\d+)?)\s*$/); return m ? { desc: m[1].trim(), qty: 1, unit_cost: 0, price_override: parseFloat(m[2].replace(/,/g, '')) } : null; }).filter(function (l) { return l && l.desc; });
         if (!v.title.trim()) return Promise.reject(new Error('Give the change order a title.'));
         if (!lines.length) return Promise.reject(new Error('Add at least one line like: Fireplace surround | 4200'));
-        if (window.__bfMe !== 'michael') {   // people without finance access: the full draft goes to BuildFlowAI as a request (photos attached); the draft is made for them, nothing goes to the client
+        var viaRequest = function () {   // people without finance access: the full draft goes to BuildFlowAI as a request (photos attached); the draft is made for them, nothing goes to the client
           var txt = 'Change order draft for ' + (c.jobName || c.job) + ': ' + v.title + '. ' + (v.description || '') + ' Lines: ' + lines.map(function (l) { return l.desc + ' $' + l.price_override; }).join('; ') + '. Days added: ' + (Number(v.days) || 0) + '. Please create this as a DRAFT change order in finance for review. Do not send anything to the client.';
           return fileRequest(txt, (photos || []).slice(0, 4).map(function (p) { return { name: p.name, type: p.type, data: p.data }; })).then(function () { return 'Sent to BuildFlowAI to set up as a draft change order' + ((photos || []).length ? ' with ' + Math.min(4, photos.length) + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. Nothing goes to the client until you approve it.'; });
-        }
+        };
         return fetch('https://kdb-finance.mekovacs22.workers.dev/api/co/save', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ job: c.job, title: v.title, description: v.description, lines: lines, days_impact: Number(v.days) || 0, attachments: (photos || []).slice(0, 4).map(function (p) { return { name: p.name, mime: p.type, data: p.data }; }) }) }).then(function (r) { return r.json(); })
-          .then(function (r) { if (!r.ok) throw new Error(r.error || 'That did not save. Nothing was created.'); return (window.__bfMe && typeof finOk === 'function' && !finOk() ? 'Saved as a draft for review' + (((photos || []).length) ? ' with ' + Math.min(4, photos.length) + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. Nothing was sent to the client.' : 'Saved as draft ' + ((r.co && r.co.number) || 'change order') + ' for ' + (c.jobName || c.job) + ((photos || []).length ? ' with ' + Math.min(4, photos.length) + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. It is not sent to the client.'); });
+          .then(function (r) { if (!r.ok && /sign|auth|key|forbid|not allowed|role|permission/i.test(String(r.error || ''))) return viaRequest(); if (!r.ok) throw new Error(r.error || 'That did not save. Nothing was created.'); return (window.__bfMe && typeof finOk === 'function' && !finOk() ? 'Saved as a draft for review' + (((photos || []).length) ? ' with ' + Math.min(4, photos.length) + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. Nothing was sent to the client.' : 'Saved as draft ' + ((r.co && r.co.number) || 'change order') + ' for ' + (c.jobName || c.job) + ((photos || []).length ? ' with ' + Math.min(4, photos.length) + ' photo' + (photos.length > 1 ? 's' : '') : '') + '. It is not sent to the client.'); });
       }
     },
     meeting: {
