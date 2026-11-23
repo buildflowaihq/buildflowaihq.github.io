@@ -502,10 +502,10 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230410";
+(function(){var BUILD="202611230440";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
- location.reload();}}).catch(function(){})}
+ try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
 check();document.addEventListener("visibilitychange",function(){if(!document.hidden)check()});window.addEventListener("focus",check);setInterval(check,300000);})();
 </script>
 <script>
