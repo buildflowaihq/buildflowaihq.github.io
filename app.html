@@ -637,7 +637,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         '<div class="cols"><div>' + actionsHtml(acts) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         '</div><div>' + todoHtml() +
-        '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
+        contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
         (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div>';
     }
     $('dash-main').innerHTML = h;
@@ -807,6 +807,28 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if ((b = e.target.closest('[data-send]'))) { if (b.getAttribute('data-send') === 'meet') sendMeet(b); else sendContract(b); return; }
   });
 
+
+  // ---- Contract status on the job page (from the signing worker, via the chat worker) ----
+  S.ctr = {};
+  var CTR_LABEL = { sent: 'Sent', partly_signed: 'Partly signed', signed: 'Signed', declined: 'Declined', expired: 'Expired', canceled: 'Canceled', failed: 'Failed' };
+  function loadContracts(id) {
+    if (S.ctr[id] !== undefined || !S.base) return;
+    S.ctr[id] = null;
+    fetch(S.base + '/api/dash?contracts=' + encodeURIComponent(id), { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { S.ctr[id] = d.contracts || []; if (S.view === id && S.ctr[id].length) render(); })
+      .catch(function () { S.ctr[id] = []; });
+  }
+  function contractsHtml(id) {
+    loadContracts(id);
+    var list = S.ctr[id]; if (!list || !list.length) return '';
+    return '<section class="card"><div class="ch"><h2>Contracts</h2></div><ul class="al">' + list.map(function (c) {
+      var done = c.state === 'signed', who = (c.signers || []).map(function (s) { return esc(s.name) + (s.signed ? ' ✓' : ''); }).join(' · ');
+      var sub = done ? 'Signed' + (c.completed_at ? ' ' + esc(String(c.completed_at).slice(0, 10)) : '') + '. The signed copy is filed in the job folder.' : (c.waiting_on ? 'Waiting on ' + esc(c.waiting_on) : '');
+      return '<li><div><b>' + esc(c.title || 'Contract') + '</b><div class="dk-m">' + who + (sub ? (who ? ' · ' : '') + sub : '') + '</div></div><span class="dk-who">' + esc(CTR_LABEL[c.state] || c.state) + (c.test_mode ? ' (test)' : '') + '</span></li>';
+    }).join('') + '</ul></section>';
+  }
+
   // ---- live data ----
   function jobOf(ev) {
     if (ev.job) { var hit = DATA.jobs.filter(function (j) { return ev.job.indexOf(j.id) === 0 || ev.job.replace(/-/g, '') === j.id; })[0]; if (hit) return hit.id; }
@@ -933,7 +955,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   window.dashInit = function (opts) {
     opts = opts || {};
-    S.key = opts.key || S.key; S.cal = opts.cal || S.cal; S.wx = opts.wx || S.wx; if (opts.people) PEOPLE = opts.people; S.contract = !!opts.contract; S.lead = !!opts.lead;
+    S.key = opts.key || S.key; S.cal = opts.cal || S.cal; S.wx = opts.wx || S.wx; if (opts.people) PEOPLE = opts.people; S.contract = !!opts.contract; S.lead = !!opts.lead; S.base = (opts.api || '').replace(/\/$/, '');
     var who = String(opts.who || DATA.me.id || '').toLowerCase();
     DATA.me = { id: who, name: who ? who.charAt(0).toUpperCase() + who.slice(1) : '' };
     DATA.today = ymd(new Date());
