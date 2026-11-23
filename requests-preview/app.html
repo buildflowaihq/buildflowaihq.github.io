@@ -447,7 +447,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="pv"><b>Preview v3 (in-app send)</b> of the new Requests tab. Not live for Kyle or Mary. Requests you send here are real.</div>
+  <div class="pv"><b>Preview v4 (in-app send)</b> of the new Requests tab. Not live for Kyle or Mary. Requests you send here are real.</div>
   <div class="top">
     <div class="tabs" role="tablist">
       <button type="button" id="tabChat" class="on" role="tab">Chat</button>
@@ -559,7 +559,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230455";
+(function(){return; var BUILD="202611230455";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
