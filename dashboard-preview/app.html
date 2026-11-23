@@ -1063,7 +1063,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: String(me || '').toLowerCase() === 'michael', wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', source: 'Buildertrend', tz: 'America/Los_Angeles' }); }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: String(me || '').toLowerCase() === 'michael', wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles' }); }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard

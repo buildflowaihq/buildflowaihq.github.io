@@ -502,7 +502,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611211900";
+(function(){var BUILD="202611230350";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  location.reload();}}).catch(function(){})}
@@ -624,7 +624,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + DATA.jobs.length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Schedule web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + actionsHtml(DATA.actions) + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
-        todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, DATA.btWhen ? 'Company money · Buildertrend' : 'Company money') + '</div></div>';
+        todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
     } else {
       var j = job(v);
       var acts = DATA.actions.filter(function (a) { return a.job === v; });
@@ -902,7 +902,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function finHtml(j) {
     var x = j.fin, f = x.f, kv = function (rows) { return '<dl class="mt">' + rows.map(function (m) { return '<dt>' + esc(m[0]) + (m[2] ? '<small>' + esc(m[2]) + '</small>' : '') + '</dt><dd>' + m[1] + '</dd>'; }).join('') + '</dl>'; };
     var g = function (title, body, open) { return '<details class="fold sub"' + (open ? ' open' : '') + '><summary><h3>' + title + '</h3></summary>' + body + '</details>'; };
-    return '<section class="card fin"><div class="ch"><h2>Job financials</h2><span class="dk-src" style="margin:0">From Buildertrend · read ' + esc(DATA.btWhen) + '</span></div>' +
+    return '<section class="card fin"><div class="ch"><h2>Job financials</h2><span class="dk-src" style="margin:0">Updated nightly · read ' + esc(DATA.btWhen) + '</span></div>' +
       '<div class="big"><div><small>Total revised price</small><b>' + money(f['Total revised price']) + '</b></div><div><small>Payments</small><b>' + money(f.Payments) + '</b></div><div><small>Remaining balance</small><b>' + money(f['Remaining balance']) + '</b></div></div>' +
       g('Job costing budget', kv([['Revised price', money(f['Revised price'])], ['Projected cost', money(f['Projected cost'])], ['Projected profit', money(f['Projected profit']), f['Profit vs estimate'] || ''], ['Profit margin', pct(f['Profit margin'])],
         ['Original budget costs', money(f['Budget total: Original budget costs'])], ['Revised budget costs', money(f['Budget total: Revised budget costs'])], ['Pending costs', money(f['Budget total: Pending costs'])], ['Committed costs', money(f['Budget total: Committed costs'])],
