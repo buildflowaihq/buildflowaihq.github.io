@@ -410,6 +410,10 @@
 
 .dash .dlg-r2l{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:520px){.dash .dlg-r2l{grid-template-columns:1fr}}
+
+.dash .dk-as{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px;font-size:13px;color:var(--mute,#9a9aa2)}
+.dash .dk-as select{margin-left:6px;background:var(--card,#1c1c20);color:inherit;border:1px solid var(--line,#34343c);border-radius:8px;padding:5px 8px;font:inherit}
+.dash .dk-asn{color:#e9b95a}
 </style>
 </head>
 <body>
@@ -505,7 +509,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230358";
+(function(){var BUILD="202611230410";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  location.reload();}}).catch(function(){})}
@@ -709,10 +713,31 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
         (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div>';
     }
-    $('dash-main').innerHTML = h;
+    $('dash-main').innerHTML = asHtml() + h;
   }
 
+  // ---- "View as": an owner sees another person's real dashboard, read-only. Uses the owner's own key; never acts as the other person. ----
+  function asHtml() {
+    if (!S.views) return '';
+    return '<div class="dk-as"><label>View as <select id="dash-as">' + S.views.map(function (v) { return '<option value="' + esc(v.id) + '"' + (v.id === DATA.me.id ? ' selected' : '') + '>' + esc(v.name) + (v.id === S.real.id ? ' (me)' : '') + '</option>'; }).join('') +
+      '</select></label>' + (S.ro ? '<span class="dk-asn">Viewing ' + esc(DATA.me.name) + '’s dashboard. Read-only; nothing you tap here changes anything.</span><button type="button" class="dk-chip" data-asback="1">Back to me</button>' : '') + '</div>';
+  }
+  function viewAs(id) {
+    var v = (S.views || []).filter(function (x) { return x.id === id; })[0]; if (!v) return;
+    var me = id === S.real.id;
+    DATA.me = { id: v.id, name: v.name }; S.ro = !me; S.lead = me ? S.real.lead : !!v.lead; S.contract = me ? S.real.contract : !!v.contract;
+    render();
+  }
+  window.dashViewAs = viewAs;
+
   var root = $('dash');
+  root.addEventListener('click', function (e) {
+    if (!S.ro) return;
+    if (e.target.closest('[data-act],[data-say],[data-todo],[data-add],[data-addx],[data-send],[data-dlgback]')) { e.preventDefault(); e.stopPropagation(); toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); }
+  }, true);
+  root.addEventListener('submit', function (e) { if (S.ro) { e.preventDefault(); e.stopPropagation(); toast('Read-only view.'); } }, true);
+  root.addEventListener('change', function (e) { if (e.target.id === 'dash-as') viewAs(e.target.value); });
+  root.addEventListener('click', function (e) { if (e.target.closest('[data-asback]')) viewAs(S.real.id); });
   root.addEventListener('click', function (e) {
     var b;
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; render(); window.scrollTo({ top: 0 }); return; }
@@ -1025,6 +1050,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     S.key = opts.key || S.key; S.cal = opts.cal || S.cal; S.wx = opts.wx || S.wx; if (opts.people) PEOPLE = opts.people; S.contract = !!opts.contract; S.lead = !!opts.lead;
     var who = String(opts.who || DATA.me.id || '').toLowerCase();
     DATA.me = { id: who, name: who ? who.charAt(0).toUpperCase() + who.slice(1) : '' };
+    S.views = (opts.viewAs && opts.viewAs.length) ? opts.viewAs : null;   // [{id,name,lead,contract}] people this person may view as
+    S.ro = false; S.real = { id: DATA.me.id, name: DATA.me.name, lead: S.lead, contract: S.contract };
     if (opts.tz) S.tz = opts.tz;
     if (opts.fin) S.fin = opts.fin;
     DATA.today = todayIn();
@@ -1062,7 +1089,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: String(me || '').toLowerCase() === 'michael', wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles' }); }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: String(me || '').toLowerCase() === 'michael', wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
