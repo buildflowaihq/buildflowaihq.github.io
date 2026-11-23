@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>BuildFlowAI</title>
@@ -104,6 +104,17 @@
   .mail .sub { font-weight:600; margin:4px 0 8px; }
   .mail .body { white-space:pre-wrap; font-size:15px; color:var(--ink); max-height:240px; overflow:auto; border-top:1px solid var(--line); padding-top:8px; }
   .mail .acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .acard { margin-top:12px; border:1.5px solid var(--line); border-radius:14px; background:var(--card); padding:12px 14px; }
+  .acard .h { font-size:13px; color:var(--muted); margin-bottom:8px; font-weight:600; }
+  .acard label { display:block; font-size:12px; color:var(--muted); margin:8px 0 3px; }
+  .acard input, .acard textarea, .acard select { width:100%; box-sizing:border-box; font:inherit; font-size:16px; color:var(--ink); background:var(--bg); border:1.5px solid var(--line); border-radius:10px; padding:8px 10px; }
+  .acard textarea { min-height:150px; resize:vertical; line-height:1.4; }
+  .acard .row { display:flex; gap:8px; } .acard .row > div { flex:1; min-width:0; }
+  .acard .acts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center; }
+  .acard button { padding:9px 16px; border-radius:12px; border:1.5px solid var(--line); background:transparent; color:var(--ink); font-size:15px; cursor:pointer; }
+  .acard button.pri { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:600; }
+  .acard .fine { font-size:12px; color:var(--muted); margin-top:8px; } .acard .ok { color:var(--accent); font-weight:600; font-size:15px; }
+  .acard .bad { color:#b3261e; font-size:13px; margin-top:6px; }
   .mail a, .mail button { padding:8px 14px; border-radius:12px; border:1.5px solid var(--line); background:transparent; color:var(--ink); font-size:15px; text-decoration:none; cursor:pointer; }
   .mail a.pri { background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:600; }
   .maybe { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
@@ -436,7 +447,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="pv"><b>Preview</b> of the new Requests tab. Not live for Kyle or Mary. Requests you send here are real.</div>
+  <div class="pv"><b>Preview v5 (in-app send)</b> of the new Requests tab. Not live for Kyle or Mary. Requests you send here are real.</div>
   <div class="top">
     <div class="tabs" role="tablist">
       <button type="button" id="tabChat" class="on" role="tab">Chat</button>
@@ -548,7 +559,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230440";
+(function(){return; var BUILD="202611230455";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -710,6 +721,21 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return '<section class="card"><div class="ch"><h2>To-Do</h2></div><form class="qa" data-qa><input placeholder="Add a to-do, or just say it…" aria-label="New to-do"><button type="submit">Add</button></form><p class="qn"><span>' + mine + ' open for you</span><button class="link" data-todo>Open To-do →</button></p></section>';
   }
 
+  // "New since yesterday": entries the team made in the client's own system during the last day, from the nightly read.
+  function whenText(w) {
+    var m = String(w || '').match(/^(\d{4})-(\d\d)-(\d\d)[ T](\d\d?):(\d\d)/); if (!m) return String(w || '');
+    var d = ymd(new Date(+m[1], m[2] - 1, +m[3])), t = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    var yest = ymd(new Date(new Date(DATA.today + 'T12:00:00').getTime() - 864e5));
+    return (d === DATA.today ? 'Today' : d === yest ? 'Yesterday' : dayName(d, { weekday: 'short', month: 'short', day: 'numeric' })) + ' · ' + t;
+  }
+  function newHtml(jobId) {
+    if (!DATA.newItems) return '';
+    var list = DATA.newItems.filter(function (n) { return !jobId || n.job === jobId; });
+    var more = list.length > 8 && !jobId ? list.length - 8 : 0; if (!jobId) list = list.slice(0, 8);
+    return '<section class="card"><div class="ch"><h2>New since yesterday</h2></div>' + (list.length ? '<ul class="feed">' + list.map(function (n) {
+      return '<li><time>' + esc(whenText(n.when)) + '</time><span>' + (!jobId ? tag(n.job) : '') + '<b>' + esc(n.kind) + '</b> · ' + esc(n.who) + ': ' + esc(n.text) + '</span></li>';
+    }).join('') + '</ul>' + (more ? '<p class="dk-src">and ' + more + ' more</p>' : '') : '<p class="dk-src">Nothing new since yesterday.</p>') + '</section>';
+  }
   function activityHtml(list) {
     return '<section class="card"><div class="ch"><h2>Recent activity</h2></div><ul class="feed">' + list.map(function (a) {
       return '<li><time>' + esc(a.date) + '</time><span>' + (S.view === 'all' ? tag(a.job) : '') + esc(a.text) + '</span></li>';
@@ -735,7 +761,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (v === 'all') {
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + DATA.jobs.length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Schedule web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + actionsHtml(DATA.actions) + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
+        '<div class="cols"><div>' + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
         todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
     } else {
       var j = job(v);
@@ -746,13 +772,15 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var first = j.client.split(/ & | /)[0];
       h = '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span>' + esc(j.name) + ' <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + '</p>' +
         '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Schedule web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + actionsHtml(acts) + scheduleHtml(sch, 7) +
+        '<div class="cols"><div>' + actionsHtml(acts) + newHtml(v) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         '</div><div>' + todoHtml() +
         '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
-        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div>';
+        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div><div id="dash-ext"></div>';
     }
     $('dash-main').innerHTML = asHtml() + h;
+    // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
+    if (S.view !== 'all' && !S.ro && window.dashJobMounted) { var jj = job(S.view); try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client }); } catch (e) { } }
   }
 
   // ---- "View as": an owner sees another person's real dashboard, read-only. Uses the owner's own key; never acts as the other person. ----
@@ -894,8 +922,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Web meeting with someone who is not a job yet (a prospect). Recording goes to the brain's Leads folder; it moves into the job folder if it becomes a job. ----
   function openLead() {
     var t = nextHour(), me = DATA.me.id;
-    dlgShell('Schedule web meeting', '<p class="dlg-sub">For someone who is not a job yet. The notes are filed under Leads.</p><form class="dlg-f" data-form="lead">' +
-      '<div class="dlg-r2l"><label>Their name<input name="ln" required placeholder="e.g. Pat Rivera"></label><label>Their email<input name="le" type="email" required placeholder="name@example.com"></label></div>' +
+    dlgShell('Schedule web meeting', '<p class="dlg-sub">For anyone who doesn’t have a job yet. The notes are filed under Leads until it becomes a job.</p><form class="dlg-f" data-form="lead">' +
+      '<div class="dlg-r2l"><label>Name<input name="ln" required placeholder="e.g. Pat Rivera"></label><label>Email<input name="le" type="email" required placeholder="name@example.com"></label></div>' +
       '<label>Meeting title<input name="title" required value="Introduction meeting"></label>' +
       '<div class="dlg-r"><label>Date<input name="date" type="date" required value="' + ymd(t) + '"></label><label>Start time<input name="time" type="time" required value="' + t.toTimeString().slice(0, 5) + '"></label>' +
       '<label>Length<select name="mins"><option value="30" selected>30 min</option><option value="60">1 hour</option><option value="90">90 min</option></select></label></div>' +
@@ -999,6 +1027,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function applySnap(snap) {
     var T = snap.tabs || {};
     DATA.btWhen = snap.when;
+    DATA.newItems = T['New since yesterday'] ? T['New since yesterday'].filter(function (r) { return r.text; }).map(function (r) { var j = jobFor(r.job); return { job: j ? j.id : '', when: r.when, who: r.who || '', kind: r.kind || 'Update', text: r.text }; }).sort(function (a, b) { return String(b.when) > String(a.when) ? 1 : -1; }) : null;
     DATA.jobs.forEach(function (j) {
       var f = rowsFor(T, 'Job financials', j.id)[0], jr = rowsFor(T, 'Jobs', j.id)[0];
       if (jr && jr.client) j.client = jr.client;
@@ -1106,12 +1135,22 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611220700">
-<script src="finance.js?v=202611220700"></script>
+<link rel="stylesheet" href="finance.css?v=202611230405">
+<script src="finance.js?v=202611230405"></script>
+<script>
+/* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
+window.dashJobMounted = function (el, job) {
+  if (!el || !window.BFFinance || !job) return;
+  var k = new URLSearchParams(location.search).get('k') || '';
+  window.BFFinance.mount(el, { api: 'https://kdb-finance.mekovacs22.workers.dev', key: k, job: { id: job.id, name: job.name, client: job.client }, snap: null });
+};
+</script>
 <script src="../voice/recorder-next.js?v=202611211900"></script>
 <script>
 (function () {
   var API = "https://script.google.com/macros/s/AKfycbzi4KHTN8AChENP4Ar28nSZCsBPkSzxQ2dytwbO-GTAX0x5VGnK60bLJXq3WZm_A7zU9g/exec"; // requests + To-do
+  // The company's people (the assistant looks anyone else up in the company files and emails). Per-client setting.
+  var TEAM = [{ name: 'Michael Kovacs', email: 'mike@kdbla.com', role: 'BuildFlowAI, runs the system' }, { name: 'Kyle Kovacs', email: 'kyle@kdbla.com', role: 'owner, builder' }, { name: 'Mary Kovacs', email: 'mary@aramyankovacsdesign.com', role: 'owner, designer' }, { name: 'Sam', email: 'sam@kdbla.com', role: 'team' }];
   var CHAT = "https://buildflowai-chat.mekovacs22.workers.dev";  // answers from the brain (Gemini)
   var $ = function (id) { return document.getElementById(id); };
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
@@ -1205,6 +1244,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       cp.onclick = function () { try { navigator.clipboard.writeText((m.subject ? 'Subject: ' + m.subject + '\n\n' : '') + (m.body || '')); cp.textContent = 'Copied'; } catch (e) {} };
       ma.appendChild(go); ma.appendChild(cp); mc.appendChild(ma); b.appendChild(mc);
     }
+    if (msg.card) drawCard(b, msg);
     if (msg.retry && !msg.req) {
       var rq = document.createElement('div'); rq.className = 'maybe';
       var ag = document.createElement('button'); ag.type = 'button'; ag.className = 'pri'; ag.textContent = 'Try again';
@@ -1332,26 +1372,105 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function askBrain(onText) { // streams an answer from the brain + Gemini chat worker
     var msgs = hist.filter(function (x) { return x.text; }).slice(-24).map(function (x) { return { role: x.role, text: x.text }; });
     return fetch(CHAT + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-      body: JSON.stringify({ messages: msgs, extras: true }) }).then(function (r) {
+      body: JSON.stringify({ messages: msgs, extras: true, team: TEAM }) }).then(function (r) {
       if (!r.ok || !r.body) throw new Error('chat ' + r.status);
       var rd = r.body.getReader(), dec = new TextDecoder(), all = '';
       function pump() { return rd.read().then(function (x) { if (x.done) return all; all += dec.decode(x.value, { stream: true }); onText(all); return pump(); }); }
       return pump();
     });
   }
+  // ---------- Action cards: the assistant prepares it, you edit and send (nothing goes out until you press Send) ----------
+  var ACT = {   // one executor per card type; new kinds (PO, estimate...) only add an entry here
+    email: {
+      title: 'Email draft', hint: 'Sends from your own address, with the files attached.',
+      fields: function (c) { return [{ k: 'to', l: 'To', v: (c.to || []).map(function (x) { return x.email; }).join(', ') }, { k: 'subject', l: 'Subject', v: c.subject || '' }, { k: 'body', l: 'Message', v: c.body || '', area: 1 }]; },
+      send: function (v, c) {
+        var to = v.to.split(/[,;\s]+/).filter(Boolean); if (!to.length || !to.every(function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); })) return Promise.reject(new Error('Add who it goes to (a full email address).'));
+        if (!v.subject.trim() || !v.body.trim()) return Promise.reject(new Error('Add a subject and a message.'));
+        var files = (c.attachments || []).filter(function (f) { return !f.off; }).map(function (f) { return { title: f.title, url: f.url }; });
+        return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: key, action: 'mail', mail: { to: to, subject: v.subject, body: v.body, attachments: files } }) })
+          .then(function (r) { return r.json(); }).then(function (r) {
+            if (r.ok) return 'Sent to ' + to.join(', ') + (r.attached ? ' with ' + r.attached + ' file' + (r.attached > 1 ? 's' : '') + ' attached' : '') + (r.linked ? ' (' + r.linked + ' link' + (r.linked > 1 ? 's' : '') + ' in the message)' : '') + '.';
+            if (r.error === 'held_for_approval') throw new Error('That address isn\u2019t on the approved list yet, so I saved it as a draft in your Gmail instead of sending. Nothing went out.');
+            if (r.error === 'not_enabled') throw new Error('One-tap sending isn\u2019t switched on for you yet. Nothing was sent.');
+            throw new Error('That didn\u2019t send. Nothing went out. Try again in a moment.');
+          });
+      }
+    },
+    meeting: {
+      title: 'Meeting invite', hint: 'Sends the invite with a Google Meet link and puts it on the calendars.',
+      fields: function (c) { return [{ k: 'title', l: 'Title', v: c.title || '' }, { k: 'date', l: 'Date', v: c.date || '', type: 'date', half: 1 }, { k: 'time', l: 'Start time', v: c.time || '', type: 'time', half: 1 },
+        { k: 'minutes', l: 'Length (minutes)', v: String(c.minutes || 30), half: 1 }, { k: 'attendees', l: 'Who (emails)', v: (c.attendees || []).map(function (x) { return x.email; }).join(', ') }, { k: 'note', l: 'Note for the invite', v: c.note || '', area: 1 }]; },
+      send: function (v, c) {
+        var at = v.attendees.split(/[,;\s]+/).filter(Boolean); if (!at.length || !at.every(function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); })) return Promise.reject(new Error('Add who it goes to (full email addresses).'));
+        if (!v.date || !v.time) return Promise.reject(new Error('Pick a date and time.'));
+        var first = (c.attendees || []).filter(function (x) { return x.email === at[0]; })[0] || {};
+        var m = { job: c.job || '', lead: { name: first.name || at[0], email: at[0] }, title: v.title, date: v.date, time: v.time, minutes: +v.minutes || 30, attendees: at, note: v.note, record: true };
+        return fetch(CAL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'meeting', k: key, meeting: m }) }).then(function (r) { return r.json(); })
+          .then(function (r) { if (!r.ok) throw new Error(/unknown_action/.test(r.error || '') ? 'Meeting invites aren’t switched on yet. Nothing was sent.' : 'That didn’t send. Nothing went out.'); return 'Invite sent. The Google Meet link is in it.'; });
+      }
+    }
+  };
+  try { redraw(); } catch (e) {}
+  function drawCard(host, msg) {
+    if (typeof ACT === 'undefined' || !ACT) return;
+    var c = msg.card, a = ACT[c.type], cbox = document.createElement('div'); cbox.className = 'acard'; host.appendChild(cbox);
+    if (c.type === 'choose') {
+      var q = document.createElement('div'); q.className = 'h'; q.textContent = c.question || 'Pick one'; cbox.appendChild(q);
+      var bs = document.createElement('div'); bs.className = 'acts'; cbox.appendChild(bs);
+      (c.options || []).forEach(function (o) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = o.label; if (msg.cardDone) b.disabled = true;
+        if (msg.cardDone === o.label) b.className = 'pri';
+        b.onclick = function () { if (busy) return; msg.cardDone = o.label; save(); cbox.querySelectorAll('button').forEach(function (x) { x.disabled = true; }); b.className = 'pri'; box.value = o.reply; box.dispatchEvent(new Event('input')); $('f').requestSubmit(); };
+        bs.appendChild(b);
+      });
+      return;
+    }
+    if (!a) return;
+    var h = document.createElement('div'); h.className = 'h'; h.textContent = a.title; cbox.appendChild(h);
+    if (c.note) { var nt = document.createElement('div'); nt.className = 'fine'; nt.style.marginBottom = '4px'; nt.textContent = c.note; cbox.appendChild(nt); }
+    if (msg.cardDone) { var d = document.createElement('div'); d.className = 'ok'; d.textContent = '✓ ' + msg.cardDone; cbox.appendChild(d); return; }
+    var els = {}, row = null;
+    a.fields(c).forEach(function (f) {
+      var wrap = document.createElement('div'), lb = document.createElement('label'); lb.textContent = f.l; wrap.appendChild(lb);
+      var inp = document.createElement(f.area ? 'textarea' : 'input'); if (!f.area) inp.type = f.type || 'text'; inp.value = f.v; wrap.appendChild(inp); els[f.k] = inp;
+      if (f.half) { if (!row) { row = document.createElement('div'); row.className = 'row'; cbox.appendChild(row); } row.appendChild(wrap); } else { row = null; cbox.appendChild(wrap); }
+    });
+    if ((c.attachments || []).length) {
+      var at = document.createElement('div'); at.className = 'fine'; at.style.marginTop = '8px'; at.textContent = 'Attached (untick to leave one out):'; cbox.appendChild(at);
+      c.attachments.forEach(function (f) {
+        var row2 = document.createElement('label'); row2.style.cssText = 'display:flex;gap:8px;align-items:center;margin:4px 0;font-size:14px;color:var(--ink)';
+        var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !f.off; cb.style.cssText = 'width:auto;margin:0'; cb.onchange = function () { f.off = !cb.checked; save(); };
+        var l = document.createElement('a'); l.href = f.url; l.target = '_blank'; l.rel = 'noopener'; l.textContent = f.title; l.style.color = 'var(--accent)';
+        row2.appendChild(cb); row2.appendChild(l); cbox.appendChild(row2);
+      });
+    }
+    var acts = document.createElement('div'); acts.className = 'acts';
+    var go = document.createElement('button'); go.type = 'button'; go.className = 'pri'; go.textContent = 'Send';
+    var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'Copy text';
+    cp.onclick = function () { var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value; }); try { navigator.clipboard.writeText(Object.keys(v).map(function (k) { return v[k]; }).join('\n\n')); cp.textContent = 'Copied'; } catch (e) {} };
+    var er = document.createElement('div'); er.className = 'bad'; er.hidden = true;
+    go.onclick = function () {
+      var v = {}; Object.keys(els).forEach(function (k) { v[k] = els[k].value.trim(); }); er.hidden = true; go.disabled = true; go.textContent = 'Sending…';
+      a.send(v, c).then(function (m) { msg.cardDone = m; if (msg.todo) { try { act(msg.todo, 'done'); } catch (x) {} } save(); redraw(); }, function (e) { go.disabled = false; go.textContent = 'Send'; er.hidden = false; er.textContent = e.message || 'That didn’t send.'; });
+    };
+    acts.appendChild(go); acts.appendChild(cp); cbox.appendChild(acts); cbox.appendChild(er);
+    var fn = document.createElement('div'); fn.className = 'fine'; fn.textContent = 'Nothing is sent until you press Send. ' + a.hint; cbox.appendChild(fn);
+  }
   function split(raw) { // reply text, SOURCES line, TASK line (work), MAYBE_TASK line (not sure), EMAIL_DRAFT line (JSON)
-    var src = '', task = '', maybe = '', mail = null, links = null;
+    var src = '', task = '', maybe = '', mail = null, links = null, card = null;
     var lines = raw.replace(/\s+$/, '').split('\n').filter(function (l) {
       var s = l.match(/^\s*SOURCES:\s*(.*)$/i), t = l.match(/^\s*TASK:\s*(.*)$/i), mb = l.match(/^\s*MAYBE_TASK:\s*(.*)$/i);
       // Control lines from the answers service are never shown as text (known ones, and any NEW_KIND: line it adds later).
-      if (/^\s*(SHOW|FEEDBACK|FILES?|ACTION|INTENT|[A-Z]+_[A-Z_]+):/.test(l) && !/^\s*(SOURCES_JSON|EMAIL_DRAFT|MAYBE_TASK):/i.test(l)) return false;
+      if (/^\s*(SHOW|FEEDBACK|FILES?|ACTION|INTENT|[A-Z]+_[A-Z_]+):/.test(l) && !/^\s*(SOURCES_JSON|EMAIL_DRAFT|MAYBE_TASK|ACTION_CARD):/i.test(l)) return false;
+      var ac = l.match(/^\s*ACTION_CARD:\s*(.*)$/i); if (ac) { try { card = JSON.parse(ac[1]); } catch (e) { card = null; } return false; }
       var sj = l.match(/^\s*SOURCES_JSON:\s*(.*)$/i);
       if (sj) { try { links = JSON.parse(sj[1]); } catch (e) {} return false; }
       var em = l.match(/^\s*EMAIL_DRAFT:\s*(.*)$/i); // hidden while it streams in
       if (em) { try { mail = JSON.parse(em[1]); } catch (e) { mail = null; } return false; }
       if (s) { src = s[1].trim(); return false; } if (t) { task = t[1].trim(); return false; } if (mb) { maybe = mb[1].trim(); return false; } return true;
     });
-    return { text: lines.join('\n').replace(/\s+$/, ''), sources: src, task: task, maybe: maybe, mail: mail, links: Array.isArray(links) ? links : null };
+    return { text: lines.join('\n').replace(/\s+$/, ''), sources: src, task: task, maybe: maybe, mail: mail, card: card, links: Array.isArray(links) ? links : null };
   }
   var busy = false;
   $('f').onsubmit = function (ev) {
@@ -1364,7 +1483,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var files = picked.slice(); picked = []; drawFiles();
     var me = { role: 'user', text: what || 'Photos and files', files: files.map(function (f) { return f.name || 'photo'; }).join(', ') };
     hist.push(me); save(); box.value = ''; box.style.height = ''; redraw();
-    var ai = { role: 'assistant', text: '' }, view = bubble(ai);
+    var ai = { role: 'assistant', text: '' }, view = bubble(ai); if (pendingTodo) { ai.todo = pendingTodo; pendingTodo = ''; }
     view.text.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
     $('chat').classList.add('talking'); $('msgs').scrollTop = $('msgs').scrollHeight;
     function finish() { hist.push(ai); save(); redraw(); busy = false; $('send').disabled = false; }
@@ -1378,9 +1497,10 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     else p = askBrain(function (raw) { view.text.textContent = ''; linkify(view.text, split(raw).text); $('msgs').scrollTop = $('msgs').scrollHeight; })
       .then(function (raw) {
         var r = split(raw); ai.text = r.text; ai.sources = r.sources; ai.links = r.links;
+        if (r.card) { ai.card = r.card; if (!r.task) return; }
         if (r.mail) { ai.mail = r.mail; return; } // a draft for them to send from their own email
         if (r.maybe && !r.task) { ai.maybe = r.maybe; ai.ask = what; return; }
-        if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; });
+        if (r.task) return fileRequest(what + (r.task && r.task !== what ? '\n\n(BuildFlowAI summary: ' + r.task + ')' : ''), []).then(function (d) { ai.req = d.num; if (ai.todo) act(ai.todo, 'doit'); });
       }, function () { // answers service down: say so, and let them choose to send it as a task (never file one by itself)
         ai.text = 'I couldn\'t get an answer just now. Try again in a minute, or send this to BuildFlowAI as a task.'; ai.retry = what;
       });
@@ -1431,18 +1551,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function humanOnly(t) { return t.kind === 'human' || /\b(site ready|on site|site walk|inspection|walkthrough|walk-through|meet (him|her|them) at|in person)\b/i.test(t.title + ' ' + t.detail); }
   // "Do it": BuildFlowAI takes the item as a task (drafts the email, builds the doc...). Anything to a client or vendor
   // still comes back for the person's OK before it goes out. The item comes off the list when the work is done.
-  function doIt(t) {
-    var text = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '\n\n' + (t.detail || '') +
-      '\n\n(From the To-do list, item ' + t.id + '. Anything that goes to a client or vendor must be shown to ' + (t.person || me) +
-      ' for OK before it is sent. When the work is sent or finished, check the item off with todo_agent op autodone, id ' + t.id + '.)';
-    fileRequest(text, []).then(function (d) {
-      return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ k: key, action: 'todo', id: t.id, op: 'doit', req: d.num }) }).then(function () { return d; });
-    }).then(function (d) {
-      hist.push({ role: 'user', text: 'Do it: ' + t.title });
-      hist.push({ role: 'assistant', text: 'On it. I\'ll do "' + t.title + '" and show you anything that goes to a client or vendor before it\'s sent. It comes off your To-do list when it\'s done.', req: d.num });
-      save(); redraw(); loadTodos();
-    }, function () { $('todoErr').hidden = false; $('todoErr').textContent = 'That didn\'t go through. Try again.'; drawTodos(); });
+  var pendingTodo = '';
+  function doIt(t) { // the assistant does the work now: the draft (email, invite...) opens in chat ready to edit and Send; the item checks off when it is sent
+    pendingTodo = t.id; show('chat');
+    box.value = 'Do this to-do for ' + (t.person || me) + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '') +
+      ' Prepare it ready to send. Anything to a client or vendor comes back to me as a draft to review first.';
+    box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
     show('chat'); box.value = 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '');
