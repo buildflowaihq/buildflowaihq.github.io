@@ -1224,36 +1224,50 @@ window.dashJobMounted = function (el, job) {
     });
   }
   // ---- Printable prep sheet: a clean one-page-style view of a Help me result, with Print / Save as PDF ----
-  function prepHtml(text) {
-    var out = [], list = '';
-    function close() { if (list) { out.push('</' + list + '>'); list = ''; } }
+  function prepHtml(text) { // headed sections become cards; short ones sit two to a row
+    var secs = [], cur = null, list = '';
+    function close() { if (list && cur) { cur.h.push('</' + list + '>'); } list = ''; }
     function inl(x) { return esc(x).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'); }
+    function start(h) { close(); cur = { t: h, h: [], n: 0 }; secs.push(cur); }
     String(text || '').split('\n').forEach(function (l) {
       var m;
-      if ((m = l.match(/^\s*#{1,2}\s+(.*)/))) { close(); out.push('<h2>' + inl(m[1]) + '</h2>'); }
-      else if ((m = l.match(/^\s*#{3,6}\s+(.*)/))) { close(); out.push('<h3>' + inl(m[1]) + '</h3>'); }
-      else if (/^\s*-{3,}\s*$/.test(l)) { close(); out.push('<hr>'); }
-      else if ((m = l.match(/^\s*[*\-•]\s+(.*)/))) { if (list !== 'ul') { close(); out.push('<ul>'); list = 'ul'; } out.push('<li>' + inl(m[1]) + '</li>'); }
-      else if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== 'ol') { close(); out.push('<ol>'); list = 'ol'; } out.push('<li>' + inl(m[1]) + '</li>'); }
-      else if (l.trim()) { close(); out.push('<p>' + inl(l.trim()) + '</p>'); }
+      if ((m = l.match(/^\s*#{1,6}\s+(.*)/))) { start(m[1].replace(/\*+/g, '').replace(/:\s*$/, '')); return; }
+      if (/^\s*-{3,}\s*$/.test(l)) return;
+      if (!cur) start('');
+      if ((m = l.match(/^\s*[*\-•]\s+(.*)/))) { if (list !== 'ul') { close(); cur.h.push('<ul>'); list = 'ul'; } cur.h.push('<li>' + inl(m[1]) + '</li>'); cur.n++; }
+      else if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== 'ol') { close(); cur.h.push('<ol>'); list = 'ol'; } cur.h.push('<li>' + inl(m[1]) + '</li>'); cur.n++; }
+      else if (l.trim()) { close(); cur.h.push('<p>' + inl(l.trim()) + '</p>'); cur.n++; }
       else close();
     });
-    close(); return out.join('\n');
+    close();
+    return secs.filter(function (s) { return s.h.length; }).map(function (s) {
+      return '<section' + (s.n > 4 || /talking|steps|purpose|goal|where/i.test(s.t) ? ' class="wide"' : '') + '>' + (s.t ? '<h2>' + inl(s.t) + '</h2>' : '') + s.h.join('\n') + '</section>';
+    }).join('\n');
   }
   function printPrep(title, text, when) {
     var w = window.open('', '_blank');
     if (!w) { alert('Allow pop-ups for this page to open the prep sheet.'); return; }
     var d = new Date(when || Date.now());
+    var sub = esc(d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + ' - prep sheet</title><style>' +
-      'body{font:14px/1.45 -apple-system,Helvetica,Arial,sans-serif;color:#111;max-width:760px;margin:24px auto;padding:0 18px}' +
-      'h1{font-size:22px;margin:0 0 2px}.sub{color:#555;font-size:12px;margin-bottom:14px;border-bottom:2px solid #111;padding-bottom:8px}' +
-      'h2{font-size:16px;margin:16px 0 4px;border-bottom:1px solid #bbb;padding-bottom:2px}h3{font-size:14px;margin:12px 0 2px}' +
-      'p{margin:4px 0}ul,ol{margin:4px 0 4px 20px;padding:0}li{margin:2px 0}hr{border:0;border-top:1px solid #ccc;margin:12px 0}' +
-      '.bar{position:sticky;top:0;background:#fff;padding:8px 0;margin-bottom:6px}.bar button{font:inherit;padding:8px 16px;border-radius:8px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}' +
-      '@media print{.bar{display:none}body{margin:0;max-width:none}h2,h3{page-break-after:avoid}li,p{page-break-inside:avoid}}</style></head><body>' +
+      '@page{size:letter;margin:.5in}*{box-sizing:border-box}' +
+      'body{margin:0;background:#F2EBDD;color:#1d2a20;font:14px/1.45 -apple-system,"Helvetica Neue",Arial,sans-serif}' +
+      '.pg{max-width:780px;margin:0 auto;padding:18px 18px 40px}' +
+      '.bar{display:flex;justify-content:flex-end;margin-bottom:10px}.bar button{font:inherit;font-weight:600;padding:9px 18px;border-radius:10px;border:0;background:#00280F;color:#F2EBDD;cursor:pointer}' +
+      '.hd{background:#00280F;color:#F2EBDD;border-radius:14px;padding:18px 22px;margin-bottom:14px}' +
+      '.hd .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}' +
+      '.hd h1{font:600 26px/1.15 Georgia,"Times New Roman",serif;margin:6px 0 4px}.hd .s{font-size:13px;opacity:.8}' +
+      '.body{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
+      '.body>section{background:#fbf7ee;border:1px solid #dcd2bb;border-radius:12px;padding:12px 16px;break-inside:avoid}' +
+      '.body>section.wide{grid-column:1/-1}' +
+      'h2{font:600 11px/1 -apple-system,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#00280F;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #00280F}' +
+      'p{margin:4px 0}ul,ol{margin:4px 0 0;padding-left:20px}li{margin:3px 0}b{font-weight:600}' +
+      '.ft{margin-top:12px;font-size:11px;color:#6b6a5c;text-align:center}' +
+      '@media(max-width:620px){.body{grid-template-columns:1fr}}' +
+      '@media print{.bar{display:none}body{background:#fff}.pg{padding:0}.hd{-webkit-print-color-adjust:exact;print-color-adjust:exact}.body>section{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="pg">' +
       '<div class="bar"><button onclick="window.print()">Print / Save as PDF</button></div>' +
-      '<h1>' + esc(title) + '</h1><div class="sub">Prep sheet · BuildFlowAI · ' + esc(d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
-      prepHtml(text) + '</body></html>');
+      '<div class="hd"><div class="k">Prep sheet</div><h1>' + esc(title) + '</h1><div class="s">' + sub + '</div></div>' +
+      '<div class="body">' + prepHtml(text) + '</div><div class="ft">Prepared by BuildFlowAI</div></div></body></html>');
     w.document.close();
   }
   function prepSave(id, title, text) { try { localStorage.setItem('bf_prep:' + id, JSON.stringify({ title: title, text: text, at: Date.now() })); } catch (_) {} }
@@ -1647,8 +1661,17 @@ window.dashJobMounted = function (el, job) {
     box.dispatchEvent(new Event('input')); $('f').requestSubmit();
   }
   function helpWith(t) {
-    pendingOn = t.id; pendingTitle = t.title; show('chat'); box.value = (isMeeting(t) ? 'Help me prepare for this meeting: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep now from what you know about our app and this company: (1) a plain-words walkthrough of every feature in order, each with what to show and its status (live, preview, or coming soon) and its link if you have one; (2) every agenda item or ask in the notes below, each with why it matters and exactly what to say. Never mention pricing or the old software. Notes: ' + (t.detail || '') : 'Help me get ready for this: ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. ' + (t.detail || '')) + ' Format the answer as a printable one-page prep sheet with short headed sections (Purpose and time; People and phone numbers; What to have on hand; Checklist; What will be looked at or decided; Questions to ask or say; Open problems; After). Short lines, no filler, no pricing. This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
-    box.dispatchEvent(new Event('input')); $('f').requestSubmit();
+    pendingOn = t.id; pendingTitle = t.title; show('chat');
+    var kind = isMeeting(t) ? 'meeting' : (/\binspection\b/i.test(t.title) ? 'inspection' : (/\b(site|on site|site walk|site visit)\b/i.test(t.title) ? 'site visit' : 'task'));
+    var spec = {
+      'meeting': 'Sections, in this order: ### Purpose (one sentence); ### Talking points (3 to 5 numbered points in the order to cover them, each one line: what to say or show); ### Decisions needed (what we leave the meeting with); ### Questions to ask; ### Bring.',
+      'inspection': 'Sections, in this order: ### Where and when (address, inspector, permit numbers, time); ### What they will check (bullets); ### Have on site; ### Open risks (what could fail it and what to do now); ### After.',
+      'site visit': 'Sections, in this order: ### Where and when; ### Goal of the visit; ### Check while there (bullets); ### Have on hand; ### Open issues.',
+      'task': 'Sections, in this order: ### Goal (one sentence); ### Steps (numbered); ### Have on hand; ### Watch out for.'
+    }[kind];
+    box.value = 'Help me get ready for this ' + kind + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Notes on the To-do: ' + (t.detail || 'none') +
+      '\n\nWrite ONE specific, scannable prep sheet for exactly this and nothing else. ' + spec +
+      ' Rules: use only facts from the notes and what you know about this job and these people, never invent numbers or names, and leave a section out if you have nothing real for it. Every section has at most 5 short bullets, one line each, plain words. No tables, no long paragraphs, no lists of data, no feature dumps, no filler or intro line. Never mention pricing or the old software. This is an existing To-do: do the work now and answer here in the chat. Do not create a new To-do or request.';
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
   // Where each of my requests stands (working / team / done), shown on the request in plain words.
