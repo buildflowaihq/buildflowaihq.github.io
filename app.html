@@ -560,7 +560,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611231500";
+(function(){var BUILD="202611231520";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -693,7 +693,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + DATA.jobs.length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Schedule web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + actionsHtml(DATA.actions) + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
-        todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
+        todoHtml() + activityHtml(DATA.activity) + remindersHtml(DATA.reminders) + (finOk() ? moneyHtml(DATA.money, 'Company money') : '') + '</div></div>';
     } else {
       var j = job(v);
       var acts = DATA.actions.filter(function (a) { return a.job === v; });
@@ -707,7 +707,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         '</div><div>' + todoHtml() +
         contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
-        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div></div><div id="dash-ext"></div>';
+        (act.length ? activityHtml(act) : '') + remindersHtml(rem) + (finOk() ? (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) : '') + '</div></div><div id="dash-ext"></div>';
     }
     $('dash-main').innerHTML = h;
     // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
@@ -1001,6 +1001,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return '<div class="tw"><table class="bt"><thead><tr>' + cols.map(function (c) { return '<th' + (c[2] ? ' class="r"' : '') + '>' + esc(c[1] || c[0]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.map(function (r) { return '<tr>' + cols.map(function (c) { var v = r[c[0]]; return '<td' + (c[2] ? ' class="r"' : '') + '>' + (c[2] === '$' ? money(v) : esc(v == null ? '' : v)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
   }
+  // Finance (company money, job money, budget, POs, COs, invoices, bills) is Michael-only until the finance parity check passes (Michael 11/23).
+  function finOk() { return window.__bfMe === 'michael'; }
   function finHtml(j) {
     var x = j.fin, f = x.f, kv = function (rows) { return '<dl class="mt">' + rows.map(function (m) { return '<dt>' + esc(m[0]) + (m[2] ? '<small>' + esc(m[2]) + '</small>' : '') + '</dt><dd>' + m[1] + '</dd>'; }).join('') + '</dl>'; };
     var g = function (title, body, open) { return '<details class="fold sub"' + (open ? ' open' : '') + '><summary><h3>' + title + '</h3></summary>' + body + '</details>'; };
