@@ -502,10 +502,10 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611230410";
+(function(){var BUILD="202611230440";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
- location.reload();}}).catch(function(){})}
+ try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
 check();document.addEventListener("visibilitychange",function(){if(!document.hidden)check()});window.addEventListener("focus",check);setInterval(check,300000);})();
 </script>
 <script>
@@ -763,8 +763,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Web meeting with someone who is not a job yet (a prospect). Recording goes to the brain's Leads folder; it moves into the job folder if it becomes a job. ----
   function openLead() {
     var t = nextHour(), me = DATA.me.id;
-    dlgShell('Schedule web meeting', '<p class="dlg-sub">For someone who is not a job yet. The notes are filed under Leads.</p><form class="dlg-f" data-form="lead">' +
-      '<div class="dlg-r2l"><label>Their name<input name="ln" required placeholder="e.g. Pat Rivera"></label><label>Their email<input name="le" type="email" required placeholder="name@example.com"></label></div>' +
+    dlgShell('Schedule web meeting', '<p class="dlg-sub">For anyone who doesn’t have a job yet. The notes are filed under Leads until it becomes a job.</p><form class="dlg-f" data-form="lead">' +
+      '<div class="dlg-r2l"><label>Name<input name="ln" required placeholder="e.g. Pat Rivera"></label><label>Email<input name="le" type="email" required placeholder="name@example.com"></label></div>' +
       '<label>Meeting title<input name="title" required value="Introduction meeting"></label>' +
       '<div class="dlg-r"><label>Date<input name="date" type="date" required value="' + ymd(t) + '"></label><label>Start time<input name="time" type="time" required value="' + t.toTimeString().slice(0, 5) + '"></label>' +
       '<label>Length<select name="mins"><option value="30" selected>30 min</option><option value="60">1 hour</option><option value="90">90 min</option></select></label></div>' +
@@ -992,7 +992,7 @@ function startApp(CFG) {
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: (CFG.owner_names || []).map(function (n) { return String(n).toLowerCase(); }).indexOf(String(me || '').toLowerCase()) > -1, wx: CFG.wx, client: CFG }); }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), lead: true, wx: CFG.wx, client: CFG }); }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
