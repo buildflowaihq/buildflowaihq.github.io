@@ -480,7 +480,17 @@
 .dk-tag.a{font-size:11px;padding:1px 6px}
 .dk-cmf{display:flex;gap:6px;margin:8px 0 0 32px;flex-wrap:wrap}.dk-cmf input{flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #d9cfb8;background:transparent;color:inherit;font:inherit;font-size:16px}.dk-cmf select{padding:8px;border-radius:8px;border:1px solid #d9cfb8;background:transparent;color:inherit;font-size:16px}
 .dk-hl{outline:3px solid #b8e986;outline-offset:2px;transition:outline-color .6s}
-@media (max-width:640px){.dk-snt{min-width:100%;order:2}.dk-ck{order:1}.dk-snr{gap:6px}.dk-cms,.dk-cmf,.dk-snd{margin-left:0}.dk-cmf input{min-width:100%}.dk-tbl{display:block;overflow-x:auto}}
+@media (max-width:640px){.dk-cms,.dk-cmf,.dk-snd{margin-left:0}.dk-cmf input{min-width:100%}.dk-tbl{display:block;overflow-x:auto}}
+
+/* Site notes: one plain list. Row = text (tap = done) + small avatar + details button */
+.dk-sn{padding:0}.dk-snr{flex-wrap:nowrap;gap:10px;min-height:52px}
+.dk-snt{flex:1;min-width:0;font-size:17px;line-height:1.3;padding:12px 0;overflow-wrap:anywhere}
+.dk-snt small{opacity:.65;font-size:13px}.dk-snt small.late{color:#ff8a7a;opacity:1}
+.dk-sn.dn .dk-snt{text-decoration:line-through;opacity:.55}
+.dk-sn .dk-av{flex:none;width:30px;height:30px;font-size:12px}
+.dk-sx{flex:none;min-width:40px;height:40px;background:none;border:0;color:inherit;opacity:.7;font:inherit;font-size:14px;cursor:pointer;border-radius:10px}
+.dk-sdl{display:block;margin:6px 0 0;padding:8px 0}
+.dk-snd{margin-left:0;padding-bottom:10px}
 </style>
 </head>
 <body>
@@ -598,7 +608,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241205";
+(function(){var BUILD="202611241225";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -807,27 +817,33 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function siteList(ids) {
     var out = [], H = DATA.history || {};
     ids.forEach(function (id) { var a = ((H[id] || {}).notes || {}).site || []; a.forEach(function (n) { out.push({ job: id, n: n }); }); });
-    if (S.sf && S.sf !== 'all') out = out.filter(function (x) { return (x.n.audience || 'internal') === S.sf; });
     var tr = DATA.me && DATA.me.trade ? String(DATA.me.trade).toLowerCase() : '';
     if (tr) out = out.filter(function (x) { return String(x.n.trade || '').toLowerCase() === tr; });
     return out;
   }
   function siteRow(x, multi) {
-    var n = x.n, k = x.job + '|' + n.id, open = S.nx && S.nx[k], jn = job(x.job); var cm = noteComments(n);
-    return '<li class="dk-sn' + (n.done ? ' dn' : '') + '"><div class="dk-snr"><button type="button" class="dk-ck" data-notedone="' + esc(k) + '" aria-pressed="' + !!n.done + '" aria-label="' + (n.done ? 'Mark not done' : 'Mark done') + '">' + (n.done ? '✓' : '') + '</button>' +
-      '<button type="button" class="dk-snt" data-nx="' + esc(k) + '" aria-expanded="' + !!open + '">' + esc(n.text || '') + '</button>' +
-      (n.trade ? '<span class="dk-tag">' + esc(n.trade) + '</span>' : '') + (multi && jn ? '<span class="dk-tag j">' + esc(jn.name) + '</span>' : '') + (n.date ? '<small>' + esc(n.date) + '</small>' : '') + (cm.length ? '<span class="dk-cb" aria-label="' + cm.length + ' comments">💬 ' + cm.length + '</span>' : '') + '</div>' +
+    var n = x.n, k = x.job + '|' + n.id, open = S.nx && S.nx[k], cm = noteComments(n), who = n.assignee || n.trade || '', jn = job(x.job);
+    return '<li class="dk-sn' + (n.done ? ' dn' : '') + '"><div class="dk-snr"><button type="button" class="dk-snt" data-notedone="' + esc(k) + '" aria-label="' + (n.done ? 'Mark not done: ' : 'Mark done: ') + esc(n.text || '') + '">' + esc(n.text || '') + (multi && jn ? '<small> · ' + esc(jn.name) + '</small>' : '') + '</button>' +
+      (who ? '<span class="dk-av" title="' + esc(who) + '">' + esc(initials(who)) + '</span>' : '') +
+      '<button type="button" class="dk-sx" data-nx="' + esc(k) + '" aria-expanded="' + !!open + '" aria-label="Details and comments">' + (cm.length ? '💬 ' + cm.length : '›') + '</button></div>' +
       (open ? '<div class="dk-snd">' + (n.detail ? (/^https:\/\//.test(n.detail) ? '<a href="' + esc(n.detail) + '" target="_blank" rel="noopener">Open transcript</a>' : esc(n.detail)) : '<span class="dk-src">No more detail.</span>') +
+        (n.date ? '<div class="dk-src">' + esc(n.date) + (n.audience && n.audience !== 'internal' ? ' · ' + esc(AUD[n.audience] || n.audience) : '') + '</div>' : '') +
         (n.done && n.doneBy ? '<div class="dk-src">Done by ' + esc(n.doneBy) + (n.doneAt ? ' · ' + esc(n.doneAt) : '') + '</div>' : '') + commentsHtml(k, cm) + '</div>' : '') + '</li>';
+  }
+  // Overdue to-do items for this job show up as plain rows too (tap opens the To-do list).
+  function overdueRows(ids) {
+    if (ids.length !== 1) return '';
+    return DATA.actions.filter(function (a) { return a.job === ids[0] && a.due === 'over'; }).map(function (a) {
+      return '<li class="dk-sn od"><div class="dk-snr"><button type="button" class="dk-snt" data-todo="1">' + esc(a.text) + '<small class="late"> · ' + esc(a.when) + '</small></button>' + (a.who ? '<span class="dk-av" title="' + esc(a.who) + '">' + esc(initials(a.who)) + '</span>' : '') + '</div></li>';
+    }).join('');
   }
   function siteNotesHtml(ids) {
     var all = siteList(ids), multi = ids.length > 1, todo = all.filter(function (x) { return !x.n.done; }), done = all.filter(function (x) { return x.n.done; });
-    var jn = ids.length === 1 ? job(ids[0]) : null;
-    return '<section class="card" id="dk-c-site"><div class="ch"><h2>Site notes</h2><span class="dk-src" style="margin:0">' + todo.length + ' open</span>' + (jn ? '<button class="link" data-say="Add a site note to ' + esc(jn.name) + ': ">+ Add</button>' : '') + '</div>' + (DATA.me && DATA.me.trade ? '' : '<div class="dk-tabs" role="tablist">' + [['all', 'All'], ['internal', 'Internal'], ['sub', 'Subs'], ['owner', 'Owner']].map(function (t) { return '<button role="tab" data-sf="' + t[0] + '" aria-selected="' + ((S.sf || 'all') === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>') +
-      (todo.length ? '<ul class="dk-sns">' + todo.map(function (x) { return siteRow(x, multi); }).join('') + '</ul>' : '<p class="dk-src">' + (all.length ? 'Nothing open. Nice.' : 'No site notes yet. Record a short voice note on site, say the job and what needs to happen, and it lands here as a checklist item.') + '</p>') +
-      (done.length ? '<details class="dk-sdone"><summary>Done (' + done.length + ')</summary><ul class="dk-sns">' + done.map(function (x) { return siteRow(x, multi); }).join('') + '</ul></details>' : '') + '</section>';
+    var jn = ids.length === 1 ? job(ids[0]) : null, od = overdueRows(ids), cnt = todo.length + (od ? (od.match(/dk-sn od/g) || []).length : 0);
+    return '<section class="card" id="dk-c-site"><div class="ch"><h2>Site notes</h2><span class="dk-src" style="margin:0">' + cnt + ' open</span>' + (jn ? '<button class="link" data-say="Add a site note to ' + esc(jn.name) + ': ">+ Add</button>' : '') + '</div>' +
+      (cnt ? '<ul class="dk-sns">' + od + todo.map(function (x) { return siteRow(x, multi); }).join('') + '</ul>' : '<p class="dk-src">' + (all.length ? 'Nothing open. Nice.' : 'No site notes yet. Record a short voice note on site, say the job and what needs to happen, and it lands here.') + '</p>') +
+      (done.length ? (S.sdone ? '<ul class="dk-sns">' + done.map(function (x) { return siteRow(x, multi); }).join('') + '</ul>' : '') + '<button type="button" class="link dk-sdl" data-sdone="1">' + (S.sdone ? 'Hide done' : 'Show done (' + done.length + ')') + '</button>' : '') + '</section>';
   }
-
   var AUD = { internal: 'Internal', client: 'Clients', sub: 'Subs' };
   function noteComments(n) {
     var tr = DATA.me && DATA.me.trade ? String(DATA.me.trade).toLowerCase() : '', nm = String((DATA.me && DATA.me.name) || '').toLowerCase();
@@ -909,7 +925,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var first = j.client.split(/ & | /)[0];
       h = '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span>' + esc(j.name) + ' <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + '</p>' +
         '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Schedule web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + siteNotesHtml([v]) + peopleHtml(j) + triptychHtml(acts) + actionsHtml(acts) + newHtml(v) + scheduleHtml(sch, 7) +
+        '<div class="cols"><div>' + siteNotesHtml([v]) + peopleHtml(j) + actionsHtml(acts.filter(function (a) { return a.due !== 'over'; })) + newHtml(v) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         histHtml(v) + '</div><div>' + updatesHtml() + weekHtml(sch) + todoHtml() +
         contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' +
@@ -948,7 +964,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var b;
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-lead]'))) { toast('Leads open in their own page. Coming next.'); return; }
-    if ((b = e.target.closest('[data-sf]'))) { S.sf = b.getAttribute('data-sf'); render(); return; }
+    if ((b = e.target.closest('[data-sdone]'))) { S.sdone = !S.sdone; render(); return; }
     if ((b = e.target.closest('[data-notedone]'))) { toggleNote(b.getAttribute('data-notedone')); return; }
     if ((b = e.target.closest('[data-nx]'))) { var kk = b.getAttribute('data-nx'); S.nx = S.nx || {}; S.nx[kk] = !S.nx[kk]; render(); return; }
     if ((b = e.target.closest('[data-logf]'))) { S.logf = b.getAttribute('data-logf'); render(); return; }
@@ -1301,8 +1317,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (opts.fin) S.fin = opts.fin;
     DATA.today = todayIn();
     S.started = true;
-    var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv')) dl = { v: q.get('dv'), c: q.get('dc') || '' }; } catch (e) {}
-    if (dl && (dl.v === 'all' || dl.v === 'list' || job(dl.v))) { S.view = dl.v; S.tab = 'over'; }
+    var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv') || q.get('dc')) dl = { v: q.get('dv') || q.get('job') || '', c: q.get('dc') || '' }; } catch (e) {}
+    if (dl && dl.v && (dl.v === 'all' || dl.v === 'list' || job(dl.v))) { S.view = dl.v; S.tab = 'over'; }
     var base = (opts.api || '').replace(/\/$/, '');
     fetch(base + '/api/dash?preview=1', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('dash ' + r.status); return r.json(); })
