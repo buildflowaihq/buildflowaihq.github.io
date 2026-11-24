@@ -58,15 +58,18 @@
     h += '<div class="ch"><h2>Financial</h2><span class="dk-src" style="margin:0">Live in BuildFlowAI · numbers start from your current software</span></div>';
     if (S.err) { el.innerHTML = h + '<p class="dk-empty">' + esc(S.err) + '</p>'; return; }
     if (!d) { el.innerHTML = h + '<p class="dk-empty">Loading…</p>'; return; }
-    var T = [['overview', 'Overview'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft], ['bills', 'Bills', (d.rollup.pending.bills || 0)], ['pay', 'Payments'], ['cm', 'Credit memos'], ['dep', 'Deposits', (d.rollup.billing.deposits_held > 0 ? 1 : 0)], ['rfi', 'RFIs', (d.rollup.pending.rfis || 0)], ['vendors', 'Vendors']];
-    h += '<div class="dk-tabs bf-tabs" role="tablist">' + T.map(function (t) { return '<button role="tab" data-bf-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
+    var T = [['overview', 'Overview'], ['est', 'Estimate'], ['jcb', 'Job costing budget'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft], ['bills', 'Bills', (d.rollup.pending.bills || 0)], ['pay', 'Payments'], ['cm', 'Credit memos'], ['dep', 'Deposits', (d.rollup.billing.deposits_held > 0 ? 1 : 0)], ['rfi', 'RFIs', (d.rollup.pending.rfis || 0)], ['vendors', 'Vendors']];
+    if (!S.single) h += '<div class="dk-tabs bf-tabs" role="tablist">' + T.map(function (t) { return '<button role="tab" data-bf-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
     h += '<div class="bf-quick" aria-label="Quick actions"><button class="bf-btn" data-bf-new="co">+ Change order</button><button class="bf-btn" data-bf-new="po">+ PO</button><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-bnew>+ Bill / receipt photo</button></div>';
-    h += S.tab === 'overview' ? overview(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : S.tab === 'bills' ? billList(d) : S.tab === 'pay' ? payTab() : S.tab === 'cm' ? cmTab(d) : S.tab === 'dep' ? depTab(d) : S.tab === 'rfi' ? rfiTab(d) : invList(d);
+    h += S.tab === 'overview' ? overview(d) : S.tab === 'est' ? estTab(d) : S.tab === 'jcb' ? jcbTab(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : S.tab === 'bills' ? billList(d) : S.tab === 'pay' ? payTab() : S.tab === 'cm' ? cmTab(d) : S.tab === 'dep' ? depTab(d) : S.tab === 'rfi' ? rfiTab(d) : invList(d);
     el.innerHTML = h;
     keepM.forEach(function (m) { el.appendChild(m); });
     if (S.ed) drawEditor();
   }
   function kpi(l, v, sub) { return '<div><small>' + esc(l) + '</small><b>' + v + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; }
+  function proposalsView(pr) { return '<details class="fold sub"><summary><h3>Proposals · ' + pr.length + '</h3></summary><div class="tw"><table class="bt"><thead><tr><th>Proposal</th><th>Status</th><th>Last updated</th><th class="r">Total price</th><th>Client viewed</th></tr></thead><tbody>' + pr.map(function (x) { return '<tr><td>' + esc(x.title) + '</td><td>' + badge(x.status) + '</td><td>' + fdate(x.updated) + '</td><td class="r">' + money(x.total) + '</td><td>' + fdate(x.viewed) + '</td></tr>'; }).join('') + '</tbody></table></div></details>'; }
+  function estTab(d) { var e = d.job.estimate, pr = d.job.proposals || []; return (e && (e.lines || []).length ? estimateView(e).replace('<details class="fold sub">', '<details class="fold sub" open>') : '<p class="dk-empty">No estimate loaded for this job yet.</p>') + (pr.length ? proposalsView(pr) : ''); }
+  function jcbTab(d) { return d.rollup.budget.length ? jcb(d.rollup) : '<p class="dk-empty">No budget yet.</p>'; }
   function overview(d) {
     var r = d.rollup, p = r.price, b = r.billing, c = r.cost, att = [];
     d.pos.filter(function (x) { return x.status === 'draft'; }).forEach(function (x) { att.push(['po', x.id, x.number + ' ' + x.title, 'Purchase order waiting for approval']); });
@@ -79,7 +82,7 @@
     h += '<details class="fold sub" open><summary><h3>Needs attention · ' + att.length + '</h3></summary>' + (att.length ? '<ul class="al">' + att.map(function (a) { return '<li><div><b>' + esc(a[2]) + '</b><div class="dk-m">' + esc(a[3]) + '</div></div><button class="link" data-bf-open="' + a[0] + ':' + a[1] + '">Open →</button></li>'; }).join('') + '</ul>' : '<p class="dk-empty">Nothing waiting.</p>') + '</details>';
     h += '<details class="fold sub" open><summary><h3>Job costing budget</h3></summary>' + (r.budget.length ? jcb(r) : '<p class="dk-empty">No budget yet.</p>') + '</details>';
     if (d.job.estimate && (d.job.estimate.lines || []).length) h += estimateView(d.job.estimate);
-    if ((d.job.proposals || []).length) h += '<details class="fold sub"><summary><h3>Proposals · ' + d.job.proposals.length + '</h3></summary><div class="tw"><table class="bt"><thead><tr><th>Proposal</th><th>Status</th><th>Last updated</th><th class="r">Total price</th><th>Client viewed</th></tr></thead><tbody>' + d.job.proposals.map(function (x) { return '<tr><td>' + esc(x.title) + '</td><td>' + badge(x.status) + '</td><td>' + fdate(x.updated) + '</td><td class="r">' + money(x.total) + '</td><td>' + fdate(x.viewed) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
+    if ((d.job.proposals || []).length) h += proposalsView(d.job.proposals);
     h += clientBox(d);
     return h;
   }
@@ -558,9 +561,10 @@
     // opts: { api, key, job:{id,name,client}, snap:{f,pos,cos,inv,budget} }
     mount: function (el, opts) {
       var sameJob = !!(S.job && S.job.id === opts.job.id);
+      S.single = !!opts.tab; if (opts.tab) S.tab = opts.tab;
       S.api = String(opts.api || '').replace(/\/$/, ''); S.key = opts.key; S.job = opts.job; S.snap = opts.snap || null; S.el = el; bind(el);
       if (sameJob && S.data) { draw(); return; }
-      if (!sameJob) { S.tab = 'overview'; S.ed = null; S.data = null; S.note = ''; }
+      if (!sameJob) { S.tab = opts.tab || 'overview'; S.ed = null; S.data = null; S.note = ''; }
       draw();
       var jobId = S.job.id;
       (S.cfg ? Promise.resolve() : call('GET', 'config').then(function (c) { if (!c.ok) { S.err = c.error === 'not signed in' ? 'The finance tools are not turned on for this link yet.' : c.error; return; } S.cfg = c; }))
