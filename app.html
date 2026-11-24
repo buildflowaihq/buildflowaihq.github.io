@@ -501,6 +501,7 @@
 .dk-chips .dk-chip{flex:none;font-size:13px;padding:6px 12px}
 .dk-chips .dk-sep{flex:none;width:1px;background:currentColor;opacity:.25;margin:2px 2px}
 .dk-chips .dk-chip.go{border-color:#b4ee3a;color:#b4ee3a}
+.dk-pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}.dk-ph{display:block;aspect-ratio:1;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.06);font-size:12px;padding:6px;word-break:break-all}.dk-ph img{width:100%;height:100%;object-fit:cover;display:block}
 </style>
 </head>
 <body>
@@ -617,7 +618,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241420";
+(function(){var BUILD="202611241440";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -905,6 +906,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     c.push(['logs', 'Daily logs']);
     if (H.files && H.files.length) c.push(['files', 'Files']);
     if (H.messages && H.messages.length) c.push(['messages', 'Messages']);
+    if (H.photos && H.photos.length) c.push(['photos', 'Photos']);
+    if (H.comments && H.comments.length) c.push(['comments', 'Comments']);
+    if (H.selections && H.selections.length && !sub) c.push(['selections', 'Selections']);
     if (!sub && (S.fin || j.fin || (j.money && j.money.length))) c.push(['money', 'Money']);
     var acts = [['Add a site note to ' + j.name + ': ', '+ Note'], ['Add a daily log to ' + j.name + ': ', '+ Log']];
     if (!sub) acts.push(['Change order on ' + j.name + ': ', 'Change order']);
@@ -913,7 +917,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function histHtml(id) {
     var H = (DATA.history || {})[id] || {}, jn = job(id) || { name: '' };
     var h = legacyNotesHtml(id, H, jn);
-    var lf = S.logf || 'all', allLogs = H.logs || [];
+    var lf = S.logf || 'all', allLogs = (H.logs || []).slice().sort(function (a, b) { return (Date.parse(String(b.date).replace(/^\w+, /, '')) || 0) - (Date.parse(String(a.date).replace(/^\w+, /, '')) || 0); });
     var shownLogs = allLogs.filter(function (l) { return lf === 'all' || (lf === 'client' ? /client/i.test(l.visibility || '') : !/client/i.test(l.visibility || '')); });
     h += '<section class="card" id="dk-c-logs"><div class="ch"><h2>Daily logs</h2><button class="link" data-say="Add a daily log to ' + esc(jn.name) + ': ">+ Add a daily log</button></div><div class="dk-tabs" role="tablist">' + [['all', 'All'], ['client', 'Client can see'], ['int', 'Internal only']].map(function (t) { return '<button role="tab" data-logf="' + t[0] + '" aria-selected="' + (lf === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' + (shownLogs.length ? '' : '<p class="dk-src">No daily logs here yet. Tap “Add a daily log”, or say it or send a voice note and BuildFlowAI files it.</p>') + '</section>';
     if (shownLogs.length) h = h.replace(/<\/section>$/, '') + '<ul class="dk-dl">' + shownLogs.map(function (l) {
@@ -925,6 +929,22 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (H.files && H.files.length) h += '<section class="card" id="dk-c-files"><div class="ch"><h2>Files</h2><span class="dk-src" style="margin:0">' + H.files.length + '</span></div><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th><th>Added by</th></tr></thead><tbody>' + H.files.map(function (f) {
       return '<tr><td>' + (f.url ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>' : esc(f.name)) + '</td><td>' + esc(f.folder || '') + '</td><td>' + esc(f.date || '') + '</td><td>' + esc(f.by || '') + '</td></tr>';
     }).join('') + '</tbody></table></section>';
+    if (H.comments && H.comments.length) {
+      var th = {}, ord = [];
+      H.comments.forEach(function (c) { if (!th[c.where]) { th[c.where] = []; ord.push(c.where); } th[c.where].push(c); });
+      h += '<section class="card" id="dk-c-comments"><div class="ch"><h2>Comments</h2><span class="dk-src" style="margin:0">' + H.comments.length + '</span></div><ul class="dk-dl">' + ord.map(function (w) {
+        return '<li><details><summary><b>' + esc(w) + '</b><span class="dk-dm">' + th[w].length + ' comment' + (th[w].length === 1 ? '' : 's') + '</span></summary>' + th[w].map(function (c) {
+          return '<div class="dk-cm"><b>' + esc(c.by || '') + '</b> <small>' + esc(c.date || '') + (c.audience ? ' · ' + esc(c.audience) : '') + '</small><div>' + esc(c.text || '') + '</div></div>';
+        }).join('') + '</details></li>';
+      }).join('') + '</ul></section>';
+    }
+    if (H.selections && H.selections.length) h += '<section class="card" id="dk-c-selections"><div class="ch"><h2>Selections</h2><span class="dk-src" style="margin:0">' + H.selections.length + '</span></div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>Selection</th><th>Type</th><th>Allowance</th><th>Spent</th><th>Remaining</th><th>Status</th></tr></thead><tbody>' + H.selections.map(function (x) {
+      return '<tr><td>' + esc(x.title || '') + (x.description ? '<div class="dk-src">' + esc(x.description) + '</div>' : '') + '</td><td>' + esc(x.type || '') + '</td><td>' + esc(x.allowance || '') + '</td><td>' + esc(x.spent || '') + '</td><td>' + esc(x.remaining || '') + '</td><td>' + esc(x.status || '') + '</td></tr>';
+    }).join('') + '</tbody></table></div></section>';
+    if (H.photos && H.photos.length) h += '<section class="card" id="dk-c-photos"><div class="ch"><h2>Photos</h2><span class="dk-src" style="margin:0">' + H.photos.length + '</span></div><div class="dk-pg">' + H.photos.map(function (x) {
+      return '<a href="' + esc(x.url || '#') + '" target="_blank" rel="noopener" class="dk-ph">' + (x.thumb ? '<img loading="lazy" alt="' + esc(x.name || 'Photo') + '" src="' + esc(x.thumb) + '">' : '<span>' + esc(x.name || 'Photo') + '</span>') + '</a>';
+    }).join('') + '</div></section>';
+
     return h;
   }
 
@@ -1373,16 +1393,15 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241420">
+<link rel="stylesheet" href="finance.css?v=202611241440">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241420"></script>
+<script src="finance.js?v=202611241440"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
 if (/[?&]go=dash/.test(location.search)) { var __t = setInterval(function () { var b = document.getElementById('tabDash'); if (b && window.dashInit) { clearInterval(__t); b.click(); } }, 250); setTimeout(function () { clearInterval(__t); }, 8000); }
 window.dashJobMounted = function (el, job) {
   if (!el || !window.BFFinance || !job) return;
-  if (window.__bfMe !== 'michael') return;   // finance stays Michael-only until the finance parity check passes (Michael 11/23)
   var k = new URLSearchParams(location.search).get('k') || '';
   window.BFFinance.mount(el, { api: 'https://kdb-finance.mekovacs22.workers.dev', key: k, job: { id: job.id, name: job.name, client: job.client }, snap: null });
 };
@@ -1412,7 +1431,7 @@ window.dashJobMounted = function (el, job) {
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; window.__bfMe = String(me || '').toLowerCase(); window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.__bfMe = String(me || '').toLowerCase(); window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
