@@ -70,3 +70,14 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
  .bf-lines td:nth-child(3){grid-column:1/-1}.bf-lines td.bf-lt{text-align:left;font-weight:600}
  .bf-lines input,.bf-lines select{min-height:44px;font-size:16px}
 }
+
+/* phone: each line item stacks as a card so cost code, qty and price are never clipped */
+@media(max-width:600px){
+ .bf-lines{min-width:0;display:block}.bf-lines thead{display:none}.bf-lines tbody{display:block}
+ .bf-lines tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;padding:10px 0;border-bottom:1px solid var(--line)}
+ .bf-lines td{display:block;width:auto!important;padding:0}.bf-lines td.ds{grid-column:1/-1}
+ .bf-lines td:nth-child(2)::before{content:"Cost type"}.bf-lines td:nth-child(3)::before{content:"Cost code"}.bf-lines td:nth-child(4)::before{content:"Unit cost"}.bf-lines td:nth-child(5)::before{content:"Qty"}.bf-lines td:nth-child(6)::before{content:"Unit"}.bf-lines td.mk::before{content:"Markup %"}.bf-lines td.bf-lt::before{content:"Client price"}
+ .bf-lines td::before{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.bf-lines td.ds::before{content:none}
+ .bf-lines td:nth-child(3){grid-column:1/-1}.bf-lines td.bf-lt{text-align:left;font-weight:600}
+ .bf-lines input,.bf-lines select{min-height:44px;font-size:16px}
+}
