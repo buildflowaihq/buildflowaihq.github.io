@@ -76,7 +76,7 @@
     var h = '<div class="big">' + kpi('Revised contract price', money(p.revised), 'Original ' + money(p.base) + ' + ' + money(p.co_approved) + ' approved changes') + kpi('Invoiced', money(b.invoiced), money(b.left_to_invoice) + ' left to invoice') + kpi('Paid by client', money(b.paid), money(b.balance) + ' still owed') + kpi('Projected profit', money(r.projected_profit)) + '</div>';
     h += '<div class="big">' + kpi('Revised budget', money(c.revised), 'Original ' + money(c.original) + ' + ' + money(c.co_cost) + ' changes') + kpi('Committed (approved POs)', money(c.committed)) + kpi('Actual costs', money(c.actual)) + kpi('Cost to complete', money(c.to_complete), money((r.bills && r.bills.unpaid_bills) || 0) + ' in bills waiting to pay') + '</div>';
     h += '<details class="fold sub" open><summary><h3>Needs attention · ' + att.length + '</h3></summary>' + (att.length ? '<ul class="al">' + att.map(function (a) { return '<li><div><b>' + esc(a[2]) + '</b><div class="dk-m">' + esc(a[3]) + '</div></div><button class="link" data-bf-open="' + a[0] + ':' + a[1] + '">Open →</button></li>'; }).join('') + '</ul>' : '<p class="dk-empty">Nothing waiting.</p>') + '</details>';
-    h += '<details class="fold sub"><summary><h3>Budget by cost code</h3></summary>' + (r.budget.length ? '<div class="tw"><table class="bt"><thead><tr><th>Cost code</th><th class="r">Original</th><th class="r">Changes</th><th class="r">Revised</th><th class="r">Committed</th><th class="r">Actual</th><th class="r">To complete</th></tr></thead><tbody>' + r.budget.map(function (x) { return '<tr><td>' + esc(x.code) + '</td><td class="r">' + money(x.original) + '</td><td class="r">' + money(x.co) + '</td><td class="r">' + money(x.revised) + '</td><td class="r">' + money(x.committed) + '</td><td class="r">' + money(x.actual) + '</td><td class="r' + (x.to_complete < 0 ? ' bf-neg' : '') + '">' + money(x.to_complete) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="dk-empty">No budget yet.</p>') + '</details>';
+    h += '<details class="fold sub" open><summary><h3>Job costing budget</h3></summary>' + (r.budget.length ? jcb(r) : '<p class="dk-empty">No budget yet.</p>') + '</details>';
     h += clientBox(d);
     return h;
   }
@@ -85,6 +85,19 @@
     return '<details class="fold sub"><summary><h3>Who approves for the client' + (sg.length ? ' · ' + sg.length : ' · not set') + '</h3></summary><form class="bf-form" data-bf-client><p class="dk-m">Change orders go to these people to approve online. Invoices go to the first one.</p>' +
       [0, 1].map(function (i) { var s = sg[i] || {}; return '<div class="bf-row"><label>Name<input name="n' + i + '" value="' + esc(s.name || '') + '"></label><label>Email<input name="e' + i + '" type="email" value="' + esc(s.email || '') + '"></label></div>'; }).join('') +
       '<button class="bf-btn" type="submit">Save</button></form></details>';
+  }
+  function jcb(r) { // Job costing budget: same columns and grouping as the old software (category rows with cost codes under them)
+    var cats = {}, order = []; r.budget.forEach(function (x) { var c = x.category || 'Uncategorized'; if (!cats[c]) { cats[c] = []; order.push(c); } cats[c].push(x); });
+    order.sort();
+    var cols = ['original', 'revised', 'pending', 'committed', 'actual'];
+    function sum(a, k) { return a.reduce(function (t, x) { return t + (Number(x[k]) || 0); }, 0); }
+    function cells(a) { var v = {}; cols.forEach(function (k) { v[k] = sum(a, k); }); v.projected = sum(a, 'projected'); v.toc = v.projected - v.actual; v.variance = v.revised - v.projected;
+      return cols.map(function (k) { return '<td class="r">' + (v[k] ? money(v[k]) : '--') + '</td>'; }).join('') + '<td class="r' + (v.variance < 0 ? ' bf-neg' : '') + '">' + (v.variance ? money(v.variance) : '--') + '</td><td class="r">' + money(v.projected) + '</td><td class="r">' + money(v.toc) + '</td>'; }
+    var rows = order.map(function (c) { var a = cats[c]; return '<tr class="grp"><td><b>' + esc(c) + '</b></td>' + cells(a) + '</tr>' + a.map(function (x) { return '<tr><td style="padding-left:22px">' + esc(x.code) + '</td>' + cells([x]) + '</tr>'; }).join(''); }).join('');
+    var c = r.cost || {}, pr = r.price || {}, mg = pr.revised ? Math.round(r.projected_profit / pr.revised * 100) : 0;
+    return '<div class="big">' + kpi('Revised price', money(pr.revised)) + kpi('Projected cost', money(c.projected)) + kpi('Projected profit', money(r.projected_profit), mg + '% profit margin') + '</div>' +
+      '<div class="tw"><table class="bt"><thead><tr><th>Cost codes</th><th class="r">Original budget costs</th><th class="r">Revised budget costs</th><th class="r">Pending costs</th><th class="r">Committed costs</th><th class="r">Actual costs</th><th class="r">Builder variance</th><th class="r">Projected costs</th><th class="r">Cost to complete</th></tr></thead><tbody>' + rows +
+      '<tr class="grp"><td><b>Totals</b></td>' + cells(r.budget) + '</tr></tbody></table></div>';
   }
   function badge(s) { var k = String(s).toLowerCase().replace(/\s+/g, '-'); return '<span class="bf-st bf-' + esc(k) + '">' + esc(s) + '</span>'; }
   function table(cols, rows, kind, empty) {
