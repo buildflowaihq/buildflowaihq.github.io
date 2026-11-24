@@ -49,3 +49,4 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
 .dash .bf-file{cursor:pointer}
 .dash .bf-card{border:1px solid var(--line,#d9d2c2);border-radius:10px;padding:10px 12px;margin:8px 0}
 .dash .bf-card .bf-form{margin-top:6px}
+.bf-btn.sm{padding:3px 12px;font-size:12px}
