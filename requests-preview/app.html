@@ -579,7 +579,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611240155";
+(function(){var BUILD="202611240202";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -779,7 +779,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       return '<li><details><summary><b>' + esc(m.title || '(no subject)') + '</b><span class="dk-dm">' + esc(m.from || '') + (m.to ? ' to ' + esc(m.to) : '') + ' · ' + esc(String(m.date || '').slice(0, 10)) + '</span></summary><p>' + esc(m.body || '') + '</p></details></li>';
     }).join('') + '</ul></section>';
     if (H.files && H.files.length) h += '<section class="card"><div class="ch"><h2>Files</h2><span class="dk-src" style="margin:0">' + H.files.length + '</span></div><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th><th>Added by</th></tr></thead><tbody>' + H.files.map(function (f) {
-      return '<tr><td>' + esc(f.name) + '</td><td>' + esc(f.folder || '') + '</td><td>' + esc(f.date || '') + '</td><td>' + esc(f.by || '') + '</td></tr>';
+      return '<tr><td>' + (f.url ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>' : esc(f.name)) + '</td><td>' + esc(f.folder || '') + '</td><td>' + esc(f.date || '') + '</td><td>' + esc(f.by || '') + '</td></tr>';
     }).join('') + '</tbody></table></section>';
     return h;
   }
