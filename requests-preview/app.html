@@ -657,7 +657,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241600";
+(function(){var BUILD="202611241620";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -703,7 +703,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var q = S.q.toLowerCase();
     var jobs = DATA.jobs.filter(function (j) { return !q || (j.name + ' ' + j.client).toLowerCase().indexOf(q) >= 0; });
     var h = '<li><button class="all" data-view="all" aria-current="' + (S.view === 'all') + '"><span class="dk-dot"></span><b>Summary</b><small>All jobs</small></button></li>';
-    h += '<li><button data-view="list" aria-current="' + (S.view === 'list') + '"><span class="dk-dot"></span><b>Jobs list</b><small>Table of all jobs</small></button></li><li class="sl" aria-hidden="true">Jobs</li>';
+    h += '<li><button data-view="list" aria-current="' + (S.view === 'list') + '"><span class="dk-dot"></span><b>Jobs List</b><small>Table of all jobs</small></button></li><li class="sl" aria-hidden="true">Jobs</li>';
     var jb = function (j) { return '<li><button data-view="' + j.id + '" aria-current="' + (S.view === j.id) + '"><span class="dk-dot" style="background:' + j.color + '"></span><b>' + esc(j.name) + '</b><small>' + esc(j.stage) + '</small></button></li>'; };
     h += jobs.filter(function (j) { return !j.presale && !j.closed; }).map(jb).join('');
     var ps = jobs.filter(function (j) { return j.presale && S.presale; });
@@ -959,7 +959,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var h = legacyNotesHtml(id, H, jn);
     var lf = S.logf || 'all', allLogs = (H.logs || []).slice().sort(function (a, b) { return (Date.parse(String(b.date).replace(/^\w+, /, '')) || 0) - (Date.parse(String(a.date).replace(/^\w+, /, '')) || 0); });
     var shownLogs = allLogs.filter(function (l) { return lf === 'all' || (lf === 'client' ? /client/i.test(l.visibility || '') : !/client/i.test(l.visibility || '')); });
-    h += '<section class="card" id="dk-c-logs"><div class="ch"><h2>Daily logs</h2><button class="link" data-say="Add a daily log to ' + esc(jn.name) + ': ">+ Add a daily log</button></div><div class="dk-tabs" role="tablist">' + [['all', 'All'], ['client', 'Client can see'], ['int', 'Internal only']].map(function (t) { return '<button role="tab" data-logf="' + t[0] + '" aria-selected="' + (lf === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' + (shownLogs.length ? '' : '<p class="dk-src">No daily logs here yet. Tap “Add a daily log”, or say it or send a voice note and BuildFlowAI files it.</p>') + '</section>';
+    h += '<section class="card" id="dk-c-logs"><div class="ch"><h2>Daily Logs</h2><button class="link" data-say="Add a daily log to ' + esc(jn.name) + ': ">+ Add a daily log</button></div><div class="dk-tabs" role="tablist">' + [['all', 'All'], ['client', 'Client can see'], ['int', 'Internal only']].map(function (t) { return '<button role="tab" data-logf="' + t[0] + '" aria-selected="' + (lf === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' + (shownLogs.length ? '' : '<p class="dk-src">No daily logs here yet. Tap “Add a daily log”, or say it or send a voice note and BuildFlowAI files it.</p>') + '</section>';
     if (shownLogs.length) h = h.replace(/<\/section>$/, '') + '<ul class="dk-dl">' + shownLogs.map(function (l) {
       return '<li><div class="dk-dh"><b>' + esc(l.date) + '</b>' + (l.title ? ' · ' + esc(l.title) : '') + '</div><div class="dk-dm">' + esc(l.author || '') + (l.visibility ? ' · ' + esc(l.visibility) : '') + (l.temps ? ' · ' + esc(l.temps) : '') + (l.photos && l.photos !== '0' && l.photos !== '0 photos' ? ' · ' + esc(String(l.photos)) + ' photo' + (String(l.photos)[0] === '1' ? '' : 's') : '') + (l.link ? ' · <a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source || 'Transcript') + '</a>' : (l.source ? ' · ' + esc(l.source) : '')) + '</div><p>' + esc(l.text || '') + '</p></li>';
     }).join('') + '</ul></section>';
@@ -990,20 +990,19 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
 
   // ---- Navigation: one page per function, old-system order and names ----
-  var PG = { summary: 'Summary', list: 'Jobs list', sched: 'Schedule', logs: 'Daily logs', todos: 'To-dos', co: 'Change orders', sel: 'Selections', notes: 'Site notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Financial' };
+  var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary' };
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
   var HKEY = { logs: 'dk-c-logs', msgs: 'dk-c-messages', docs: 'dk-c-files', comments: 'dk-c-comments', sel: 'dk-c-selections', photos: 'dk-c-photos' };
   function isSub() { return !!(DATA.me && DATA.me.trade); }
   function curPage() { return S.view === 'list' ? 'list' : (S.page || 'summary'); }
   function navHtml() {
     var cp = curPage(), sub = isSub();
-    var groups = [['Summary', ['summary']], ['Jobs', ['list']], ['Project Management', ['sched', 'logs', 'todos', 'co', 'sel', 'notes']], ['Files', ['docs', 'photos']], ['Messaging', ['comments', 'msgs']], ['Financial', ['fin']]];
+    var groups = [['Jobs', ['summary', 'list']], ['Project Management', ['sched', 'logs', 'todos', 'co', 'sel', 'notes']], ['Files', ['docs', 'photos']], ['Messaging', ['comments', 'msgs']], ['Financial', ['fin']]];
     var ok = function (p) { return !(sub && /^(sched|co|sel|fin)$/.test(p)); };
     var menu = groups.map(function (g) {
       var its = g[1].filter(ok); if (!its.length) return '';
       var b = function (p, lab) { return '<button type="button" data-pg="' + p + '" aria-current="' + (cp === p) + '">' + lab + '</button>'; };
-      if (its.length === 1 && g[0] === PG[its[0]]) return '<div class="dk-g dk-g1">' + b(its[0], g[0]) + '</div>';
-      return '<div class="dk-g"><h6>' + g[0] + '</h6>' + its.map(function (p) { return b(p, PG[p]); }).join('') + '</div>';
+            return '<div class="dk-g"><h6>' + g[0] + '</h6>' + its.map(function (p) { return b(p, PG[p]); }).join('') + '</div>';
     }).join('');
     var js = DATA.jobs.filter(shown);
     var opt = function (j) { return '<option value="' + j.id + '"' + (S.view === j.id ? ' selected' : '') + '>' + esc(j.name) + '</option>'; };
@@ -1039,7 +1038,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     }
     var ids = openJobs().map(function (j) { return j.id; });
     if (p === 'notes') return allHead('Site notes', 'All open jobs') + siteNotesHtml(ids.concat('company'));
-    if (p === 'todos') return allHead('To-dos', 'All open jobs') + '<div class="cols"><div>' + actionsHtml(DATA.actions) + newHtml() + '</div><div>' + todoHtml() + '</div></div>';
+    if (p === 'todos') return allHead('Tasks', 'All open jobs') + '<div class="cols"><div>' + actionsHtml(DATA.actions) + newHtml() + '</div><div>' + todoHtml() + '</div></div>';
     if (p === 'sched') return allHead('Schedule', 'All open jobs') + schedLink('') + '<div class="cols"><div>' + scheduleHtml(DATA.schedule, 14) + '</div><div>' + weekHtml(DATA.schedule) + '</div></div>';
     if (p === 'fin') return allHead('Financial', 'Company') + moneyHtml(DATA.money, 'Company money');
     return allHead(PG[p], 'Pick a job') + needJob(p);
@@ -1054,7 +1053,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (p === 'notes') b = siteNotesHtml([v]);
     else if (p === 'todos') b = '<div class="cols"><div>' + actionsHtml(acts) + newHtml(v) + '</div><div>' + todoHtml() + '</div></div>';
     else if (p === 'sched') b = schedLink(v) + '<div class="cols"><div><div id="dk-c-sched">' + scheduleHtml(sch, 14) + '</div></div><div>' + weekHtml(sch) + '</div></div>';
-    else if (p === 'co') b = '<section class="card" id="dk-c-co"><div class="ch"><h2>Change orders</h2></div><p><button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Start a change order</button></p><p class="dk-src">Approved change orders and their totals are on the <button type="button" class="link" data-pg="fin">Financial</button> page.</p></section>';
+    else if (p === 'co') b = '<section class="card" id="dk-c-co"><div class="ch"><h2>Change Orders</h2></div><p><button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Start a change order</button></p><p class="dk-src">Approved change orders and their totals are on the <button type="button" class="link" data-pg="fin">Financial</button> page.</p></section>';
     else if (p === 'fin') b = '<div id="dk-c-money">' + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div><div id="dash-ext"></div>';
     else if (HKEY[p]) b = histPart(v, p) || '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Nothing here yet for this job.</p></section>';
     else b = '<div class="cols"><div>' + siteNotesHtml([v]) + peopleHtml(j) + actionsHtml(acts) + newHtml(v) + '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' + '</div><div>' + updatesHtml() + weekHtml(sch) + contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' + (act.length ? activityGrouped(act) : '') + remindersHtml(rem) + '</div></div>';
@@ -1499,9 +1498,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241600">
+<link rel="stylesheet" href="finance.css?v=202611241620">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241600"></script>
+<script src="finance.js?v=202611241620"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
