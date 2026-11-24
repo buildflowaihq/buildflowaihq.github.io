@@ -548,6 +548,9 @@
 }
 .dash .dk-alb{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}.dash .dk-alb small{opacity:.6}
 .dash .dk-ph span small{display:block;opacity:.6;font-size:11px}
+
+.dash .dk-schf{width:100%;height:78vh;min-height:520px;border:0;border-radius:12px;background:var(--bg)}
+.dash .dk-sch .dk-acts{display:flex;gap:6px;flex-wrap:wrap}.dash .dk-chip.on{background:var(--accent);color:#000}
 </style>
 </head>
 <body>
@@ -665,7 +668,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241220";
+(function(){var BUILD="202611241237";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1043,7 +1046,10 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Pick a job to see its ' + PG[p].toLowerCase() + '.</p><div class="dk-jcards">' + DATA.jobs.filter(function (j) { return shown(j) && !j.closed; }).map(function (j) { return '<button type="button" class="dk-jc" data-pickjob="' + j.id + '"><i class="dk-dot" style="background:' + j.color + '"></i><span><b>' + esc(j.name) + '</b><small>' + esc(j.client || '') + '</small></span><em>›</em></button>'; }).join('') + '</div></section>';
   }
   function schedLink(id) {
-    return '<section class="card"><div class="ch"><h2>Full calendar</h2></div><p><a class="dk-chip" target="_blank" rel="noopener" href="https://kdb-schedule.mekovacs22.workers.dev/?' + (id ? 'job=' + encodeURIComponent(id) + '&' : '') + 'view=month">Open the full calendar</a></p><p class="dk-src">Month, week, list and Gantt views. Open once with your schedule link if it asks for a key.</p></section>';
+    var al = { glenrose: 1, loma: 1, harriet: 1, alameda700: 1, palm1026: 1 }, vw = S.sview || 'month';
+    var tabs = ['month', 'week', 'list', 'gantt'].map(function (v) { return '<button type="button" class="dk-chip' + (vw === v ? ' on' : '') + '" data-sview="' + v + '">' + v.charAt(0).toUpperCase() + v.slice(1) + '</button>'; }).join('');
+    var url = 'https://kdb-schedule.mekovacs22.workers.dev/?k=' + encodeURIComponent(S.key || '') + (id && al[id] ? '&job=' + id : '') + '&view=' + vw + '&embed=1';
+    return '<section class="card dk-sch"><div class="ch"><h2>Schedule</h2><div class="dk-acts">' + tabs + '</div></div><iframe class="dk-schf" title="Schedule" src="' + url + '" loading="lazy"></iframe><p class="dk-src">Use Push a trade or Move a date inside the calendar: it shows what moves and asks OK first. <a target="_blank" rel="noopener" href="' + url.replace('&embed=1', '') + '">Open full screen</a></p></section>';
   }
   function jobHead(j) {
     var v = j.id, first = j.client.split(/ & | /)[0];
@@ -1063,7 +1069,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var ids = openJobs().map(function (j) { return j.id; });
     if (p === 'notes') return allHead('Site notes', 'All open jobs') + siteNotesHtml(ids.concat('company'));
     if (p === 'todos') return allHead('Tasks', 'All open jobs') + '<div class="cols"><div>' + actionsHtml(DATA.actions) + newHtml() + '</div><div>' + todoHtml() + '</div></div>';
-    if (p === 'sched') return allHead('Schedule', 'All open jobs') + schedLink('') + '<div class="cols"><div>' + scheduleHtml(DATA.schedule, 14) + '</div><div>' + weekHtml(DATA.schedule) + '</div></div>';
+    if (p === 'sched') return allHead('Schedule', 'All open jobs') + schedLink('');
     if (p === 'fin') return allHead('Financial', 'Company') + moneyHtml(DATA.money, 'Company money');
     return allHead(PG[p], 'Pick a job') + needJob(p);
   }
@@ -1078,7 +1084,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var b;
     if (p === 'notes') b = siteNotesHtml([v]);
     else if (p === 'todos') b = '<div class="cols"><div>' + actionsHtml(acts) + newHtml(v) + '</div><div>' + todoHtml() + '</div></div>';
-    else if (p === 'sched') b = schedLink(v) + '<div class="cols"><div><div id="dk-c-sched">' + scheduleHtml(sch, 14) + '</div></div><div>' + weekHtml(sch) + '</div></div>';
+    else if (p === 'sched') b = schedLink(v);
     else if (p === 'co') b = '<section class="card" id="dk-c-co"><div class="ch"><h2>Change Orders</h2></div><p><button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Start a change order</button></p><p class="dk-src">Pending and approved change orders are listed below.</p></section><div id="dash-ext"></div>';
     else if (NS[p]) b = '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Not set up yet.</p></section>';
     else if (p === 'upd') b = updatesHtml();
@@ -1155,6 +1161,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var b;
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; if (S.view !== 'list') { S.page = (S.dlPage && S.view === S.dlJob) ? S.dlPage : 'summary'; if (S.view !== 'all') remember(S.view); } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-pg]'))) { var pg = b.getAttribute('data-pg'); if (pg === 'list') S.view = 'list'; else { if (S.view === 'list') S.view = S.last || 'all'; S.page = pg; } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
+    if ((b = e.target.closest('[data-sview]'))) { S.sview = b.getAttribute('data-sview'); render(); return; }
     if ((b = e.target.closest('[data-gopen]'))) { var gn = b.getAttribute('data-gopen'); S.gopen = S.gopen === gn ? '' : gn; render(); return; }
     if (S.gopen && !e.target.closest('.dk-dd')) { S.gopen = ''; render(); }
     if ((b = e.target.closest('[data-mtoggle]'))) { S.menu = !S.menu; render(); return; }
@@ -1549,9 +1556,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241220">
+<link rel="stylesheet" href="finance.css?v=202611241237">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241220"></script>
+<script src="finance.js?v=202611241237"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
