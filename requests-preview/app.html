@@ -608,7 +608,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241245";
+(function(){var BUILD="202611241300";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -913,7 +913,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (v === 'list') { h = jobsListHtml(); }
     else if (v === 'all') {
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-      h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Schedule web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
+      h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + triptychHtml(DATA.actions) + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
         updatesHtml() + weekHtml(DATA.schedule) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
     } else {
@@ -924,7 +924,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var rem = DATA.reminders.filter(function (r) { return r.job === v; });
       var first = j.client.split(/ & | /)[0];
       h = '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span>' + esc(j.name) + ' <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + '</p>' +
-        '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Schedule web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
+        '<div class="dk-acts"><button class="dk-chip" data-say="Draft a message to ' + esc(first) + ' about ' + esc(j.name) + '">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">' + SVG.doc + 'Change order</button><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + siteNotesHtml([v]) + peopleHtml(j) + actionsHtml(acts) + newHtml(v) + scheduleHtml(sch, 7) +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         histHtml(v) + '</div><div>' + updatesHtml() + weekHtml(sch) + todoHtml() +
