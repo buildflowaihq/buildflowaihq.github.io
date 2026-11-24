@@ -275,7 +275,6 @@
 .dash .dk-empty{color:var(--faint);font-size:14px;margin:6px 0}
 
 /* actions */
-.dash .dk-mc{display:grid;gap:8px;margin:10px 0 14px}.dash .dk-mc input,.dash .dk-mc textarea{width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;color:inherit;font:inherit;font-size:16px}
 .dash .dk-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line2);margin:0 -18px 6px;padding:0 18px}
 .dash .dk-tabs button{white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px 9px;font-size:14px;color:var(--muted);cursor:pointer;margin-bottom:-1px;display:inline-flex;gap:7px;align-items:center}
 .dash .dk-tabs button[aria-selected=true]{color:var(--ink);border-color:var(--accent)}
@@ -568,6 +567,21 @@
 .dash .dk-sch .dk-acts{display:flex;gap:6px;flex-wrap:wrap}.dash .dk-chip.on{background:var(--accent);color:#000}
 
 .dash .dk-pl{display:inline-flex;gap:14px;margin-left:12px;vertical-align:middle;flex-wrap:wrap}.dash .dk-plg{display:inline-flex;align-items:center;gap:5px}.dash .dk-plg small{font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.65}.dash .dk-pl .dk-av{width:26px;height:26px;font-size:11px}
+.dash .dk-ph{position:relative}.dash .dk-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.dash .dk-ph .dk-pn{position:absolute;left:0;right:0;bottom:0;padding:14px 6px 4px;font-size:10px;line-height:1.2;background:linear-gradient(transparent,rgba(0,0,0,.7));overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#fff}
+.dash .dk-ph.dk-nothumb .dk-pn{position:static;background:none;padding:0;white-space:normal;color:inherit}
+.dash .dk-ln{margin-top:6px;font-size:14px}.dash .dk-ln b{display:block;margin-bottom:2px}.dash .dk-ln div{min-height:1.2em}.dash .dk-ln span{opacity:.75}
+/* old-system table looks for Messages / Documents / Comments */
+.dash .dk-mh,.dash .dk-mr{display:grid;grid-template-columns:1.1fr 1.1fr 2fr 1.2fr;gap:10px;align-items:baseline}
+.dash .dk-mh{font-size:12px;opacity:.65;padding:8px 0;border-bottom:1px solid var(--line)}
+.dash .dk-mr span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash .dk-fh,.dash .dk-fr{display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:10px;align-items:baseline}
+.dash .dk-fh{font-size:12px;opacity:.65;padding:8px 0;border-bottom:1px solid var(--line)}
+.dash .dk-fr span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dash .dk-cm2{display:flex;gap:10px;margin:10px 0}.dash .dk-cm2>div{background:rgba(255,255,255,.05);border-radius:12px;padding:8px 12px;flex:1}
+.dash .dk-men{background:rgba(141,184,242,.2);border-radius:4px;padding:0 3px}
+@media (max-width:640px){.dash .dk-mh{display:none}.dash .dk-mr{grid-template-columns:1fr}.dash .dk-fh{display:none}.dash .dk-fr{grid-template-columns:1fr}}
+.dash .dk-pf{border-bottom:1px solid var(--line2)}.dash .dk-pf summary{cursor:pointer;padding:10px 0}.dash .dk-pf .dk-pg{margin:6px 0 12px}
 </style>
 </head>
 <body>
@@ -686,7 +700,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241740";
+(function(){var BUILD="202611241830";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -873,7 +887,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     }).join('') || '<tr><td colspan="11" class="dk-src">No jobs here.</td></tr>';
     var cards = all.filter(function (j) { return st(j) === f; }).sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (j) { return '<button type="button" class="dk-jc" data-view="' + j.id + '"><i class="dk-dot" style="background:' + j.color + '"></i><span><b>' + esc(j.name) + '</b><small>' + esc(j.client || '') + ' · ' + esc(j.stage || '') + '</small></span><em>›</em></button>'; }).join('') || '<p class="dk-src">No jobs here.</p>';
     var tabs = [['open', 'Open'], ['pre', 'Pre-sale'], ['closed', 'Closed']].filter(function (t) { return t[0] !== 'pre' || S.presale; }).map(function (t) { return '<button role="tab" data-jf="' + t[0] + '" aria-selected="' + (f === t[0]) + '">' + t[1] + ' <span class="n">' + cnt[t[0]] + '</span></button>'; }).join('');
-    return '<div class="dk-top"><div><h1>Jobs</h1><p>' + all.length + ' jobs</p></div></div><section class="card"><div class="dk-tabs" role="tablist">' + tabs + '</div><div class="dk-jcards">' + cards + '</div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th></th><th>Job name</th><th>Street address</th><th>City</th><th>State</th><th>Zip code</th><th>Project manager</th><th>Clients</th><th>Client phone</th><th>Client email</th><th>Schedule status</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+    return '<div class="dk-top"><div><h1>Jobs</h1><p>' + all.length + ' jobs</p></div></div><section class="card"><div class="dk-tabs" role="tablist">' + tabs + '</div><div class="dk-jcards">' + cards + '</div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>Job Color</th><th>Job Name</th><th>Street Address</th><th>City</th><th>State</th><th>Zip Code</th><th>Project Manager</th><th>Clients</th><th>Client Phone</th><th>Client Email</th><th>Schedule Status</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
   }
   function activityGrouped(list) {
     var seen = {}, h = '';
@@ -989,49 +1003,21 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (!sub && (S.fin || j.fin || (j.money && j.money.length))) c.push(['money', 'Money']);
     return '<nav class="dk-chips dk-tabs" aria-label="Sections">' + c.map(function (x) { return '<button type="button" class="dk-chip" data-jump="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</nav>';
   }
-  // ---------- Messages: one thread list per job, with an Internal / Client / Subs switch and a composer ----------
-  var TEAMRX = /kdbla\.com|aramyankovacsdesign|kyleskovacs|\b(kyle|mary|sam|michael)\b|kovacs|swisher/i;
-  function msgAud(m, j) {
-    if (m.audience) return m.audience;
-    var parts = (String(m.from || '') + ' , ' + String(m.to || '')).toLowerCase();
-    var cl = (j && j.contacts || []).filter(function (c) { return String(c[0]).indexOf('Client') === 0; });
-    var isCl = cl.some(function (c) { return (c[2] && parts.indexOf(String(c[2]).toLowerCase()) >= 0) || (c[1] && parts.indexOf(String(c[1]).split(' ')[0].toLowerCase()) >= 0); });
-    if (isCl) return 'client';
-    var people = parts.split(/[,;]/).map(function (x) { return x.trim(); }).filter(Boolean);
-    return people.length && people.every(function (x) { return TEAMRX.test(x); }) ? 'internal' : 'subs';
+  function fmtDT(v) {
+    v = String(v || ''); var m = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (!m) return v;
+    var mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][+m[2] - 1], out = mon + ' ' + (+m[3]) + ', ' + m[1];
+    if (m[4]) { var h = +m[4]; out += ', ' + ((h % 12) || 12) + ':' + m[5] + ' ' + (h < 12 ? 'AM' : 'PM'); }
+    return out;
   }
-  var AUD = { internal: 'Internal', client: 'Client', subs: 'Subs & others' };
-  function sentKey(id) { return 'dk-msgsent-' + id; }
-  function sentLoad(id) { try { return JSON.parse(localStorage.getItem(sentKey(id)) || '[]'); } catch (e) { return []; } }
-  function msgDefaultTo(a, j) {
-    if (a === 'client') return (j.contacts || []).filter(function (c) { return String(c[0]).indexOf('Client') === 0 && c[2]; }).map(function (c) { return c[2]; }).join(', ');
-    if (a === 'internal') return Object.keys(PEOPLE).filter(function (k) { return k !== (DATA.me && DATA.me.id) && /@/.test(PEOPLE[k]); }).map(function (k) { return PEOPLE[k]; }).join(', ');
-    return '';
-  }
-  function msgThreadHtml(id, H, jn) {
-    var j = job(id) || { contacts: [] }, sub = isSub();
-    var all = (sentLoad(id).concat(H.messages || [])).map(function (m) { return Object.assign({}, m, { _a: msgAud(m, j) }); });
-    if (sub) all = all.filter(function (m) { return m._a === 'subs'; });
-    var f = sub ? 'subs' : (S.maud || 'all'), shown = all.filter(function (m) { return f === 'all' || m._a === f; });
-    var th = {}, order = [];
-    shown.forEach(function (m) { var k = String(m.title || '(no subject)').replace(/^((re|fwd?|fw)\s*:\s*)+/i, '').trim().toLowerCase(); if (!th[k]) { th[k] = []; order.push(k); } th[k].push(m); });
-    order.forEach(function (k) { th[k].sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); }); });
-    order.sort(function (a, b) { return String(th[b][0].date || '').localeCompare(String(th[a][0].date || '')); });
-    var tabs = sub ? '' : '<div class="dk-tabs" role="tablist">' + [['all', 'All'], ['internal', 'Internal'], ['client', 'Client'], ['subs', 'Subs & others']].map(function (t) {
-      var n = t[0] === 'all' ? all.length : all.filter(function (m) { return m._a === t[0]; }).length;
-      return '<button role="tab" data-maud="' + t[0] + '" aria-selected="' + (f === t[0]) + '">' + t[1] + ' <span class="n">' + n + '</span></button>'; }).join('') + '</div>';
-    var c = S.mc, comp = '';
-    if (c && !S.ro && !sub) {
-      comp = '<form class="dk-mc" data-mcform="' + esc(id) + '"><div class="dk-acts">' + ['client', 'internal', 'subs'].map(function (a) { return '<button type="button" class="dk-chip' + (c.a === a ? ' on' : '') + '" data-mca="' + a + '">' + AUD[a] + '</button>'; }).join('') + '</div>' +
-        '<input type="text" data-mcf="to" placeholder="To (email addresses)" aria-label="To" value="' + esc(c.to) + '"><input type="text" data-mcf="subject" placeholder="Subject" aria-label="Subject" value="' + esc(c.subject) + '"><textarea data-mcf="body" rows="4" placeholder="Message" aria-label="Message">' + esc(c.body) + '</textarea>' +
-        '<div class="dk-acts"><button type="button" class="dk-chip on" data-msend="' + esc(id) + '">Send</button><button type="button" class="dk-chip" data-mcancel="1">Cancel</button></div><p class="dk-src">Goes by email from your own address. Replies come back to this thread. Nothing is sent until you press Send.</p></form>';
-    }
-    var list = order.length ? '<ul class="dk-dl">' + order.map(function (k) {
-      var ms = th[k], top = ms[0];
-      return '<li><details><summary><b>' + esc(String(top.title || '(no subject)').replace(/^((re|fwd?|fw)\s*:\s*)+/i, '')) + '</b><span class="dk-dm">' + (sub ? '' : esc(AUD[top._a]) + ' · ') + ms.length + (ms.length === 1 ? ' message' : ' messages') + ' · ' + esc(String(top.date || '').slice(0, 10)) + '</span></summary>' + ms.map(function (m) {
-        return '<p><span class="dk-dm">' + esc(m.from || '') + (m.to ? ' to ' + esc(m.to) : '') + ' · ' + esc(String(m.date || '').slice(0, 16)) + (m.sent ? ' · sent from here' : '') + '</span><br>' + esc(m.body || '') + '</p>'; }).join('') + '</details></li>'; }).join('') + '</ul>'
-      : '<p class="dk-src">No messages here yet.</p>';
-    return '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + order.length + (order.length === 1 ? ' thread' : ' threads') + '</span>' + (S.ro || sub ? '' : '<button class="link" data-mnew="1">+ New message</button>') + '</div>' + tabs + comp + list + '</section>';
+  // Old-system daily log layout: Notes with Progress / Issues / Materials Delivered, always shown.
+  function logNotes(t) {
+    t = String(t || '');
+    var re = /(Progress|Issues|Materials Delivered):/g, m, idx = [], parts = { Progress: '', Issues: '', 'Materials Delivered': '' };
+    while ((m = re.exec(t))) idx.push([m.index, m[1], re.lastIndex]);
+    if (!idx.length) return '<p>' + esc(t) + '</p>';
+    idx.forEach(function (x, i) { parts[x[1]] = t.slice(x[2], i + 1 < idx.length ? idx[i + 1][0] : t.length).trim(); });
+    return '<div class="dk-ln"><b>Notes</b>' + ['Progress', 'Issues', 'Materials Delivered'].map(function (k) { return '<div><span>' + k + ':</span> ' + esc(parts[k]) + '</div>'; }).join('') + '</div>';
   }
   function histHtml(id) {
     var H = (DATA.history || {})[id] || {}, jn = job(id) || { name: '' };
@@ -1040,19 +1026,30 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var shownLogs = allLogs.filter(function (l) { return lf === 'all' || (lf === 'client' ? /client/i.test(l.visibility || '') : !/client/i.test(l.visibility || '')); });
     h += '<section class="card" id="dk-c-logs"><div class="ch"><h2>Daily Logs</h2><button class="link" data-say="Add a daily log to ' + esc(jn.name) + ': ">+ Add a daily log</button></div><div class="dk-tabs" role="tablist">' + [['all', 'All'], ['client', 'Client can see'], ['int', 'Internal only']].map(function (t) { return '<button role="tab" data-logf="' + t[0] + '" aria-selected="' + (lf === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' + (shownLogs.length ? '' : '<p class="dk-src">No daily logs here yet. Tap “Add a daily log”, or say it or send a voice note and BuildFlowAI files it.</p>') + '</section>';
     if (shownLogs.length) h = h.replace(/<\/section>$/, '') + '<ul class="dk-dl">' + shownLogs.map(function (l) {
-      return '<li><div class="dk-dh"><b>' + esc(l.date) + '</b>' + (l.title ? ' · ' + esc(l.title) : '') + '</div><div class="dk-dm">' + esc(l.author || '') + (l.visibility ? ' · ' + esc(l.visibility) : '') + (l.temps ? ' · ' + esc(l.temps) : '') + (l.photos && l.photos !== '0' && l.photos !== '0 photos' ? ' · ' + esc(String(l.photos)) + ' photo' + (String(l.photos)[0] === '1' ? '' : 's') : '') + (l.link ? ' · <a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source || 'Transcript') + '</a>' : (l.source ? ' · ' + esc(l.source) : '')) + '</div><p>' + esc(l.text || '') + '</p></li>';
+      return '<li><div class="dk-dh"><b>' + esc(String(l.date || '').replace(/, \d{4}$/, '')) + '</b>' + (l.title ? ' | ' + esc(l.title) : '') + '</div><div class="dk-dm">' + esc(l.author || '') + (l.visibility ? ' · ' + esc(l.visibility) : '') + (l.temps ? ' · ' + esc(String(l.temps).replace(/^(\d+)F\/(\d+)F$/, '$1°F↑ $2°F↓')) : '') + (l.photos && l.photos !== '0' && l.photos !== '0 photos' ? ' · ' + esc(String(l.photos)) + ' photo' + (String(l.photos)[0] === '1' ? '' : 's') : '') + (l.link ? ' · <a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source || 'Transcript') + '</a>' : (l.source ? ' · ' + esc(l.source) : '')) + '</div>' + logNotes(l.text) + '</li>';
     }).join('') + '</ul></section>';
-    h += msgThreadHtml(id, H, jn);
-    if (H.files && H.files.length) h += '<section class="card" id="dk-c-files"><div class="ch"><h2>Files</h2><span class="dk-src" style="margin:0">' + H.files.length + '</span></div><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th><th>Added by</th></tr></thead><tbody>' + H.files.map(function (f) {
-      return '<tr><td>' + (f.url ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>' : esc(f.name)) + '</td><td>' + esc(f.folder || '') + '</td><td>' + esc(f.date || '') + '</td><td>' + esc(f.by || '') + '</td></tr>';
-    }).join('') + '</tbody></table></section>';
+    if (H.messages && H.messages.length) h += '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + H.messages.length + '</span></div><div class="dk-mh"><span>To</span><span>From</span><span>Subject</span><span>Date Received</span></div><ul class="dk-dl dk-ml">' + H.messages.map(function (m) {
+      return '<li><details><summary class="dk-mr"><span>' + esc(m.to || '') + '</span><span>' + esc(m.from || '') + '</span><span><b>' + esc(m.title || '(no subject)') + '</b></span><span>' + esc(fmtDT(m.date)) + '</span></summary><p>' + esc(m.body || '') + '</p></details></li>';
+    }).join('') + '</ul></section>';
+    if (H.files && H.files.length) {
+      var fg = {}, ford = [];
+      H.files.forEach(function (f) { var p = String(f.folder || '').split(' / '), k = p[2] || p[1] || p[0] || 'Documents'; if (!fg[k]) { fg[k] = []; ford.push(k); } fg[k].push(f); });
+      h += '<section class="card" id="dk-c-files"><div class="ch"><h2>Documents</h2><span class="dk-src" style="margin:0">' + ford.length + ' folders · ' + H.files.length + ' files</span></div><div class="dk-fh"><span>Name</span><span>Modified</span><span>Contents</span></div><ul class="dk-dl dk-fl">' + ford.map(function (k) {
+        var fs = fg[k], last = fs.map(function (f) { return String(f.date || ''); }).sort().pop();
+        return '<li><details><summary class="dk-fr"><span>📁 <b>' + esc(k) + '</b></span><span>' + esc(fmtDT(last)) + '</span><span>' + fs.length + ' file' + (fs.length === 1 ? '' : 's') + '</span></summary><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th></tr></thead><tbody>' + fs.map(function (f) {
+          return '<tr><td>' + (f.url ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(String(f.name).replace(/\r$/, '')) + '</a>' : esc(f.name)) + '</td><td>' + esc(String(f.folder || '').split(' / ').slice(3).join(' / ')) + '</td><td>' + esc(fmtDT(f.date)) + '</td></tr>';
+        }).join('') + '</tbody></table></details></li>';
+      }).join('') + '</ul></section>';
+    }
     if (H.comments && H.comments.length) {
       var th = {}, ord = [];
       H.comments.forEach(function (c) { if (!th[c.where]) { th[c.where] = []; ord.push(c.where); } th[c.where].push(c); });
+      var men = function (t) { return esc(t).replace(/@([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)?)/g, '<span class="dk-men">@$1</span>'); };
       h += '<section class="card" id="dk-c-comments"><div class="ch"><h2>Comments</h2><span class="dk-src" style="margin:0">' + H.comments.length + '</span></div><ul class="dk-dl">' + ord.map(function (w) {
-        return '<li><details><summary><b>' + esc(w) + '</b><span class="dk-dm">' + th[w].length + ' comment' + (th[w].length === 1 ? '' : 's') + '</span></summary>' + th[w].map(function (c) {
-          return '<div class="dk-cm"><b>' + esc(c.by || '') + '</b> <small>' + esc(c.date || '') + (c.audience ? ' · ' + esc(c.audience) : '') + '</small><div>' + esc(c.text || '') + '</div></div>';
-        }).join('') + '</details></li>';
+        var cs = th[w], f = cs[0], mm = String(w).match(/^(Document|Schedule Item|Daily Log|Selection|Change Order|To-Do|Message)\s+(.*)$/);
+        var ttl = mm ? mm[1] + ' • ' + mm[2] : w;
+        var one = function (c) { return '<div class="dk-cm dk-cm2"><span class="dk-av">' + esc(initials(c.by || '')) + '</span><div><b>' + esc(c.by || '') + '</b> <small>' + esc(fmtDT(c.date)) + (c.audience ? ' · ' + esc(c.audience) : '') + '</small><div>' + men(c.text || '') + '</div></div></div>'; };
+        return '<li><details><summary><b>' + esc(ttl) + '</b><span class="dk-dm">' + esc(String(f.date || '').slice(0, 10)) + ' · ' + cs.length + ' comment' + (cs.length === 1 ? '' : 's') + '</span></summary>' + cs.map(one).join('') + '</details></li>';
       }).join('') + '</ul></section>';
     }
     if (H.selections && H.selections.length) h += '<section class="card" id="dk-c-selections"><div class="ch"><h2>Selections</h2><span class="dk-src" style="margin:0">' + H.selections.length + '</span></div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>Selection</th><th>Type</th><th>Allowance</th><th>Spent</th><th>Remaining</th><th>Status</th></tr></thead><tbody>' + H.selections.map(function (x) {
@@ -1061,10 +1058,10 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (H.photos && H.photos.length) {
       var pa = {}, pord = [];
       H.photos.forEach(function (x) { var a = x.album || 'Photos'; if (!pa[a]) { pa[a] = []; pord.push(a); } pa[a].push(x); });
-      h += '<section class="card" id="dk-c-photos"><div class="ch"><h2>Photos</h2><span class="dk-src" style="margin:0">' + H.photos.length + '</span></div>' + pord.map(function (a) {
-        return '<h3 class="dk-alb">' + esc(a) + ' <small>' + pa[a].length + '</small></h3><div class="dk-pg">' + pa[a].map(function (x) {
-          return '<a href="' + esc(x.url || '#') + '" target="_blank" rel="noopener" class="dk-ph">' + (x.thumb ? '<img loading="lazy" alt="' + esc(x.name || 'Photo') + '" src="' + esc(x.thumb) + '">' : '<span>' + esc(x.name || 'Photo') + (x.date ? '<small>' + esc(String(x.date).slice(0, 12)) + '</small>' : '') + '</span>') + '</a>';
-        }).join('') + '</div>';
+      h += '<section class="card" id="dk-c-photos"><div class="ch"><h2>Photos</h2><span class="dk-src" style="margin:0">' + H.photos.length + '</span></div><div class="dk-fh"><span>Name</span><span>Modified</span><span>Contents</span></div>' + pord.map(function (a) {
+        return '<details class="dk-pf"' + (pord.length === 1 ? ' open' : '') + '><summary class="dk-fr"><span>📁 <b>' + esc(a) + '</b></span><span>' + esc(fmtDT(pa[a].map(function (x) { return String(x.date || ''); }).sort().pop())) + '</span><span>' + pa[a].length + ' photo' + (pa[a].length === 1 ? '' : 's') + '</span></summary><div class="dk-pg">' + pa[a].map(function (x) {
+          return '<a href="' + esc(x.url || '#') + '" target="_blank" rel="noopener" class="dk-ph">' + ((x.thumb || /\/d\/[\w-]+/.test(x.url || '')) ? '<img loading="lazy" alt="' + esc(x.name || 'Photo') + '" src="' + esc(x.thumb || ('https://drive.google.com/thumbnail?sz=w320&id=' + (x.url.match(/\/d\/([\w-]+)/) || [])[1])) + '" onerror="this.parentNode.classList.add(\'dk-nothumb\');this.remove()"><span class="dk-pn">' + esc(x.name || 'Photo') + '</span>' : '<span>' + esc(x.name || 'Photo') + (x.date ? '<small>' + esc(String(x.date).slice(0, 12)) + '</small>' : '') + '</span>') + '</a>';
+        }).join('') + '</div></details>';
       }).join('') + '</section>';
     }
 
@@ -1075,7 +1072,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Navigation: one page per function, old-system order and names ----
   var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys', ctint: 'Internal Users', ctven: 'Subs/Vendors', ctcl: 'Client Contacts', lopp: 'Lead Opportunities', lact: 'Lead Activities', lprop: 'Lead Proposals', lcal: 'Lead Activity Calendar', lmap: 'Lead Map' };
   // NS = pages KDB never used in Buildertrend (Michael approved 11/24): hidden from menus. To add one back, delete it from this list.
-  var NS = { rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
+  var NS = { war: 1, fpay: 1, rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
   var FTAB = { ctven: 'vendors', rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
@@ -1108,7 +1105,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (S.ro || S.view === 'list') return '';
     var j = (S.view !== 'all') && job(S.view), jn = j ? j.name : '';
     var say = function (l, t) { return '<button type="button" data-say="' + esc(t) + '">' + l + '</button>'; };
-    var m = S.fab ? '<div class="dk-fabm">' + (j ? say('Site note', 'Add a site note to ' + jn + ': ') + say('Daily log', 'Add a daily log to ' + jn + ': ') + (isSub() ? '' : say('Change order', 'Change order on ' + jn + ': ')) + '<button type="button" data-mopen="1">Message ' + esc(j.client.split(/ & | /)[0]) + '</button>' : say('Site note', 'Add a site note: ') + say('Daily log', 'Add a daily log: ') + (isSub() ? '' : say('Change order', 'Change order: ')) + '<button type="button" data-mopen="1">Message</button>') + '<button type="button" data-rec="1">Record</button></div>' : '';
+    var m = S.fab ? '<div class="dk-fabm">' + (j ? say('Site note', 'Add a site note to ' + jn + ': ') + say('Daily log', 'Add a daily log to ' + jn + ': ') + (isSub() ? '' : say('Change order', 'Change order on ' + jn + ': ')) + say('Message ' + esc(j.client.split(/ & | /)[0]), 'Message to ' + j.client.split(/ & | /)[0] + ': ') : say('Site note', 'Add a site note: ') + say('Daily log', 'Add a daily log: ') + (isSub() ? '' : say('Change order', 'Change order: ')) + say('Message', 'Message: ')) + '<button type="button" data-rec="1">Record</button></div>' : '';
     return '<div class="dk-fabw">' + m + '<button type="button" class="dk-fab" data-fab="1" aria-label="Quick actions" aria-expanded="' + !!S.fab + '">' + (S.fab ? '×' : '+') + '</button></div>';
   }
   function navHtml() {
@@ -1145,7 +1142,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function jobHead(j) {
     var v = j.id, first = j.client.split(/ & | /)[0];
     return '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span><span class="dk-nm">' + esc(j.name) + '</span> <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + peopleLine(j) + '</p>' +
-        '<div class="dk-acts dk-qa"><button type="button" class="dk-chip" data-mopen="1">' + SVG.msg + 'Message ' + esc(first) + '</button>' + (!!(DATA.me && DATA.me.trade) ? '' : '<button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Change order</button>') + '<button type="button" class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + '<a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a>' + '<button type="button" class="dk-chip" data-say="Add a site note to ' + esc(j.name) + ': ">+ Note</button><button type="button" class="dk-chip" data-say="Add a daily log to ' + esc(j.name) + ': ">+ Log</button>' + (S.contract ? '<button type="button" class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>';
+        '<div class="dk-acts dk-qa"><button type="button" class="dk-chip" data-say="Message to ' + esc(first) + ': ">' + SVG.msg + 'Message ' + esc(first) + '</button>' + (!!(DATA.me && DATA.me.trade) ? '' : '<button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Change order</button>') + '<button type="button" class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + '<a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a>' + '<button type="button" class="dk-chip" data-say="Add a site note to ' + esc(j.name) + ': ">+ Note</button><button type="button" class="dk-chip" data-say="Add a daily log to ' + esc(j.name) + ': ">+ Log</button>' + (S.contract ? '<button type="button" class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>';
   }
   function allHead(t, sub) { return '<div class="dk-top"><div><h1>' + t + '</h1><p>' + sub + '</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>'; }
   function allPage(p) {
@@ -1180,12 +1177,19 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     else if (p === 'war') b = '<section class="card"><div class="ch"><h2>Warranties</h2></div><p class="dk-src">None logged for this job. Say or send “warranty item on ' + esc(j.name) + ': …” and it is filed here.</p></section>';
     else if (NS[p]) b = '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Not set up yet.</p></section>';
     else if (p === 'upd') b = '<section class="card"><div class="ch"><h2>Client Updates</h2></div><p class="dk-src">Weekly client updates are being automated: a voice memo or photo becomes a daily log, and the week’s logs become a draft update for you to approve. Nothing goes to a client until you say so.</p></section>' + updatesHtml();
-    else if (p === 'det') b = '<div class="cols"><div>' + peopleHtml(j) + whereC + '</div><div>' + contC + '</div></div>';
+    else if (p === 'det') b = '<div class="cols"><div>' + jobInfoHtml(j) + peopleHtml(j) + whereC + '</div><div>' + contC + '</div></div>';
     else if (FTAB[p]) b = '<div id="dash-ext"></div>';
     else if (p === 'fin') b = '<div id="dk-c-money">' + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div><div id="dash-ext"></div>';
     else if (HKEY[p]) b = histPart(v, p) || '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Nothing here yet for this job.</p></section>';
     else b = '<div class="cols"><div>' + actionsHtml(acts) + weekHtml(sch) + siteNotesHtml([v]) + (histPart(v, 'logs') || '') + (histPart(v, 'photos') || '') + '</div><div>' + (histPart(v, 'comments') || '') + (histPart(v, 'msgs') || '') + (histPart(v, 'docs') || '') + whereC + newHtml(v) + updatesHtml() + contractsHtml(v) + contC + (act.length ? activityGrouped(act) : '') + remindersHtml(rem) + '</div></div>'; // order follows Buildertrend Home: Actions, Upcoming schedule, Site notes, Daily logs, Photos, Comments, Messages, Documents
     return jobHead(j) + b;
+  }
+  // Old-system "Job details" form fields, read-only here.
+  function jobInfoHtml(j) {
+    var d = j.jd || {}, row = function (k, v) { return '<dt>' + k + '</dt><dd>' + (v ? esc(v) : '<span class="dk-src">—</span>') + '</dd>'; };
+    var st = j.presale ? 'Presale' : j.closed ? 'Closed' : 'Open';
+    return '<section class="card"><div class="ch"><h2>Job information</h2></div><dl class="kv">' + row('Prefix', d.prefix) + row('Status', d.status || st) + row('Contract price', d.price) + row('Type', d.type) + row('Contract type', d.contract) + '</dl></section>' +
+      '<section class="card"><div class="ch"><h2>Schedule</h2></div><dl class="kv">' + row('Projected start', d.pstart) + row('Actual start', d.astart) + row('Projected completion', d.pend) + row('Actual completion', d.aend) + row('Schedule color', d.color) + row('Work days', d.work || 'Monday, Tuesday, Wednesday, Thursday, Friday') + '</dl></section>';
   }
   function ctHead(t) { return '<div class="dk-top"><div><h1>' + t + '</h1></div></div>'; }
   function ctPage(p) {
@@ -1279,37 +1283,11 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if ((b = e.target.closest('[data-logf]'))) { S.logf = b.getAttribute('data-logf'); render(); return; }
     if ((b = e.target.closest('[data-jf]'))) { S.jf = b.getAttribute('data-jf'); render(); return; }
     if ((b = e.target.closest('[data-tab]'))) { S.tab = b.getAttribute('data-tab'); render(); return; }
-    if ((b = e.target.closest('[data-mopen]'))) { if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } S.fab = false; S.page = 'msgs'; if (S.view === 'list') S.view = S.last || 'all'; var oj = job(S.view); S.mc = oj && !isSub() ? { a: 'client', to: msgDefaultTo('client', oj), subject: '', body: '' } : null; S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
-    if ((b = e.target.closest('[data-maud]'))) { S.maud = b.getAttribute('data-maud'); render(); return; }
-    if ((b = e.target.closest('[data-mnew]'))) { var mj = job(S.view); if (!mj) return; var a0 = S.maud && S.maud !== 'all' ? S.maud : 'client'; S.mc = { a: a0, to: msgDefaultTo(a0, mj), subject: '', body: '' }; render(); return; }
-    if ((b = e.target.closest('[data-mca]'))) { var mj2 = job(S.view); S.mc.a = b.getAttribute('data-mca'); S.mc.to = msgDefaultTo(S.mc.a, mj2 || { contacts: [] }); render(); return; }
-    if (e.target.closest('[data-mcancel]')) { S.mc = null; render(); return; }
-    if ((b = e.target.closest('[data-msend]'))) { sendThreadMsg(b.getAttribute('data-msend'), b); return; }
     if (e.target.closest('[data-todo]')) { if (window.showTab) window.showTab('todo'); return; }
     if ((b = e.target.closest('[data-say]'))) { if (window.chatDraft) window.chatDraft(b.getAttribute('data-say')); else if (window.showTab) window.showTab('chat'); return; }
     if (e.target.closest('[data-add]')) { var f = $('dash-addd'); if (!S.cal) { toast('The company calendar isn’t connected yet.'); return; } f.hidden = !f.hidden; if (!f.hidden) { f.date.value = DATA.today; f.title.focus(); } return; }
     if (e.target.closest('[data-addx]')) { $('dash-addd').hidden = true; return; }
   });
-  root.addEventListener('input', function (e) { var f = e.target && e.target.getAttribute && e.target.getAttribute('data-mcf'); if (f && S.mc) S.mc[f] = e.target.value; });
-  function sendThreadMsg(id, btn) {
-    if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; }
-    var c = S.mc; if (!c) return;
-    var to = String(c.to || '').split(/[,;\s]+/).filter(Boolean);
-    if (!to.length || !to.every(function (x) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); })) { toast('Add who it goes to (a full email address).'); return; }
-    if (!String(c.subject).trim() || !String(c.body).trim()) { toast('Add a subject and a message.'); return; }
-    if (!window.bfSendMail) { toast('Sending isn’t available here yet. Nothing was sent.'); return; }
-    var j = job(id); btn.disabled = true; btn.textContent = 'Sending…';
-    window.bfSendMail(to, c.subject, c.body).then(function (r) {
-      if (r && r.ok) {
-        var list = sentLoad(id); list.unshift({ title: c.subject, from: (DATA.me && DATA.me.name) || 'Me', to: to.join(', '), date: new Date().toISOString().slice(0, 16).replace('T', ' '), body: c.body, audience: c.a, sent: 1 });
-        try { localStorage.setItem(sentKey(id), JSON.stringify(list.slice(0, 50))); } catch (x) { }
-        S.mc = null; S.maud = 'all'; render(); toast('Sent to ' + to.join(', ') + '.');
-      } else {
-        btn.disabled = false; btn.textContent = 'Send';
-        toast(r && r.error === 'held_for_approval' ? 'That address isn’t on the approved list yet, so it was saved as a draft in your Gmail. Nothing went out.' : r && r.error === 'not_enabled' ? 'One-tap sending isn’t switched on for you yet. Nothing was sent.' : 'That didn’t send. Nothing went out. Try again in a moment.');
-      }
-    }, function () { btn.disabled = false; btn.textContent = 'Send'; toast('That didn’t send. Nothing went out. Try again in a moment.'); });
-  }
   function saveDate(form) {
     var title = form.title.value.trim(), date = form.date.value, time = form.time.value, err = $('dash-adderr');
     err.hidden = true; if (!title || !date) return;
@@ -1696,9 +1674,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241616">
+<link rel="stylesheet" href="finance.css?v=202611241830">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241616"></script>
+<script src="finance.js?v=202611241830"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
