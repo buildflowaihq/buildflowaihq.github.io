@@ -60,6 +60,7 @@
     if (!d) { el.innerHTML = h + '<p class="dk-empty">Loading…</p>'; return; }
     var T = [['overview', 'Overview'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft], ['bills', 'Bills', (d.rollup.pending.bills || 0)], ['pay', 'Payments'], ['cm', 'Credit memos'], ['dep', 'Deposits', (d.rollup.billing.deposits_held > 0 ? 1 : 0)], ['rfi', 'RFIs', (d.rollup.pending.rfis || 0)], ['vendors', 'Vendors']];
     h += '<div class="dk-tabs bf-tabs" role="tablist">' + T.map(function (t) { return '<button role="tab" data-bf-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
+    h += '<div class="bf-quick" aria-label="Quick actions"><button class="bf-btn" data-bf-new="co">+ Change order</button><button class="bf-btn" data-bf-new="po">+ PO</button><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-bnew>+ Bill / receipt photo</button></div>';
     h += S.tab === 'overview' ? overview(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : S.tab === 'bills' ? billList(d) : S.tab === 'pay' ? payTab() : S.tab === 'cm' ? cmTab(d) : S.tab === 'dep' ? depTab(d) : S.tab === 'rfi' ? rfiTab(d) : invList(d);
     el.innerHTML = h;
     keepM.forEach(function (m) { el.appendChild(m); });

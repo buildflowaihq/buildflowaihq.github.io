@@ -50,3 +50,6 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
 .dash .bf-card{border:1px solid var(--line,#d9d2c2);border-radius:10px;padding:10px 12px;margin:8px 0}
 .dash .bf-card .bf-form{margin-top:6px}
 .bf-btn.sm{padding:3px 12px;font-size:12px}
+
+.dash .bf-quick{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
+@media(max-width:600px){.dash .bf-quick{display:grid;grid-template-columns:1fr 1fr}.dash .bf-quick .bf-btn{min-height:44px;padding:10px 8px}}
