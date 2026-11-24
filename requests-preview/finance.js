@@ -113,10 +113,12 @@
       '<tr class="grp"><td><b>Totals</b></td>' + cells(r.budget) + '</tr></tbody></table></div>';
   }
   function badge(s) { var k = String(s).toLowerCase().replace(/\s+/g, '-'); return '<span class="bf-st bf-' + esc(k) + '">' + esc(s) + '</span>'; }
+  var LOWP = ['RFIs','Comments','Client','Created','Files','Builder cost','Viewed','QuickBooks','Due'];   // less important columns drop out on a phone so price and status stay on screen
+  function cc(c) { var k = (c[2] ? 'r' : '') + (LOWP.indexOf(c[0]) >= 0 ? ' lo' : ''); return k.trim() ? ' class="' + k.trim() + '"' : ''; }
   function table(cols, rows, kind, empty) {
     if (!rows.length) return '<p class="dk-empty">' + empty + '</p>';
-    return '<div class="tw"><table class="bt bf-click"><thead><tr>' + cols.map(function (c) { return '<th' + (c[2] ? ' class="r"' : '') + '>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
-      rows.map(function (r) { return '<tr data-bf-open="' + kind + ':' + r.id + '" tabindex="0">' + cols.map(function (c) { var v = c[1](r); return '<td' + (c[2] ? ' class="r"' : '') + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    return '<div class="tw"><table class="bt bf-click"><thead><tr>' + cols.map(function (c) { return '<th' + cc(c) + '>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr data-bf-open="' + kind + ':' + r.id + '" tabindex="0">' + cols.map(function (c) { var v = c[1](r); return '<td' + cc(c) + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
   }
   function insBadge(v) { return v.insurance_status === 'ok' ? badge('Insured') : v.insurance_status === 'expiring' ? badge('Draft').replace('Draft', 'Expires ' + fdate(v.insurance_expires)) : v.insurance_status === 'expired' ? badge('Void').replace('Void', 'Insurance expired') : '<span class="dk-m">None on file</span>'; }
   function billList(d) {
