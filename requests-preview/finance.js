@@ -191,9 +191,15 @@
       ['Signed', function (r) { var sg = (r.signers || []).filter(function (x) { return x.status === 'approved'; }); return sg.length ? fdate((sg[sg.length - 1].signed_at || '').slice(0, 10)) + (sg.length < (r.signers || []).length ? ' (' + sg.length + '/' + r.signers.length + ')' : '') : ''; }],
       ['Evidence', function (r) { return r.approval_pdf ? '<button class="link" type="button" data-bf-fdl="' + esc(r.approval_pdf) + '">Approval PDF</button>' : '';}],
       ['', function (r) { return '<button class="bf-btn alt sm" type="button" data-bf-open="co:' + esc(r.id) + '">' + (r.status === 'draft' || r.status === 'pending' ? 'Edit' : 'View') + '</button>'; }]];
-    var h = billingCard(d) + '<div class="bf-bar"><button class="bf-btn" data-bf-new="co">+ Change order</button><span class="dk-m">Approved changes raise the contract price and the budget.</span></div>' + table(cols, rows, 'co', 'No change orders yet.');
+    var h = waitCard(d) + billingCard(d) + '<div class="bf-bar"><button class="bf-btn" data-bf-new="co">+ Change order</button><span class="dk-m">Approved changes raise the contract price and the budget.</span></div>' + table(cols, rows, 'co', 'No change orders yet.');
     if (rows.length) h += '<p class="dk-m" style="text-align:right"><b>Totals</b> · builder cost ' + money(tc) + ' · total price ' + money(tp) + ' (void excluded)</p>';
     return h;
+  }
+  function waitCard(d) {   // in-app reminder only: nothing is sent to the client. Sent change orders still unsigned after 3 days.
+    var cut = Date.now() - 3 * 864e5;
+    var rows = (d.cos || []).filter(function (c) { return c.status === 'pending' && c.sent_at && Date.parse(c.sent_at) < cut; });
+    if (!rows.length) return '';
+    return '<div class="bf-ready"><b>Still waiting on the client · ' + rows.length + '</b>' + rows.map(function (c) { var n = Math.floor((Date.now() - Date.parse(c.sent_at)) / 864e5); return '<div class="bf-ready-row"><span>' + esc(c.number) + ' ' + esc(c.title) + ' · sent ' + n + ' days ago</span></div>'; }).join('') + '<div class="dk-m">Worth a call. Nothing is sent from here.</div></div>';
   }
   function billingCard(d) {
     var rows = (d.cos || []).filter(function (c) { return c.billing && c.billing.status === 'awaiting_approval'; });
