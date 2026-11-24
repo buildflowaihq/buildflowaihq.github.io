@@ -9,6 +9,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#16181B">
+<script>
+/* Phone view on a big screen: show the whole app inside a real phone-sized window (phone.html frames this same page), so it looks and behaves exactly like Kyle's phone. */
+(function () {
+  if (window.name === 'bfphone') { document.documentElement.className += ' bfph'; return; }
+  var l = ''; try { l = localStorage.getItem('dk-layout') || ''; } catch (e) {}
+  if (l === 'm' && window.top === window && window.innerWidth > 720) location.replace('phone.html' + '?u=' + encodeURIComponent(location.href));
+})();
+</script>
 <meta name="robots" content="noindex">
 <meta http-equiv="Cache-Control" content="no-cache">
 <link rel="manifest" href="manifest.webmanifest">
@@ -64,6 +72,7 @@
   .reqs .ritem .st.done { background:transparent; border-color:var(--line); color:var(--muted); }
   .reqs .ritem .meta { font-size:14px; color:var(--muted); margin-top:6px; }
   .chip a { color:inherit; text-decoration:underline; margin-left:4px; cursor:pointer; }
+  .bfph .call { display:none !important; }
   .call { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; background:var(--card);
           border:1.5px solid var(--line); font-size:16px; font-weight:500; cursor:pointer; }
   .call svg { color:var(--accent); }
@@ -702,7 +711,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241910";
+(function(){var BUILD="202611242022";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1128,7 +1137,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Layout: phone or desktop, auto by screen width, person can override (remembered) ----
   function isM() { var l = ''; try { l = localStorage.getItem('dk-layout') || ''; } catch (e) { } if (l === 'm') return true; if (l === 'd') return false; return window.innerWidth <= 720; }
   function setLayoutLabel() { var b = document.getElementById('call'); if (!b) return; var l = b.querySelector('.lbl'); if (l) l.textContent = isM() ? 'Desktop' : 'Phone'; b.setAttribute('aria-label', isM() ? 'Switch to desktop view' : 'Switch to phone view'); }
-  window.dashToggleLayout = function () { try { localStorage.setItem('dk-layout', isM() ? 'd' : 'm'); } catch (e) { } S.menu = false; setLayoutLabel(); try { if (DATA && DATA.jobs) render(); } catch (e) { } };
+  window.dashToggleLayout = function () { try { localStorage.setItem('dk-layout', isM() ? 'd' : 'm'); } catch (e) { } if (window.top === window && window.innerWidth > 720) { location.reload(); return; } S.menu = false; setLayoutLabel(); try { if (DATA && DATA.jobs) render(); } catch (e) { } };
   setLayoutLabel();
   function mobileNav(cp, sub, menu, pick) {
     var seg = [['summary', 'Home'], ['sched', 'Schedule'], ['logs', 'Daily Logs'], ['todos', 'Tasks']].filter(function (x) { return !sub || x[0] === 'logs' || x[0] === 'todos' || x[0] === 'summary'; });
@@ -1303,7 +1312,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   root.addEventListener('submit', function (e) { var f = e.target.closest && e.target.closest('[data-cmf]'); if (!f) return; e.preventDefault(); if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } postComment(f); });
   root.addEventListener('click', function (e) {
     var b;
-    if ((b = e.target.closest('[data-layout]'))) { try { localStorage.setItem('dk-layout', b.getAttribute('data-layout')); } catch (e2) { } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
+    if ((b = e.target.closest('[data-layout]'))) { try { localStorage.setItem('dk-layout', b.getAttribute('data-layout')); } catch (e2) { } if (window.top === window && window.innerWidth > 720) { location.reload(); return; } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-htab]'))) { S.htab = b.getAttribute('data-htab'); render(); return; }
     if ((b = e.target.closest('[data-fab]'))) { S.fab = !S.fab; render(); return; }
     if ((b = e.target.closest('[data-rec]'))) { S.fab = false; render(); var mic = document.getElementById('mic'); if (mic) mic.click(); return; }
