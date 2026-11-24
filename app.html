@@ -1034,7 +1034,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   var NS = { rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
   var FTAB = { ctven: 'vendors', rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
-  var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
+  var DCMAP = { co: 'co', po: 'fpo', bills: 'fbills', invoices: 'finv', estimate: 'fest', site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
   var HKEY = { logs: 'dk-c-logs', msgs: 'dk-c-messages', docs: 'dk-c-files', comments: 'dk-c-comments', sel: 'dk-c-selections', photos: 'dk-c-photos' };
   function isSub() { return !!(DATA.me && DATA.me.trade); }
   // Deep link read once at load (the shell may change or ignore the URL later): applies to the first render of that job.
@@ -1626,9 +1626,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241845">
+<link rel="stylesheet" href="finance.css?v=202611241900">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241845"></script>
+<script src="finance.js?v=202611241900"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
