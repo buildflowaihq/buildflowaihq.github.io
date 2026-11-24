@@ -1626,16 +1626,16 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611242030">
+<link rel="stylesheet" href="finance.css?v=202611242100">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611242030"></script>
+<script src="finance.js?v=202611242100"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
 if (/[?&]go=dash/.test(location.search)) { var __t = setInterval(function () { var b = document.getElementById('tabDash'); if (b && window.dashInit) { clearInterval(__t); b.click(); } }, 250); setTimeout(function () { clearInterval(__t); }, 8000); }
 window.dashJobMounted = function (el, job) {
   if (!el || !window.BFFinance || !job) return;
-  var k = new URLSearchParams(location.search).get('k') || '';
+  var k = new URLSearchParams(location.search).get('k') || ''; if (!k) { try { k = localStorage.getItem('abf_k') || ''; } catch (e) { } }   // opened from the home screen or a link without ?k=: use the key this device already saved
   window.BFFinance.mount(el, { api: 'https://kdb-finance.mekovacs22.workers.dev', key: k, job: { id: job.id, name: job.name, client: job.client }, tab: job.tab || undefined, snap: null });
 };
 </script>
