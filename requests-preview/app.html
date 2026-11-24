@@ -1005,7 +1005,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function sentLoad(id) { try { return JSON.parse(localStorage.getItem(sentKey(id)) || '[]'); } catch (e) { return []; } }
   function msgDefaultTo(a, j) {
     if (a === 'client') return (j.contacts || []).filter(function (c) { return String(c[0]).indexOf('Client') === 0 && c[2]; }).map(function (c) { return c[2]; }).join(', ');
-    if (a === 'internal') return Object.keys(PEOPLE).filter(function (k) { return k !== (DATA.me && DATA.me.id); }).map(function (k) { return PEOPLE[k]; }).join(', ');
+    if (a === 'internal') return Object.keys(PEOPLE).filter(function (k) { return k !== (DATA.me && DATA.me.id) && /@/.test(PEOPLE[k]); }).map(function (k) { return PEOPLE[k]; }).join(', ');
     return '';
   }
   function msgThreadHtml(id, H, jn) {
@@ -1108,7 +1108,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (S.ro || S.view === 'list') return '';
     var j = (S.view !== 'all') && job(S.view), jn = j ? j.name : '';
     var say = function (l, t) { return '<button type="button" data-say="' + esc(t) + '">' + l + '</button>'; };
-    var m = S.fab ? '<div class="dk-fabm">' + (j ? say('Site note', 'Add a site note to ' + jn + ': ') + say('Daily log', 'Add a daily log to ' + jn + ': ') + (isSub() ? '' : say('Change order', 'Change order on ' + jn + ': ')) + say('Message ' + esc(j.client.split(/ & | /)[0]), 'Message to ' + j.client.split(/ & | /)[0] + ': ') : say('Site note', 'Add a site note: ') + say('Daily log', 'Add a daily log: ') + (isSub() ? '' : say('Change order', 'Change order: ')) + say('Message', 'Message: ')) + '<button type="button" data-rec="1">Record</button></div>' : '';
+    var m = S.fab ? '<div class="dk-fabm">' + (j ? say('Site note', 'Add a site note to ' + jn + ': ') + say('Daily log', 'Add a daily log to ' + jn + ': ') + (isSub() ? '' : say('Change order', 'Change order on ' + jn + ': ')) + '<button type="button" data-mopen="1">Message ' + esc(j.client.split(/ & | /)[0]) + '</button>' : say('Site note', 'Add a site note: ') + say('Daily log', 'Add a daily log: ') + (isSub() ? '' : say('Change order', 'Change order: ')) + '<button type="button" data-mopen="1">Message</button>') + '<button type="button" data-rec="1">Record</button></div>' : '';
     return '<div class="dk-fabw">' + m + '<button type="button" class="dk-fab" data-fab="1" aria-label="Quick actions" aria-expanded="' + !!S.fab + '">' + (S.fab ? '×' : '+') + '</button></div>';
   }
   function navHtml() {
@@ -1145,7 +1145,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function jobHead(j) {
     var v = j.id, first = j.client.split(/ & | /)[0];
     return '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span><span class="dk-nm">' + esc(j.name) + '</span> <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + peopleLine(j) + '</p>' +
-        '<div class="dk-acts dk-qa"><button type="button" class="dk-chip" data-say="Message to ' + esc(first) + ': ">' + SVG.msg + 'Message ' + esc(first) + '</button>' + (!!(DATA.me && DATA.me.trade) ? '' : '<button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Change order</button>') + '<button type="button" class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + '<a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a>' + '<button type="button" class="dk-chip" data-say="Add a site note to ' + esc(j.name) + ': ">+ Note</button><button type="button" class="dk-chip" data-say="Add a daily log to ' + esc(j.name) + ': ">+ Log</button>' + (S.contract ? '<button type="button" class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>';
+        '<div class="dk-acts dk-qa"><button type="button" class="dk-chip" data-mopen="1">' + SVG.msg + 'Message ' + esc(first) + '</button>' + (!!(DATA.me && DATA.me.trade) ? '' : '<button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Change order</button>') + '<button type="button" class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + '<a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a>' + '<button type="button" class="dk-chip" data-say="Add a site note to ' + esc(j.name) + ': ">+ Note</button><button type="button" class="dk-chip" data-say="Add a daily log to ' + esc(j.name) + ': ">+ Log</button>' + (S.contract ? '<button type="button" class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>';
   }
   function allHead(t, sub) { return '<div class="dk-top"><div><h1>' + t + '</h1><p>' + sub + '</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>'; }
   function allPage(p) {
@@ -1279,6 +1279,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if ((b = e.target.closest('[data-logf]'))) { S.logf = b.getAttribute('data-logf'); render(); return; }
     if ((b = e.target.closest('[data-jf]'))) { S.jf = b.getAttribute('data-jf'); render(); return; }
     if ((b = e.target.closest('[data-tab]'))) { S.tab = b.getAttribute('data-tab'); render(); return; }
+    if ((b = e.target.closest('[data-mopen]'))) { if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } S.fab = false; S.page = 'msgs'; if (S.view === 'list') S.view = S.last || 'all'; var oj = job(S.view); S.mc = oj && !isSub() ? { a: 'client', to: msgDefaultTo('client', oj), subject: '', body: '' } : null; S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-maud]'))) { S.maud = b.getAttribute('data-maud'); render(); return; }
     if ((b = e.target.closest('[data-mnew]'))) { var mj = job(S.view); if (!mj) return; var a0 = S.maud && S.maud !== 'all' ? S.maud : 'client'; S.mc = { a: a0, to: msgDefaultTo(a0, mj), subject: '', body: '' }; render(); return; }
     if ((b = e.target.closest('[data-mca]'))) { var mj2 = job(S.view); S.mc.a = b.getAttribute('data-mca'); S.mc.to = msgDefaultTo(S.mc.a, mj2 || { contacts: [] }); render(); return; }
