@@ -475,6 +475,10 @@
 .dk-tag{font-size:12px;padding:2px 8px;border-radius:999px;background:#F2EBDD;color:#00280F;border:1px solid #d9cfb8;white-space:nowrap}.dk-tag.j{background:transparent;color:inherit;border-color:currentColor}.dk-snr small{opacity:.7;white-space:nowrap}
 .dk-snd{margin:6px 0 0 32px;font-size:14px;white-space:pre-wrap}
 .dk-sdone{margin-top:8px}.dk-sdone summary{cursor:pointer;font-size:14px;opacity:.8}
+.dk-cb{font-size:12px;opacity:.8;white-space:nowrap}
+.dk-cms{margin:8px 0 0 32px}.dk-cm{border-left:2px solid currentColor;padding:2px 0 2px 8px;margin:6px 0;font-size:14px;opacity:.95}.dk-cm small{opacity:.65}.dk-cm em{font-style:normal;font-weight:600}
+.dk-tag.a{font-size:11px;padding:1px 6px}
+.dk-cmf{display:flex;gap:6px;margin:8px 0 0 32px;flex-wrap:wrap}.dk-cmf input{flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #d9cfb8;background:transparent;color:inherit;font:inherit;font-size:16px}.dk-cmf select{padding:8px;border-radius:8px;border:1px solid #d9cfb8;background:transparent;color:inherit;font-size:16px}
 </style>
 </head>
 <body>
@@ -592,7 +596,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241056";
+(function(){var BUILD="202611241110";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -802,12 +806,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return out;
   }
   function siteRow(x, multi) {
-    var n = x.n, k = x.job + '|' + n.id, open = S.nx && S.nx[k], jn = job(x.job);
+    var n = x.n, k = x.job + '|' + n.id, open = S.nx && S.nx[k], jn = job(x.job); var cm = noteComments(n);
     return '<li class="dk-sn' + (n.done ? ' dn' : '') + '"><div class="dk-snr"><button type="button" class="dk-ck" data-notedone="' + esc(k) + '" aria-pressed="' + !!n.done + '" aria-label="' + (n.done ? 'Mark not done' : 'Mark done') + '">' + (n.done ? '✓' : '') + '</button>' +
       '<button type="button" class="dk-snt" data-nx="' + esc(k) + '" aria-expanded="' + !!open + '">' + esc(n.text || '') + '</button>' +
-      (n.trade ? '<span class="dk-tag">' + esc(n.trade) + '</span>' : '') + (multi && jn ? '<span class="dk-tag j">' + esc(jn.name) + '</span>' : '') + (n.date ? '<small>' + esc(n.date) + '</small>' : '') + '</div>' +
+      (n.trade ? '<span class="dk-tag">' + esc(n.trade) + '</span>' : '') + (multi && jn ? '<span class="dk-tag j">' + esc(jn.name) + '</span>' : '') + (n.date ? '<small>' + esc(n.date) + '</small>' : '') + (cm.length ? '<span class="dk-cb" aria-label="' + cm.length + ' comments">💬 ' + cm.length + '</span>' : '') + '</div>' +
       (open ? '<div class="dk-snd">' + (n.detail ? (/^https:\/\//.test(n.detail) ? '<a href="' + esc(n.detail) + '" target="_blank" rel="noopener">Open transcript</a>' : esc(n.detail)) : '<span class="dk-src">No more detail.</span>') +
-        (n.done && n.doneBy ? '<div class="dk-src">Done by ' + esc(n.doneBy) + (n.doneAt ? ' · ' + esc(n.doneAt) : '') + '</div>' : '') + '</div>' : '') + '</li>';
+        (n.done && n.doneBy ? '<div class="dk-src">Done by ' + esc(n.doneBy) + (n.doneAt ? ' · ' + esc(n.doneAt) : '') + '</div>' : '') + commentsHtml(k, cm) + '</div>' : '') + '</li>';
   }
   function siteNotesHtml(ids) {
     var all = siteList(ids), multi = ids.length > 1, todo = all.filter(function (x) { return !x.n.done; }), done = all.filter(function (x) { return x.n.done; });
@@ -816,6 +820,39 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       (todo.length ? '<ul class="dk-sns">' + todo.map(function (x) { return siteRow(x, multi); }).join('') + '</ul>' : '<p class="dk-src">' + (all.length ? 'Nothing open. Nice.' : 'No site notes yet. Record a short voice note on site, say the job and what needs to happen, and it lands here as a checklist item.') + '</p>') +
       (done.length ? '<details class="dk-sdone"><summary>Done (' + done.length + ')</summary><ul class="dk-sns">' + done.map(function (x) { return siteRow(x, multi); }).join('') + '</ul></details>' : '') + '</section>';
   }
+
+  var AUD = { internal: 'Internal', client: 'Clients', sub: 'Subs' };
+  function noteComments(n) {
+    var tr = DATA.me && DATA.me.trade ? String(DATA.me.trade).toLowerCase() : '', nm = String((DATA.me && DATA.me.name) || '').toLowerCase();
+    return (n.comments || []).filter(function (c) {
+      if (!tr) return true;
+      return c.audience === 'sub' || (c.mentions || []).some(function (m) { return String(m).toLowerCase() === nm; });
+    });
+  }
+  function commentsHtml(k, cm) {
+    var h = '<div class="dk-cms">' + cm.map(function (c) {
+      return '<div class="dk-cm"><b>' + esc(c.by || '') + '</b> <span class="dk-tag a">' + esc(AUD[c.audience] || 'Internal') + '</span> <small>' + esc((c.at || '').slice(0, 16).replace('T', ' ')) + '</small><div>' + esc(c.text || '').replace(/(^|\s)@([A-Za-z][\w.-]*(?: [A-Z][\w.-]*)?)/g, '$1<em>@$2</em>') + '</div></div>';
+    }).join('') + '</div>';
+    h += '<form class="dk-cmf" data-cmf="' + esc(k) + '"><input type="text" name="t" placeholder="Reply… use @name to tag someone" autocomplete="off" aria-label="Reply to this note"><select name="a" aria-label="Who can see this">' +
+      Object.keys(AUD).filter(function (a) { return !(DATA.me && DATA.me.trade) || a === 'sub'; }).map(function (a) { return '<option value="' + a + '">' + AUD[a] + '</option>'; }).join('') + '</select><button type="submit" class="dk-chip">Send</button></form>';
+    return h;
+  }
+  function postComment(form) {
+    var k = form.getAttribute('data-cmf'), i = k.indexOf('|'), jid = k.slice(0, i), nid = k.slice(i + 1), t = form.t.value.trim(), a = form.a.value;
+    if (!t) return;
+    var arr = ((((DATA.history || {})[jid] || {}).notes || {}).site) || [], n = null;
+    arr.forEach(function (x) { if (String(x.id) === nid) n = x; });
+    if (!n) return;
+    var names = (S.views || []).map(function (v) { return v.name; }).filter(Boolean), men = [];
+    names.forEach(function (nm) { var f = String(nm).split(' ')[0]; if (new RegExp('@' + f.replace(/[^\w]/g, '') + '\\b', 'i').test(t)) men.push(nm); });
+    var c = { id: 'c' + Date.now(), by: DATA.me.name || '', at: new Date().toISOString(), text: t, audience: a, mentions: men };
+    n.comments = (n.comments || []).concat([c]); render();
+    if (!S.base) return;
+    fetch(S.base + '/api/dash/comment', { method: 'POST', headers: { Authorization: 'Bearer ' + S.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ job: jid, id: n.id, text: t, audience: a, mentions: men }) })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); })
+      .catch(function () { n.comments = n.comments.filter(function (x) { return x !== c; }); render(); toast('Couldn’t post that comment. Try again in a moment.'); });
+  }
+
   function toggleNote(k) {
     var i = k.indexOf('|'), jid = k.slice(0, i), nid = k.slice(i + 1), arr = ((((DATA.history || {})[jid] || {}).notes || {}).site) || [], n = null;
     arr.forEach(function (x) { if (String(x.id) === nid) n = x; });
@@ -899,6 +936,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   root.addEventListener('submit', function (e) { if (S.ro) { e.preventDefault(); e.stopPropagation(); toast('Read-only view.'); } }, true);
   root.addEventListener('change', function (e) { if (e.target.id === 'dash-as') viewAs(e.target.value); });
   root.addEventListener('click', function (e) { if (e.target.closest('[data-asback]')) viewAs(S.real.id); });
+  root.addEventListener('submit', function (e) { var f = e.target.closest && e.target.closest('[data-cmf]'); if (!f) return; e.preventDefault(); if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } postComment(f); });
   root.addEventListener('click', function (e) {
     var b;
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; render(); window.scrollTo({ top: 0 }); return; }
