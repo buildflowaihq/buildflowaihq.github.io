@@ -218,7 +218,7 @@
     return '<div class="bf-ready"><b>Signed change orders to bill · ' + rows.length + '</b>' + rows.map(function (c) { return '<div class="bf-ready-row"><span>' + esc(c.number) + ' ' + esc(c.title) + ' · ' + money(c.billing.amount) + '</span>' + (can ? '<span class="bf-ready-btns"><button class="bf-btn" data-bf-bill="approve:' + esc(c.id) + '">Approve billing</button><button class="bf-btn alt" data-bf-bill="dismiss:' + esc(c.id) + '">Not now</button></span>' : '<small class="dk-m">Waiting on the approver</small>') + '</div>'; }).join('') + '<small class="dk-m">Approved billing goes to QuickBooks as an invoice' + (S.cfg.settings.qbo && S.cfg.settings.qbo.enabled ? '.' : ' once QuickBooks is connected. Until then it is held.') + '</small></div>';
   }
   function invReady(d) {
-    var rows = (d.invoices || []).filter(function (i) { return i.status === 'draft' && i.draw_id; });
+    var rows = (d.invoices || []).filter(function (i) { return i.status === 'draft' && i.draw_id && !i.approval; });
     if (!rows.length) return '';
     var can = S.cfg.settings.can_send_invoice;
     return '<div class="bf-ready"><b>Ready for approval · ' + rows.length + '</b>' + rows.map(function (i) { return '<div class="bf-ready-row"><span>' + esc(i.title) + ' · ' + money(i.totals.total) + (i.client && i.client.name ? ' · ' + esc(i.client.name) : '') + '</span><button class="bf-btn" data-bf-open="inv:' + esc(i.id) + '">' + (can ? 'Review & send' : 'Review') + '</button></div>'; }).join('') + (can ? '' : '<small class="dk-m">Only ' + esc((S.cfg.settings.invoice_approvers || []).join(', ') || 'the approver') + ' can send.</small>') + '</div>';
