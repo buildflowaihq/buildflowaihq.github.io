@@ -479,6 +479,8 @@
 .dk-cms{margin:8px 0 0 32px}.dk-cm{border-left:2px solid currentColor;padding:2px 0 2px 8px;margin:6px 0;font-size:14px;opacity:.95}.dk-cm small{opacity:.65}.dk-cm em{font-style:normal;font-weight:600}
 .dk-tag.a{font-size:11px;padding:1px 6px}
 .dk-cmf{display:flex;gap:6px;margin:8px 0 0 32px;flex-wrap:wrap}.dk-cmf input{flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #d9cfb8;background:transparent;color:inherit;font:inherit;font-size:16px}.dk-cmf select{padding:8px;border-radius:8px;border:1px solid #d9cfb8;background:transparent;color:inherit;font-size:16px}
+.dk-hl{outline:3px solid #b8e986;outline-offset:2px;transition:outline-color .6s}
+@media (max-width:640px){.dk-snt{min-width:100%;order:2}.dk-ck{order:1}.dk-snr{gap:6px}.dk-cms,.dk-cmf,.dk-snd{margin-left:0}.dk-cmf input{min-width:100%}.dk-tbl{display:block;overflow-x:auto}}
 </style>
 </head>
 <body>
@@ -596,7 +598,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241130";
+(function(){var BUILD="202611241150";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -816,7 +818,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function siteNotesHtml(ids) {
     var all = siteList(ids), multi = ids.length > 1, todo = all.filter(function (x) { return !x.n.done; }), done = all.filter(function (x) { return x.n.done; });
     var jn = ids.length === 1 ? job(ids[0]) : null;
-    return '<section class="card"><div class="ch"><h2>Site notes</h2><span class="dk-src" style="margin:0">' + todo.length + ' open</span>' + (jn ? '<button class="link" data-say="Add a site note to ' + esc(jn.name) + ': ">+ Add</button>' : '') + '</div>' +
+    return '<section class="card" id="dk-c-site"><div class="ch"><h2>Site notes</h2><span class="dk-src" style="margin:0">' + todo.length + ' open</span>' + (jn ? '<button class="link" data-say="Add a site note to ' + esc(jn.name) + ': ">+ Add</button>' : '') + '</div>' +
       (todo.length ? '<ul class="dk-sns">' + todo.map(function (x) { return siteRow(x, multi); }).join('') + '</ul>' : '<p class="dk-src">' + (all.length ? 'Nothing open. Nice.' : 'No site notes yet. Record a short voice note on site, say the job and what needs to happen, and it lands here as a checklist item.') + '</p>') +
       (done.length ? '<details class="dk-sdone"><summary>Done (' + done.length + ')</summary><ul class="dk-sns">' + done.map(function (x) { return siteRow(x, multi); }).join('') + '</ul></details>' : '') + '</section>';
   }
@@ -870,14 +872,14 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var h = siteNotesHtml([id]) + notesHtml(id, H, jn);
     var lf = S.logf || 'all', allLogs = H.logs || [];
     var shownLogs = allLogs.filter(function (l) { return lf === 'all' || (lf === 'client' ? /client/i.test(l.visibility || '') : !/client/i.test(l.visibility || '')); });
-    h += '<section class="card"><div class="ch"><h2>Daily logs</h2><button class="link" data-say="Add a daily log to ' + esc(jn.name) + ': ">+ Add a daily log</button></div><div class="dk-tabs" role="tablist">' + [['all', 'All'], ['client', 'Client can see'], ['int', 'Internal only']].map(function (t) { return '<button role="tab" data-logf="' + t[0] + '" aria-selected="' + (lf === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' + (shownLogs.length ? '' : '<p class="dk-src">No daily logs here yet. Tap “Add a daily log”, or say it or send a voice note and BuildFlowAI files it.</p>') + '</section>';
+    h += '<section class="card" id="dk-c-logs"><div class="ch"><h2>Daily logs</h2><button class="link" data-say="Add a daily log to ' + esc(jn.name) + ': ">+ Add a daily log</button></div><div class="dk-tabs" role="tablist">' + [['all', 'All'], ['client', 'Client can see'], ['int', 'Internal only']].map(function (t) { return '<button role="tab" data-logf="' + t[0] + '" aria-selected="' + (lf === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' + (shownLogs.length ? '' : '<p class="dk-src">No daily logs here yet. Tap “Add a daily log”, or say it or send a voice note and BuildFlowAI files it.</p>') + '</section>';
     if (shownLogs.length) h = h.replace(/<\/section>$/, '') + '<ul class="dk-dl">' + shownLogs.map(function (l) {
       return '<li><div class="dk-dh"><b>' + esc(l.date) + '</b>' + (l.title ? ' · ' + esc(l.title) : '') + '</div><div class="dk-dm">' + esc(l.author || '') + (l.visibility ? ' · ' + esc(l.visibility) : '') + (l.temps ? ' · ' + esc(l.temps) : '') + (l.photos && l.photos !== '0' && l.photos !== '0 photos' ? ' · ' + esc(String(l.photos)) + ' photo' + (String(l.photos)[0] === '1' ? '' : 's') : '') + (l.link ? ' · <a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source || 'Transcript') + '</a>' : (l.source ? ' · ' + esc(l.source) : '')) + '</div><p>' + esc(l.text || '') + '</p></li>';
     }).join('') + '</ul></section>';
-    if (H.messages && H.messages.length) h += '<section class="card"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + H.messages.length + '</span></div><ul class="dk-dl">' + H.messages.map(function (m) {
+    if (H.messages && H.messages.length) h += '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + H.messages.length + '</span></div><ul class="dk-dl">' + H.messages.map(function (m) {
       return '<li><details><summary><b>' + esc(m.title || '(no subject)') + '</b><span class="dk-dm">' + esc(m.from || '') + (m.to ? ' to ' + esc(m.to) : '') + ' · ' + esc(String(m.date || '').slice(0, 10)) + '</span></summary><p>' + esc(m.body || '') + '</p></details></li>';
     }).join('') + '</ul></section>';
-    if (H.files && H.files.length) h += '<section class="card"><div class="ch"><h2>Files</h2><span class="dk-src" style="margin:0">' + H.files.length + '</span></div><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th><th>Added by</th></tr></thead><tbody>' + H.files.map(function (f) {
+    if (H.files && H.files.length) h += '<section class="card" id="dk-c-files"><div class="ch"><h2>Files</h2><span class="dk-src" style="margin:0">' + H.files.length + '</span></div><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th><th>Added by</th></tr></thead><tbody>' + H.files.map(function (f) {
       return '<tr><td>' + (f.url ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>' : esc(f.name)) + '</td><td>' + esc(f.folder || '') + '</td><td>' + esc(f.date || '') + '</td><td>' + esc(f.by || '') + '</td></tr>';
     }).join('') + '</tbody></table></section>';
     return h;
@@ -1292,6 +1294,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (opts.fin) S.fin = opts.fin;
     DATA.today = todayIn();
     S.started = true;
+    var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv')) dl = { v: q.get('dv'), c: q.get('dc') || '' }; } catch (e) {}
+    if (dl && (dl.v === 'all' || dl.v === 'list' || job(dl.v))) { S.view = dl.v; S.tab = 'over'; }
     var base = (opts.api || '').replace(/\/$/, '');
     fetch(base + '/api/dash?preview=1', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('dash ' + r.status); return r.json(); })
@@ -1301,6 +1305,16 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         SNAP = DATA.schedule;
       }, function () { /* no private data: the dashboard shows what it can */ })
       .then(function () { var gj = new URLSearchParams(location.search).get('job'); if (gj && (gj === 'list' || job(gj))) S.view = gj; render(); loadCal(); loadSnap(); loadFin(); });
+    if (dl) {
+      var go = 0, tryGo = function () {
+        var tb = Array.prototype.slice.call(document.querySelectorAll('nav button, [role=tab], .tabs button, header button')).filter(function (b) { return /^\s*Dashboard\s*$/.test(b.textContent); })[0];
+        if (tb && !root.offsetParent) tb.click();
+        var c = dl.c && document.getElementById('dk-c-' + dl.c);
+        if (c && root.offsetParent) { c.scrollIntoView({ block: 'start' }); c.classList.add('dk-hl'); setTimeout(function () { c.classList.remove('dk-hl'); }, 4000); return; }
+        if (++go < 12) setTimeout(tryGo, 400);
+      };
+      setTimeout(tryGo, 500);
+    }
     if (!S.clock) {
       S.clock = true;
       var recheck = function () { if (S.started && todayIn() !== DATA.today) { DATA.today = todayIn(); WX = {}; render(); loadCal(); loadSnap(); loadFin(); } };
