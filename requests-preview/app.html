@@ -658,7 +658,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241740";
+(function(){var BUILD="202611241755";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -993,7 +993,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Navigation: one page per function, old-system order and names ----
   var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys' };
   var NS = { fbids: 1, map: 1, war: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
-  var FTAB = { rfi: 'rfi', fest: 'overview', fbud: 'overview', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
+  var FTAB = { rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
   var HKEY = { logs: 'dk-c-logs', msgs: 'dk-c-messages', docs: 'dk-c-files', comments: 'dk-c-comments', sel: 'dk-c-selections', photos: 'dk-c-photos' };
@@ -1082,7 +1082,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var h = pageHtml();
     $('dash-main').innerHTML = asHtml() + h;
     // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
-    if (S.view !== 'all' && S.view !== 'list' && (curPage() === 'fin' || FTAB[curPage()]) && $('dash-ext') && !S.ro && window.dashJobMounted) { var jj = job(S.view); try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client }); } catch (e) { }
+    if (S.view !== 'all' && S.view !== 'list' && (curPage() === 'fin' || FTAB[curPage()]) && $('dash-ext') && !S.ro && window.dashJobMounted) { var jj = job(S.view); try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client, tab: FTAB[curPage()] || '' }); } catch (e) { }
       var ft = FTAB[curPage()];
       if (ft) [200, 700, 1600, 3000].forEach(function (ms) { setTimeout(function () { var b = document.querySelector('#dash-ext [data-bf-tab="' + ft + '"]'); if (b && b.getAttribute('aria-selected') !== 'true') b.click(); }, ms); });
     }
@@ -1512,9 +1512,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241740">
+<link rel="stylesheet" href="finance.css?v=202611241755">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241740"></script>
+<script src="finance.js?v=202611241755"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
@@ -1522,7 +1522,7 @@ if (/[?&]go=dash/.test(location.search)) { var __t = setInterval(function () { v
 window.dashJobMounted = function (el, job) {
   if (!el || !window.BFFinance || !job) return;
   var k = new URLSearchParams(location.search).get('k') || '';
-  window.BFFinance.mount(el, { api: 'https://kdb-finance.mekovacs22.workers.dev', key: k, job: { id: job.id, name: job.name, client: job.client }, snap: null });
+  window.BFFinance.mount(el, { api: 'https://kdb-finance.mekovacs22.workers.dev', key: k, job: { id: job.id, name: job.name, client: job.client }, tab: job.tab || undefined, snap: null });
 };
 </script>
 <script src="../voice/recorder-next.js?v=202611211900"></script>
