@@ -499,6 +499,8 @@
 .dk-chips{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding:6px 0 10px;margin:0 0 4px;position:sticky;top:0;z-index:5;background:var(--bg,#14161a);-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .dk-chips::-webkit-scrollbar{display:none}
 .dk-chips .dk-chip{flex:none;font-size:13px;padding:6px 12px}
+.dk-chips .dk-sep{flex:none;width:1px;background:currentColor;opacity:.25;margin:2px 2px}
+.dk-chips .dk-chip.go{border-color:#b4ee3a;color:#b4ee3a}
 </style>
 </head>
 <body>
@@ -616,7 +618,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241340";
+(function(){var BUILD="202611241420";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -905,7 +907,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (H.files && H.files.length) c.push(['files', 'Files']);
     if (H.messages && H.messages.length) c.push(['messages', 'Messages']);
     if (!sub && (S.fin || j.fin || (j.money && j.money.length))) c.push(['money', 'Money']);
-    return '<nav class="dk-chips" aria-label="Sections">' + c.map(function (x) { return '<button type="button" class="dk-chip" data-jump="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</nav>';
+    var acts = [['Add a site note to ' + j.name + ': ', '+ Note'], ['Add a daily log to ' + j.name + ': ', '+ Log']];
+    if (!sub) acts.push(['Change order on ' + j.name + ': ', 'Change order']);
+    return '<nav class="dk-chips" aria-label="Sections and quick actions">' + c.map(function (x) { return '<button type="button" class="dk-chip" data-jump="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '<span class="dk-sep" aria-hidden="true"></span>' + acts.map(function (x) { return '<button type="button" class="dk-chip go" data-say="' + esc(x[0]) + '">' + x[1] + '</button>'; }).join('') + '</nav>';
   }
   function histHtml(id) {
     var H = (DATA.history || {})[id] || {}, jn = job(id) || { name: '' };
@@ -943,7 +947,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var rem = DATA.reminders.filter(function (r) { return r.job === v; });
       var first = j.client.split(/ & | /)[0];
       h = '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span><span class="dk-nm">' + esc(j.name) + '</span> <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + '</p>' +
-        '<div class="dk-acts"><button class="dk-chip" data-say="Message to ' + esc(first) + ': ">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">' + SVG.doc + 'Change order</button><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
+        '<div class="dk-acts"><button class="dk-chip" data-say="Message to ' + esc(first) + ': ">' + SVG.msg + 'Message ' + esc(first) + '</button><a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a><button class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + (S.contract ? '<button class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
         chipsHtml(v, j) + '<div class="cols"><div>' + siteNotesHtml([v]) + peopleHtml(j) + actionsHtml(acts) + newHtml(v) + '<div id="dk-c-sched">' + scheduleHtml(sch, 7) + '</div>' +
         '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' +
         histHtml(v) + '</div><div>' + updatesHtml() + weekHtml(sch) + todoHtml() +
@@ -1337,7 +1341,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (opts.fin) S.fin = opts.fin;
     DATA.today = todayIn();
     S.started = true;
-    var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv') || q.get('dc')) dl = { v: q.get('dv') || q.get('job') || '', c: q.get('dc') || '' }; } catch (e) {}
+    var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv') || q.get('dc') || q.get('meeting')) dl = { v: q.get('dv') || q.get('job') || '', c: q.get('dc') || '', m: q.get('meeting') === '1', j: q.get('job') || q.get('dv') || '' }; } catch (e) {}
     if (dl && dl.v && (dl.v === 'all' || dl.v === 'list' || job(dl.v))) { S.view = dl.v; S.tab = 'over'; }
     var base = (opts.api || '').replace(/\/$/, '');
     fetch(base + '/api/dash?preview=1', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' })
@@ -1352,7 +1356,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var go = 0, tryGo = function () {
         var tb = Array.prototype.slice.call(document.querySelectorAll('nav button, [role=tab], .tabs button, header button')).filter(function (b) { return /^\s*Dashboard\s*$/.test(b.textContent); })[0];
         if (tb && !root.offsetParent) tb.click();
+        if (dl.m && root.offsetParent && !S.ro) { dl.m = false; try { openDlg('meet', job(dl.j) ? dl.j : ''); } catch (e) { } }
         var c = dl.c && document.getElementById('dk-c-' + dl.c);
+        if (!dl.c && root.offsetParent && !dl.m) return;
         if (c && root.offsetParent) { c.scrollIntoView({ block: 'start' }); c.classList.add('dk-hl'); setTimeout(function () { c.classList.remove('dk-hl'); }, 4000); return; }
         if (++go < 12) setTimeout(tryGo, 400);
       };
@@ -1368,9 +1374,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241210">
+<link rel="stylesheet" href="finance.css?v=202611241420">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241210"></script>
+<script src="finance.js?v=202611241420"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */

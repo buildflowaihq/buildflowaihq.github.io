@@ -617,7 +617,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241410";
+(function(){var BUILD="202611241420";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1340,7 +1340,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (opts.fin) S.fin = opts.fin;
     DATA.today = todayIn();
     S.started = true;
-    var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv') || q.get('dc')) dl = { v: q.get('dv') || q.get('job') || '', c: q.get('dc') || '' }; } catch (e) {}
+    var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv') || q.get('dc') || q.get('meeting')) dl = { v: q.get('dv') || q.get('job') || '', c: q.get('dc') || '', m: q.get('meeting') === '1', j: q.get('job') || q.get('dv') || '' }; } catch (e) {}
     if (dl && dl.v && (dl.v === 'all' || dl.v === 'list' || job(dl.v))) { S.view = dl.v; S.tab = 'over'; }
     var base = (opts.api || '').replace(/\/$/, '');
     fetch(base + '/api/dash', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' })
@@ -1355,7 +1355,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var go = 0, tryGo = function () {
         var tb = Array.prototype.slice.call(document.querySelectorAll('nav button, [role=tab], .tabs button, header button')).filter(function (b) { return /^\s*Dashboard\s*$/.test(b.textContent); })[0];
         if (tb && !root.offsetParent) tb.click();
+        if (dl.m && root.offsetParent && !S.ro) { dl.m = false; try { openDlg('meet', job(dl.j) ? dl.j : ''); } catch (e) { } }
         var c = dl.c && document.getElementById('dk-c-' + dl.c);
+        if (!dl.c && root.offsetParent && !dl.m) return;
         if (c && root.offsetParent) { c.scrollIntoView({ block: 'start' }); c.classList.add('dk-hl'); setTimeout(function () { c.classList.remove('dk-hl'); }, 4000); return; }
         if (++go < 12) setTimeout(tryGo, 400);
       };
@@ -1371,9 +1373,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241410">
+<link rel="stylesheet" href="finance.css?v=202611241420">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241410"></script>
+<script src="finance.js?v=202611241420"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
