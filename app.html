@@ -657,7 +657,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241700";
+(function(){var BUILD="202611241715";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1117,7 +1117,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   root.addEventListener('submit', function (e) { var f = e.target.closest && e.target.closest('[data-cmf]'); if (!f) return; e.preventDefault(); if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } postComment(f); });
   root.addEventListener('click', function (e) {
     var b;
-    if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; if (S.view !== 'list') { S.page = S.dlPage || 'summary'; if (S.view !== 'all') remember(S.view); } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
+    if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; if (S.view !== 'list') { S.page = (S.dlPage && S.view === S.dlJob) ? S.dlPage : 'summary'; if (S.view !== 'all') remember(S.view); } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-pg]'))) { var pg = b.getAttribute('data-pg'); if (pg === 'list') S.view = 'list'; else { if (S.view === 'list') S.view = S.last || 'all'; S.page = pg; } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-mtoggle]'))) { S.menu = !S.menu; render(); return; }
     if ((b = e.target.closest('[data-pickjob]'))) { S.view = b.getAttribute('data-pickjob'); remember(S.view); render(); window.scrollTo({ top: 0 }); return; }
@@ -1476,8 +1476,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (opts.fin) S.fin = opts.fin;
     DATA.today = todayIn();
     S.started = true;
+    try { var q2 = new URLSearchParams(location.search), c2 = q2.get('dc'); if (c2 && DCMAP[c2]) { S.dlPage = DCMAP[c2]; S.dlJob = q2.get('job') || q2.get('dv') || ''; setTimeout(function () { S.dlPage = ''; }, 10000); } } catch (e) { }
     var dl = null; try { var q = new URLSearchParams(location.search); if (q.get('dv') || q.get('dc') || q.get('meeting')) dl = { v: q.get('dv') || q.get('job') || '', c: q.get('dc') || '', m: q.get('meeting') === '1', j: q.get('job') || q.get('dv') || '' }; } catch (e) {}
-    if (dl && dl.v && (dl.v === 'all' || dl.v === 'list' || job(dl.v))) { S.view = dl.v; S.tab = 'over'; if (dl.c && DCMAP[dl.c]) { S.page = DCMAP[dl.c]; S.dlPage = S.page; setTimeout(function () { S.dlPage = ''; }, 8000); } if (job(dl.v)) remember(dl.v); }
+    if (dl && dl.v && (dl.v === 'all' || dl.v === 'list' || job(dl.v))) { S.view = dl.v; S.tab = 'over'; if (dl.c && DCMAP[dl.c]) { S.page = DCMAP[dl.c]; } if (job(dl.v)) remember(dl.v); }
     else { try { var sv = localStorage.getItem('dk-job'); if (sv && job(sv) && shown(job(sv))) { S.view = sv; S.last = sv; } } catch (e) { } }
     var base = (opts.api || '').replace(/\/$/, '');
     fetch(base + '/api/dash', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' })
@@ -1510,9 +1511,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241700">
+<link rel="stylesheet" href="finance.css?v=202611241715">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241700"></script>
+<script src="finance.js?v=202611241715"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
