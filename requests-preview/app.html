@@ -658,7 +658,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241755";
+(function(){var BUILD="202611241815";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -998,7 +998,13 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
   var HKEY = { logs: 'dk-c-logs', msgs: 'dk-c-messages', docs: 'dk-c-files', comments: 'dk-c-comments', sel: 'dk-c-selections', photos: 'dk-c-photos' };
   function isSub() { return !!(DATA.me && DATA.me.trade); }
-  function curPage() { return S.view === 'list' ? 'list' : (S.page || 'summary'); }
+  // Deep link read once at load (the shell may change or ignore the URL later): applies to the first render of that job.
+  var BOOT = null; try { var bq = new URLSearchParams(location.search), bc = bq.get('dc'); if (bc && DCMAP[bc]) { BOOT = { page: DCMAP[bc], job: bq.get('job') || bq.get('dv') || '', t: Date.now() }; } } catch (e) { }
+  function curPage() {
+    if (BOOT && Date.now() - BOOT.t > 30000) BOOT = null;
+    if (BOOT && S.view !== 'list' && S.view !== 'all' && S.view === BOOT.job) { S.page = BOOT.page; BOOT = null; }
+    return S.view === 'list' ? 'list' : (S.page || 'summary');
+  }
   function navHtml() {
     var cp = curPage(), sub = isSub();
     var groups = [['Jobs', ['summary', 'det', 'fin', 'list', 'map']], ['Project Management', ['sched', 'logs', 'todos', 'co', 'sel', 'war', 'tc', 'plans', 'upd', 'subm', 'notes']], ['Files', ['docs', 'photos', 'vid']], ['Messaging', ['comments', 'msgs', 'rfi', 'nh', 'sur']], ['Financial', ['fbids', 'fest', 'fpo', 'fbills', 'fbud', 'finv', 'fpay']]];
@@ -1512,9 +1518,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241755">
+<link rel="stylesheet" href="finance.css?v=202611241815">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241755"></script>
+<script src="finance.js?v=202611241815"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
