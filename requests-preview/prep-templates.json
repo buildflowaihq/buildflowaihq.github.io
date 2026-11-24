@@ -1,0 +1,118 @@
+{
+ "rules": "Use only facts from the To-do notes and what is known about this job and these people. Never invent numbers, names or dates. Leave a section out if there is nothing real for it. Every section has at most 5 short bullets, one line each, plain words. No tables, no long paragraphs, no feature tours, no filler or intro line. Never mention pricing or the old software.",
+ "kinds": [
+  {
+   "id": "inspection",
+   "label": "inspection",
+   "match": "\\binspection\\b",
+   "sections": [
+    {
+     "h": "Where and when",
+     "d": "address, inspector, permit numbers, time"
+    },
+    {
+     "h": "What they will check",
+     "d": "bullets"
+    },
+    {
+     "h": "Have on site",
+     "d": "documents, access, people"
+    },
+    {
+     "h": "Open risks",
+     "d": "what could fail it and what to do now"
+    },
+    {
+     "h": "After",
+     "d": "what happens next"
+    }
+   ]
+  },
+  {
+   "id": "walkthrough",
+   "label": "walk-through",
+   "match": "\\b(walkthrough|walk-through|site walk|site visit|on site|site ready)\\b",
+   "sections": [
+    {
+     "h": "Where and when",
+     "d": "address, who is meeting us, time"
+    },
+    {
+     "h": "Look at, room by room",
+     "d": "what to look at in each area"
+    },
+    {
+     "h": "Open issues on this job",
+     "d": "real open items only"
+    },
+    {
+     "h": "Questions for the client or sub",
+     "d": "at most 5"
+    },
+    {
+     "h": "Remember",
+     "fixed": "- Hit record when you walk in."
+    }
+   ]
+  },
+  {
+   "id": "meeting",
+   "label": "meeting",
+   "match": "\\b(meeting|call with)\\b",
+   "sections": [
+    {
+     "h": "Decisions to make today",
+     "d": "FIRST and the point of the meeting: 2 to 4 numbered decisions, each a question to settle, then a dash and the recommended answer"
+    },
+    {
+     "h": "Purpose",
+     "d": "one sentence"
+    },
+    {
+     "h": "Talking points",
+     "d": "only the 3 or 4 main items, in order, one line each"
+    },
+    {
+     "h": "Questions to ask",
+     "d": "at most 3"
+    },
+    {
+     "h": "Bring",
+     "d": "at most 3"
+    }
+   ]
+  },
+  {
+   "id": "other",
+   "label": "task",
+   "match": "",
+   "sections": [
+    {
+     "h": "Goal",
+     "d": "one sentence"
+    },
+    {
+     "h": "Steps",
+     "d": "numbered"
+    },
+    {
+     "h": "Have on hand",
+     "d": ""
+    },
+    {
+     "h": "Watch out for",
+     "d": ""
+    }
+   ]
+  }
+ ],
+ "brand": {
+  "ink": "#00280F",
+  "paper": "#F2EBDD",
+  "card": "#fbf7ee",
+  "line": "#dcd2bb",
+  "gold": "#E9C97A",
+  "text": "#1d2a20",
+  "muted": "#6b6a5c"
+ }
+}
