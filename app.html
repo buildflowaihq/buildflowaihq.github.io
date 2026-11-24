@@ -618,7 +618,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241500";
+(function(){var BUILD="202611241525";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1431,7 +1431,7 @@ window.dashJobMounted = function (el, job) {
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.__bfMe = String(me || '').toLowerCase(); window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.__bfMe = String(me || '').toLowerCase(); window.dashInit({ presale: String(me || '').toLowerCase() === 'michael', key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true, presale: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
