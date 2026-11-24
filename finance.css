@@ -73,3 +73,5 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
 
 .bf-sum{border:1px solid var(--line);border-radius:12px;padding:14px;margin:8px 0}.bf-sum-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.bf-sum h3{margin:2px 0 0;font-size:20px}.bf-sum-total{font-size:22px;font-weight:700;text-align:right}.bf-sum-total small{display:block;font-size:12px;font-weight:500;opacity:.75}
 .bf-sum-lines{list-style:none;padding:0;margin:0}.bf-sum-lines li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.bf-sum-lines small{display:block;opacity:.7}
+
+.bf-cframe{width:100%;height:70vh;border:1px solid var(--line);border-radius:8px;background:#fff}.bf-ready-btns{display:flex;gap:8px;flex-wrap:wrap}.bf-contract{z-index:10001}
