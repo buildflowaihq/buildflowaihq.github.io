@@ -113,7 +113,7 @@
       '<tr class="grp"><td><b>Totals</b></td>' + cells(r.budget) + '</tr></tbody></table></div>';
   }
   function badge(s) { var k = String(s).toLowerCase().replace(/\s+/g, '-'); return '<span class="bf-st bf-' + esc(k) + '">' + esc(s) + '</span>'; }
-  var LOWP = ['RFIs','Comments','Client','Created','Files','Builder cost','Viewed','QuickBooks','Due'];   // less important columns drop out on a phone so price and status stay on screen
+  var LOWP = ['RFIs','Comments','Client','Created','Files','Builder cost','Viewed','QuickBooks','Due','Paid','Remaining'];   // less important columns drop out on a phone so price and status stay on screen
   function cc(c) { var k = (c[2] ? 'r' : '') + (LOWP.indexOf(c[0]) >= 0 ? ' lo' : ''); return k.trim() ? ' class="' + k.trim() + '"' : ''; }
   function table(cols, rows, kind, empty) {
     if (!rows.length) return '<p class="dk-empty">' + empty + '</p>';
@@ -121,9 +121,9 @@
       rows.map(function (r) { return '<tr data-bf-open="' + kind + ':' + r.id + '" tabindex="0">' + cols.map(function (c) { var v = c[1](r); return '<td' + cc(c) + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
   }
   function insBadge(v) { return v.insurance_status === 'ok' ? badge('Insured') : v.insurance_status === 'expiring' ? badge('Draft').replace('Draft', 'Expires ' + fdate(v.insurance_expires)) : v.insurance_status === 'expired' ? badge('Void').replace('Void', 'Insurance expired') : '<span class="dk-m">None on file</span>'; }
-  var BILL_TABS = [['inbox', 'Inbox', function (b) { return b.display === 'Draft'; }], ['review', 'In Review', function (b) { return /review|pending/i.test(b.display); }], ['ready', 'Ready for Payment', function (b) { return b.display === 'Approved' || b.display === 'Overdue' || (b.display !== 'Paid' && b.display !== 'Draft' && b.display !== 'Void' && !/review|pending/i.test(b.display) && b.totals.remaining > 0); }], ['paid', 'Paid', function (b) { return b.display === 'Paid'; }], ['all', 'All Bills', function () { return true; }]];
+  var BILL_TABS = [['inbox', 'Inbox', function (b) { return b.display === 'Draft'; }], ['review', 'In Review', function (b) { return /review|pending/i.test(b.display); }], ['ready', 'Ready for Payment', function (b) { return b.display === 'Approved' || b.display === 'Overdue' || (b.display !== 'Paid' && b.display !== 'Draft' && b.display !== 'Void' && !/review|pending/i.test(b.display) && b.totals.remaining > 0); }], ['paid', 'Paid', function (b) { return b.display === 'Paid'; }], ['all', 'All Bills', function (b) { return b.display !== 'Draft'; }]];
   function billList(d) {
-    var all = d.bills || [], bt = S.bt || 'all', cur = BILL_TABS.filter(function (t) { return t[0] === bt; })[0] || BILL_TABS[4];
+    var all = d.bills || [], bt = S.bt || (all.some(function (b) { return b.display === 'Draft'; }) ? 'inbox' : 'all'), cur = BILL_TABS.filter(function (t) { return t[0] === bt; })[0] || BILL_TABS[4];
     var bl = all.filter(cur[2]);
     var strip = '<div class="bf-btabs">' + BILL_TABS.map(function (t) { return '<button class="bf-btab" data-bf-bt="' + t[0] + '" aria-selected="' + (t[0] === bt) + '">' + t[1] + ' <span>' + all.filter(t[2]).length + '</span></button>'; }).join('') + '</div>';
     return strip + '<div class="bf-bar"><label class="bf-btn alt bf-file">Snap receipt<input type="file" accept="image/*" capture="environment" multiple hidden data-bf-rcpt></label><span class="dk-m">Receipts and supplier bills that aren’t on a purchase order. Paid amounts count as actual cost. For a PO, record the bill on the PO.</span></div>' +
