@@ -618,7 +618,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241500";
+(function(){var BUILD="202611241525";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1454,7 +1454,7 @@ function startApp(CFG) {
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; var __go = function () { var isOwner = (CFG.owner_names || []).map(function (n) { return String(n).toLowerCase(); }).indexOf(String(me || '').toLowerCase()) > -1; window.__bfMe = String(me || '').toLowerCase(); window.__bfOwner = isOwner; window.dashInit({ key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: CFG.wx, client: CFG, fin: CFG.finance_api && (CFG.finance_for === 'everyone' || isOwner) ? CFG.finance_api : undefined, tz: CFG.tz || undefined, viewAs: isOwner && (CFG.view_as || []).length ? CFG.view_as : undefined }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; var __go = function () { var isOwner = (CFG.owner_names || []).map(function (n) { return String(n).toLowerCase(); }).indexOf(String(me || '').toLowerCase()) > -1; window.__bfMe = String(me || '').toLowerCase(); window.__bfOwner = isOwner; window.dashInit({ presale: CFG.presale_for === 'everyone' || isOwner, key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: CFG.wx, client: CFG, fin: CFG.finance_api && (CFG.finance_for === 'everyone' || isOwner) ? CFG.finance_api : undefined, tz: CFG.tz || undefined, viewAs: isOwner && (CFG.view_as || []).length ? CFG.view_as : undefined }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
