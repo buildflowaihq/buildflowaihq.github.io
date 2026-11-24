@@ -220,7 +220,7 @@
     else {
       var base = { lines: [blankLine(kind)], status: 'draft', events: [], bills: [], payments: [], title: '' };
       if (kind === 'po') Object.assign(base, { vendor: { name: '', email: '' }, scope: '', notes_internal: '', notes_vendor: '', variance: {}, due_date: '' });
-      if (kind === 'co') Object.assign(base, { description: '', days_impact: 0, signers_planned: cs.map(function (s) { return { name: s.name, email: s.email }; }), approval_deadline: '', notes_internal: '' });
+      if (kind === 'co') Object.assign(base, { invoice_on_approval: true, description: '', days_impact: 0, signers_planned: cs.map(function (s) { return { name: s.name, email: s.email }; }), approval_deadline: '', notes_internal: '' });
       if (kind === 'inv') Object.assign(base, { mode: 'lines', flat_amount: '', terms: S.cfg.settings.default_terms, invoice_date: ymd(new Date()), due_date: '', tax_pct: 0, retainage_pct: 0, notes_client: '', milestone: '', client: cs[0] ? { name: cs[0].name, email: cs[0].email } : { name: '', email: '' }, co_ids: [] });
       S.ed = { kind: kind, rec: base, isNew: true };
     }
@@ -241,6 +241,17 @@
     });
     return { builder: r2(b), price: r2(p), lt: lt };
   }
+  // read-only record from the old system: a plain summary instead of a form full of empty fields
+  function importedSummary(k, r) {
+    var t = r.totals || {}, total = k === 'inv' ? t.total : (t.price != null ? t.price : t.total), nm = k === 'po' ? 'purchase order' : k === 'co' ? 'change order' : 'invoice';
+    var st = k === 'co' ? ({ draft: 'Draft', pending: 'Waiting on client', approved: 'Approved', declined: 'Declined', void: 'Void' }[r.status]) : (r.display || r.status);
+    var next = r.status === 'draft' ? 'Still a draft. It was not sent from the old system. Create it again here with + ' + (k === 'co' ? 'Change order' : k === 'po' ? 'PO' : 'Invoice') + ' to send it.' : r.status === 'void' ? 'Nothing. It was voided.' : k === 'inv' ? (t.balance > 0.004 ? money(t.balance) + ' is still due.' : 'Nothing. It is paid.') : 'Nothing. It is done and counted in the job total.';
+    var out = '<div class="bf-sum"><div class="bf-sum-top"><div><div class="dk-m">' + esc(nm) + ' copied from your current software</div><h3>' + esc(r.title || r.number) + '</h3></div><div class="bf-sum-total">' + money(total) + '<small>' + esc(st || '') + '</small></div></div>' +
+      '<p><b>Next step:</b> ' + esc(next) + '</p>' + (r.approval_deadline ? '<p class="dk-m">Respond by ' + fdate(r.approval_deadline) + '</p>' : '') + (r.description ? '<p>' + esc(r.description) + '</p>' : '') + '</div>';
+    var ls = (r.lines || []).filter(function (l) { return !/^Imported from your current software/.test(l.desc || ''); });
+    if (ls.length) out += '<h4>What it covers</h4><ul class="bf-sum-lines">' + ls.map(function (l, i) { var pr = l.price_override != null ? l.price_override : r2(n2(l.unit_cost) * (l.qty == null || l.qty === '' ? 1 : n2(l.qty)) * (1 + n2(l.markup_pct) / 100)); return '<li><span>' + esc(l.desc) + (l.cost_code ? '<small>' + esc(l.cost_code) + '</small>' : '') + '</span><b>' + money(pr) + '</b></li>'; }).join('') + '</ul>';
+    return out;
+  }
   function drawEditor() {
     var ed = S.ed; if (!ed) return; var k = ed.kind, r = ed.rec, d = S.data, can = S.cfg.can_approve;
     var locked = (k === 'po' && r.status === 'void') || (k === 'co' && r.status !== 'draft') || (k === 'inv' && r.status === 'void') || r.imported;
@@ -248,8 +259,8 @@
     var stat = k === 'po' ? r.display || 'Draft' : k === 'co' ? ({ draft: 'Draft', pending: 'Waiting on client', approved: 'Approved', declined: 'Declined', void: 'Void' }[r.status]) : r.display || 'Draft';
     var h = '<div class="bf-head"><div><b>' + esc(title) + '</b> ' + badge(stat) + (r.imported ? ' <small class="bf-imp">from your current software</small>' : '') + '</div><button class="bf-x big" data-bf-close aria-label="Close">×</button></div><div class="bf-body">';
     if (k === 'po' && r.status === 'draft' && r.vendor && r.vendor.name) { var vv = (S.vendors || []).filter(function (x) { return x.name.toLowerCase() === r.vendor.name.toLowerCase(); })[0]; if (vv && (vv.insurance_status === 'expired' || vv.insurance_status === 'none')) h += '<p class="bf-warn">' + esc(vv.name) + ' has ' + (vv.insurance_status === 'expired' ? 'insurance that expired ' + fdate(vv.insurance_expires) : 'no insurance on file') + '. Check before you approve.</p>'; else if (!vv) h += '<p class="dk-m">Not in your vendor list yet. Add them under Vendors to track insurance.</p>'; }
-    if (r.imported) { var ph = (r.lines || []).length === 1 && /^Imported from your current software/.test((r.lines[0] || {}).desc || ''); h += '<p class="bf-warn">' + (ph ? 'This came from your current software. Totals and status are copied; line detail was not available. It is read-only here.' : 'This came from your current software. Lines, totals and status are copied. It is read-only here.') + '</p>'; }
     if (k === 'po' && r.approved_by) h += '<p class="dk-m">Approved by ' + esc(r.approved_by) + ' on ' + fdate((r.approved_at || '').slice(0, 10)) + '</p>';
+    var hForm = h.length;
     h += '<form class="bf-form" data-bf-form autocomplete="off"><fieldset ' + (locked ? 'disabled' : '') + '>';
     h += '<label>Title<input data-f="title" value="' + esc(r.title) + '"></label>';
     if (k === 'po') h += '<div class="bf-row"><label>Assigned to (who is doing the work)<input data-f="vendor.name" list="bf-vendors" value="' + esc(r.vendor.name) + '"></label><datalist id="bf-vendors">' + (S.vendors || []).map(function (v) { return '<option value="' + esc(v.name) + '">'; }).join('') + '</datalist><label>Their email<input data-f="vendor.email" type="email" value="' + esc(r.vendor.email) + '"></label></div><div class="bf-row"><label>Scheduled completion<input data-f="due_date" type="date" value="' + esc(r.due_date) + '"></label><label class="bf-chk"><input data-f="materials_only" type="checkbox" ' + (r.materials_only ? 'checked' : '') + '> Materials only</label><label class="bf-chk"><input data-f="variance.is" type="checkbox" ' + (r.variance && r.variance.is ? 'checked' : '') + '> Variance PO</label></div><label>Scope of work<textarea data-f="scope" rows="3">' + esc(r.scope) + '</textarea></label>';
@@ -282,6 +293,7 @@
         ((d.pos || []).length ? '<h4>Related purchase orders</h4><div class="bf-checks">' + d.pos.map(function (x) { return '<label class="bf-chk"><input type="checkbox" data-poid="' + esc(x.id) + '"' + ((r.po_ids || []).indexOf(x.id) >= 0 ? ' checked' : '') + '> ' + esc(x.number + ' ' + x.title) + '</label>'; }).join('') + '</div>' : '');
     }
     h += '</fieldset></form>';
+    if (r.imported) h = h.slice(0, hForm) + importedSummary(k, r);
     if (!S.ed.isNew) h += attachBox(r, k) + (k === 'po' ? waiverBox(r) : '');
     // bills / payments
     if (k === 'po' && r.status === 'approved') h += '<h4>Bills</h4>' + payTable(r.bills, 'bill_delete', 'bill_id') + (r.totals.remaining > 0.004 ? '<form class="bf-form bf-inline" data-bf-pay="bill"><input name="amount" inputmode="decimal" placeholder="Amount" required><input name="date" type="date" value="' + ymd(new Date()) + '"><input name="method" placeholder="Method (check, ACH, card)"><input name="ref" placeholder="Bill / ref #"><button class="bf-btn" type="submit">Record bill</button></form>' : '');
