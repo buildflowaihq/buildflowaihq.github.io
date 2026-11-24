@@ -82,3 +82,6 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
 .bf-btab[aria-selected=true]{color:var(--ink,#F1EEE6);border-bottom-color:var(--accent,#B4EE3A)}
 .bf-istrip{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:0 0 12px}
 .bf-istrip small{display:block;color:var(--muted,#A9A79F);font-size:12px}.bf-istrip b{font-size:20px}.bf-istrip i{font-style:normal;color:var(--muted,#A9A79F);font-size:20px}
+.bf-chev{background:none;border:0;color:var(--muted,#A9A79F);font-size:14px;cursor:pointer;padding:2px 4px}
+.bf-istrip .bf-st{align-self:center}
+table.bt tfoot td{border-top:1px solid var(--line,#33373D);padding-top:8px}
