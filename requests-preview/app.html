@@ -469,10 +469,10 @@
 /* Site notes checklist */
 .dk-sns{list-style:none;margin:0;padding:0}.dk-sn{border-top:1px solid var(--line,#e5dfd2);padding:8px 0}.dk-sn:first-child{border-top:0}
 .dk-snr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.dk-ck{width:24px;height:24px;min-width:24px;border:2px solid #00280F;border-radius:6px;background:transparent;color:#fff;font-weight:700;line-height:1;cursor:pointer;padding:0}
-.dk-sn.dn .dk-ck{background:#00280F}.dk-sn.dn .dk-snt{text-decoration:line-through;opacity:.65}
+.dk-ck{width:24px;height:24px;min-width:24px;border:2px solid currentColor;border-radius:6px;background:transparent;color:inherit;font-weight:700;line-height:1;cursor:pointer;padding:0}
+.dk-sn.dn .dk-ck{background:#7fb68a;border-color:#7fb68a;color:#00280F}.dk-sn.dn .dk-snt{text-decoration:line-through;opacity:.65}
 .dk-snt{flex:1;min-width:160px;text-align:left;background:none;border:0;font:inherit;color:inherit;cursor:pointer;padding:4px 0}
-.dk-tag{font-size:12px;padding:2px 8px;border-radius:999px;background:#F2EBDD;color:#00280F;border:1px solid #d9cfb8}.dk-tag.j{background:transparent}
+.dk-tag{font-size:12px;padding:2px 8px;border-radius:999px;background:#F2EBDD;color:#00280F;border:1px solid #d9cfb8;white-space:nowrap}.dk-tag.j{background:transparent;color:inherit;border-color:currentColor}.dk-snr small{opacity:.7;white-space:nowrap}
 .dk-snd{margin:6px 0 0 32px;font-size:14px;white-space:pre-wrap}
 .dk-sdone{margin-top:8px}.dk-sdone summary{cursor:pointer;font-size:14px;opacity:.8}
 </style>
@@ -592,7 +592,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241040";
+(function(){var BUILD="202611241056";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -854,7 +854,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     else if (v === 'all') {
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Schedule web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + triptychHtml(DATA.actions) + siteNotesHtml(openJobs().map(function (j) { return j.id; })) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
+        '<div class="cols"><div>' + triptychHtml(DATA.actions) + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
         updatesHtml() + weekHtml(DATA.schedule) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
     } else {
       var j = job(v);
