@@ -679,7 +679,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241400";
+(function(){var BUILD="202611241420";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1601,9 +1601,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241400">
+<link rel="stylesheet" href="finance.css?v=202611241420">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241400"></script>
+<script src="finance.js?v=202611241420"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
@@ -2080,7 +2080,7 @@ window.dashJobMounted = function (el, job) {
   }
   function drawReqs() {
     var out = $('reqList'); out.innerHTML = '';
-    var items = reqItems().sort(function (a, b) { return (b.n || 0) - (a.n || 0); });
+    var items = reqItems().filter(function (x) { return x.state !== 'superseded'; }).sort(function (a, b) { return (b.n || 0) - (a.n || 0); });
     var open = items.filter(function (x) { return x.state !== 'done'; }), done = items.filter(function (x) { return x.state === 'done'; });
     function sec(t) { var h = document.createElement('p'); h.className = 'sec'; h.textContent = t; out.appendChild(h); }
     function card(x) {
