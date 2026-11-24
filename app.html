@@ -524,23 +524,28 @@
 .dash .dk-pt{font-size:16px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dash .dk-mb{display:none;border:1px solid var(--line);background:none;border-radius:999px;padding:8px 14px;font-weight:600;cursor:pointer}
 .dash .dk-pick{max-width:55%;min-width:0;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:15px}
-.dash .dk-menu{display:flex;gap:6px 22px;flex-wrap:wrap;padding:2px 0 10px}
-.dash .dk-g{display:flex;flex-wrap:wrap;align-items:center;gap:2px 2px}
-.dash .dk-g h6{margin:0 6px 0 0;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
-.dash .dk-menu button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 8px;cursor:pointer;font-size:14px;opacity:.8;color:inherit}
-.dash .dk-menu button[aria-current=true]{opacity:1;border-bottom-color:var(--accent);font-weight:600}
+/* Top bar with dropdown groups (Buildertrend style); collapsed behind Menu on phones */
+.dash .dk-menu{display:flex;gap:2px;flex-wrap:wrap;padding:0 0 6px;border-top:1px solid var(--line2)}
+.dash .dk-g{position:relative}
+.dash .dk-gb{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;cursor:pointer;font-size:15px;font-weight:600;color:inherit;opacity:.85}
+.dash .dk-gb i{font-style:normal;font-size:11px;opacity:.7}
+.dash .dk-g.here .dk-gb{border-bottom-color:var(--accent);opacity:1}
+.dash .dk-g.gopen .dk-gb{opacity:1;background:var(--card,rgba(127,127,127,.12));border-radius:8px 8px 0 0}
+.dash .dk-dd{display:none;position:absolute;left:0;top:100%;min-width:210px;z-index:30;background:var(--card,var(--bg));border:1px solid var(--line);border-radius:0 10px 10px 10px;box-shadow:0 10px 28px rgba(0,0,0,.35);padding:6px}
+.dash .dk-g.gopen .dk-dd{display:block}
+.dash .dk-dd button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:11px 12px;font-size:15px;cursor:pointer;color:inherit}
+.dash .dk-dd button:hover{background:rgba(127,127,127,.15)}
+.dash .dk-dd button[aria-current=true]{font-weight:700;color:var(--accent)}
 @media (max-width:720px){
  .dash .dk-mb{display:inline-flex}
  .dash .dk-nbar{flex-wrap:wrap}.dash .dk-pt{order:3;flex:0 0 100%;font-size:13px;opacity:.75;margin:-2px 0 0 2px}
- .dash .dk-pick{flex:1;max-width:none}
  .dash .dk-menu{display:none;flex-direction:column;gap:0;padding:0 0 10px}
  .dash .dk-menu.open{display:flex}
- .dash .dk-g{display:block;padding:6px 0;border-top:1px solid var(--line2)}
- .dash .dk-g h6{display:block;margin:2px 0 2px}
- .dash .dk-menu button{display:block;width:100%;text-align:left;padding:12px 6px;font-size:16px;border-bottom:0;border-left:3px solid transparent}
- .dash .dk-menu button[aria-current=true]{border-left-color:var(--accent)}
+ .dash .dk-g{border-top:1px solid var(--line2)}
+ .dash .dk-gb{width:100%;text-align:left;padding:14px 6px;font-size:17px;border-bottom:0}
+ .dash .dk-dd{position:static;box-shadow:none;border:0;border-left:3px solid var(--line);border-radius:0;margin:0 0 8px 6px;padding:0 0 0 6px;min-width:0}
+ .dash .dk-dd button{font-size:16px;padding:13px 8px}
 }
-.dash .dk-menu button.ns{opacity:.5}
 .dash .dk-alb{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}.dash .dk-alb small{opacity:.6}
 .dash .dk-ph span small{display:block;opacity:.6;font-size:11px}
 </style>
@@ -659,7 +664,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241835";
+(function(){var BUILD="202611241220";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1014,12 +1019,13 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   }
   function navHtml() {
     var cp = curPage(), sub = isSub();
-    var groups = [].concat(S.presale ? [['Sales', ['lopp', 'lact', 'lprop', 'lcal', 'lmap']]] : [], [['Jobs', ['summary', 'det', 'fin', 'list', 'map']], ['Project Management', ['sched', 'logs', 'todos', 'co', 'sel', 'war', 'tc', 'plans', 'upd', 'subm', 'notes']], ['Files', ['docs', 'photos', 'vid']], ['Messaging', ['comments', 'msgs', 'rfi', 'nh', 'sur']], ['Financial', ['fbids', 'fest', 'fpo', 'fbills', 'fbud', 'finv', 'fpay']], ['Contacts', ['ctint', 'ctven', 'ctcl']]]);
+    var groups = [].concat([['Jobs', ['summary', 'det', 'fin', 'list', 'map']], ['Project Management', ['sched', 'logs', 'todos', 'co', 'sel', 'war', 'tc', 'plans', 'upd', 'subm', 'notes']], ['Files', ['docs', 'photos', 'vid']], ['Messaging', ['comments', 'msgs', 'rfi', 'nh', 'sur']], ['Financial', ['fbids', 'fest', 'fpo', 'fbills', 'fbud', 'finv', 'fpay']], ['Contacts', ['ctint', 'ctven', 'ctcl']]]);
     var ok = function (p) { return !(sub && /^(sched|co|sel|fin|fbids|fest|fpo|fbills|fbud|finv|fpay|rfi|war|tc|plans|upd|subm|ctven|ctint)$/.test(p)); };
     var menu = groups.map(function (g) {
-      var its = g[1].filter(ok); if (!its.length) return '';
-      var b = function (p, lab) { return '<button type="button" data-pg="' + p + '"' + (NS[p] ? ' class="ns"' : '') + ' aria-current="' + (cp === p) + '">' + lab + '</button>'; };
-            return '<div class="dk-g"><h6>' + g[0] + '</h6>' + its.map(function (p) { return b(p, PG[p]); }).join('') + '</div>';
+      var its = g[1].filter(ok).filter(function (p) { return !NS[p]; }); if (!its.length) return '';
+      var b = function (p, lab) { return '<button type="button" data-pg="' + p + '" aria-current="' + (cp === p) + '">' + lab + '</button>'; };
+      var here = its.indexOf(cp) >= 0, open = S.gopen === g[0];
+      return '<div class="dk-g' + (open ? ' gopen' : '') + (here ? ' here' : '') + '"><button type="button" class="dk-gb" data-gopen="' + g[0] + '" aria-expanded="' + open + '">' + g[0] + ' <i aria-hidden="true">&#9662;</i></button><div class="dk-dd">' + its.map(function (p) { return b(p, PG[p]); }).join('') + '</div></div>';
     }).join('');
     var js = DATA.jobs.filter(shown);
     var opt = function (j) { return '<option value="' + j.id + '"' + (S.view === j.id ? ' selected' : '') + '>' + esc(j.name) + '</option>'; };
@@ -1049,7 +1055,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var h;
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + triptychHtml(DATA.actions) + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
+        '<div class="cols"><div>' + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
         updatesHtml() + weekHtml(DATA.schedule) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
       return h;
     }
@@ -1148,6 +1154,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var b;
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; if (S.view !== 'list') { S.page = (S.dlPage && S.view === S.dlJob) ? S.dlPage : 'summary'; if (S.view !== 'all') remember(S.view); } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-pg]'))) { var pg = b.getAttribute('data-pg'); if (pg === 'list') S.view = 'list'; else { if (S.view === 'list') S.view = S.last || 'all'; S.page = pg; } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
+    if ((b = e.target.closest('[data-gopen]'))) { var gn = b.getAttribute('data-gopen'); S.gopen = S.gopen === gn ? '' : gn; render(); return; }
+    if (S.gopen && !e.target.closest('.dk-dd')) { S.gopen = ''; render(); }
     if ((b = e.target.closest('[data-mtoggle]'))) { S.menu = !S.menu; render(); return; }
     if ((b = e.target.closest('[data-pickjob]'))) { S.view = b.getAttribute('data-pickjob'); remember(S.view); render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-lead]'))) { toast('Leads open in their own page. Coming next.'); return; }
@@ -1540,9 +1548,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241835">
+<link rel="stylesheet" href="finance.css?v=202611241220">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241835"></script>
+<script src="finance.js?v=202611241220"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
