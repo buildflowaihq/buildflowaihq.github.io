@@ -77,6 +77,7 @@
     h += '<div class="big">' + kpi('Revised budget', money(c.revised), 'Original ' + money(c.original) + ' + ' + money(c.co_cost) + ' changes') + kpi('Committed (approved POs)', money(c.committed)) + kpi('Actual costs', money(c.actual)) + kpi('Cost to complete', money(c.to_complete), money((r.bills && r.bills.unpaid_bills) || 0) + ' in bills waiting to pay') + '</div>';
     h += '<details class="fold sub" open><summary><h3>Needs attention · ' + att.length + '</h3></summary>' + (att.length ? '<ul class="al">' + att.map(function (a) { return '<li><div><b>' + esc(a[2]) + '</b><div class="dk-m">' + esc(a[3]) + '</div></div><button class="link" data-bf-open="' + a[0] + ':' + a[1] + '">Open →</button></li>'; }).join('') + '</ul>' : '<p class="dk-empty">Nothing waiting.</p>') + '</details>';
     h += '<details class="fold sub" open><summary><h3>Job costing budget</h3></summary>' + (r.budget.length ? jcb(r) : '<p class="dk-empty">No budget yet.</p>') + '</details>';
+    if (d.job.estimate && (d.job.estimate.lines || []).length) h += estimateView(d.job.estimate);
     if ((d.job.proposals || []).length) h += '<details class="fold sub"><summary><h3>Proposals · ' + d.job.proposals.length + '</h3></summary><div class="tw"><table class="bt"><thead><tr><th>Proposal</th><th>Status</th><th>Last updated</th><th class="r">Total price</th><th>Client viewed</th></tr></thead><tbody>' + d.job.proposals.map(function (x) { return '<tr><td>' + esc(x.title) + '</td><td>' + badge(x.status) + '</td><td>' + fdate(x.updated) + '</td><td class="r">' + money(x.total) + '</td><td>' + fdate(x.viewed) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
     h += clientBox(d);
     return h;
@@ -86,6 +87,13 @@
     return '<details class="fold sub"><summary><h3>Who approves for the client' + (sg.length ? ' · ' + sg.length : ' · not set') + '</h3></summary><form class="bf-form" data-bf-client><p class="dk-m">Change orders go to these people to approve online. Invoices go to the first one.</p>' +
       [0, 1].map(function (i) { var s = sg[i] || {}; return '<div class="bf-row"><label>Name<input name="n' + i + '" value="' + esc(s.name || '') + '"></label><label>Email<input name="e' + i + '" type="email" value="' + esc(s.email || '') + '"></label></div>'; }).join('') +
       '<button class="bf-btn" type="submit">Save</button></form></details>';
+  }
+  function estimateView(e) { // Estimate view like the old software: groups with their lines, rolling up to the budget cost codes
+    var groups = [], by = {}; e.lines.forEach(function (l) { if (!by[l.group]) { by[l.group] = { name: l.group, lines: [], total: 0 }; groups.push(by[l.group]); } by[l.group].lines.push(l); by[l.group].total += l.cost; });
+    var total = e.lines.reduce(function (a, l) { return a + l.cost; }, 0), rows = '';
+    groups.forEach(function (g) { rows += '<tr class="grp"><td colspan="5"><b>' + esc(g.name) + '</b></td><td class="r"><b>' + money(g.total) + '</b></td></tr>'; g.lines.forEach(function (l) { rows += '<tr><td>' + esc(l.title) + '</td><td>' + esc(l.code) + '</td><td>' + esc(l.desc) + '</td><td class="r">' + l.qty + '</td><td class="r">' + money(l.unit_cost) + '</td><td class="r">' + money(l.cost) + '</td></tr>'; }); });
+    rows += '<tr class="grp"><td colspan="5"><b>Builder cost</b></td><td class="r"><b>' + money(total) + '</b></td></tr>' + (e.profit ? '<tr><td colspan="5">' + esc(e.profit_label || 'Profit') + '</td><td class="r">' + money(e.profit) + '</td></tr><tr class="grp"><td colspan="5"><b>Total price</b></td><td class="r"><b>' + money(e.price || total + e.profit) + '</b></td></tr>' : '');
+    return '<details class="fold sub"><summary><h3>Estimate · ' + e.lines.length + ' lines' + (e.locked ? ' · ' + esc(e.locked) : '') + '</h3></summary><div class="tw"><table class="bt"><thead><tr><th>Title</th><th>Cost code</th><th>Description</th><th class="r">Qty</th><th class="r">Unit cost</th><th class="r">Builder cost</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
   }
   function jcb(r) { // Job costing budget: same columns and grouping as the old software (category rows with cost codes under them)
     var cats = {}, order = []; r.budget.forEach(function (x) { var c = x.category || 'Uncategorized'; if (!cats[c]) { cats[c] = []; order.push(c); } cats[c].push(x); });
