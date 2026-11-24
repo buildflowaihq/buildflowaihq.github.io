@@ -275,6 +275,7 @@
 .dash .dk-empty{color:var(--faint);font-size:14px;margin:6px 0}
 
 /* actions */
+.dash .dk-mic.on{background:var(--accent);color:var(--bg);animation:pulse 1.2s ease-in-out infinite}
 .dash .dk-mc{display:grid;gap:8px;margin:10px 0 14px}.dash .dk-mc input,.dash .dk-mc textarea{width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;color:inherit;font:inherit;font-size:16px}
 .dash .dk-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line2);margin:0 -18px 6px;padding:0 18px}
 .dash .dk-tabs button{white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px 9px;font-size:14px;color:var(--muted);cursor:pointer;margin-bottom:-1px;display:inline-flex;gap:7px;align-items:center}
@@ -700,7 +701,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241830";
+(function(){var BUILD="202611251145";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -835,6 +836,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   }
 
   function moneyHtml(rows, title) {
+    rows = rows || [];
     return '<section class="card"><details class="fold"><summary><h2>' + title + '</h2></summary><dl class="mt">' + rows.map(function (m) {
       var val = m[2] != null ? esc(m[2]) : '<span class="na">' + esc(m[3] || '') + '</span>';
       return '<dt>' + esc(m[0]) + (m[1] ? '<small>' + esc(m[1]) + '</small>' : '') + '</dt><dd>' + val + '</dd>';
@@ -1035,7 +1037,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (c && !S.ro && !sub) {
       comp = '<form class="dk-mc" data-mcform="' + esc(id) + '"><div class="dk-acts">' + ['client', 'internal', 'subs'].map(function (a) { return '<button type="button" class="dk-chip' + (c.a === a ? ' on' : '') + '" data-mca="' + a + '">' + AUD[a] + '</button>'; }).join('') + '</div>' +
         '<input type="text" data-mcf="to" placeholder="To (email addresses)" aria-label="To" value="' + esc(c.to) + '"><input type="text" data-mcf="subject" placeholder="Subject" aria-label="Subject" value="' + esc(c.subject) + '"><textarea data-mcf="body" rows="4" placeholder="Message" aria-label="Message">' + esc(c.body) + '</textarea>' +
-        '<div class="dk-acts"><button type="button" class="dk-chip on" data-msend="' + esc(id) + '">Send</button><button type="button" class="dk-chip" data-mcancel="1">Cancel</button></div><p class="dk-src">Goes by email from your own address. Replies come back to this thread. Nothing is sent until you press Send.</p></form>';
+        '<div class="dk-acts"><button type="button" class="dk-chip on" data-msend="' + esc(id) + '">Send</button><button type="button" class="dk-chip dk-mic" data-mmic="1" aria-label="Speak your message">Speak</button><button type="button" class="dk-chip" data-mcancel="1">Cancel</button></div><p class="dk-src" data-mhint hidden></p><p class="dk-src">Goes by email from your own address. Replies come back to this thread. Nothing is sent until you press Send.</p></form>';
     }
     var list = shown.length ? '<div class="dk-mh"><span>To</span><span>From</span><span>Subject</span><span>Date Received</span></div><ul class="dk-dl dk-ml">' + shown.map(function (m) {
       return '<li><details><summary class="dk-mr"><span>' + esc(m.to || '') + '</span><span>' + esc(m.from || '') + '</span><span><b>' + esc(m.title || '(no subject)') + '</b></span><span>' + esc(fmtDT(m.date)) + '</span></summary><p>' + (sub ? '' : '<span class="dk-dm">' + esc(AUD[m._a]) + (m.sent ? ' · sent from here' : '') + '</span><br>') + esc(m.body || '') + '</p></details></li>'; }).join('') + '</ul>'
@@ -1330,6 +1332,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if ((b = e.target.closest('[data-say]'))) { if (window.chatDraft) window.chatDraft(b.getAttribute('data-say')); else if (window.showTab) window.showTab('chat'); return; }
     if (e.target.closest('[data-add]')) { var f = $('dash-addd'); if (!S.cal) { toast('The company calendar isn’t connected yet.'); return; } f.hidden = !f.hidden; if (!f.hidden) { f.date.value = DATA.today; f.title.focus(); } return; }
     if (e.target.closest('[data-addx]')) { $('dash-addd').hidden = true; return; }
+  });
+  root.addEventListener('click', function (e) { // Speak button in the message composer: dictate into the body box; nothing sends until Send
+    var m = e.target && e.target.closest && e.target.closest('[data-mmic]'); if (!m || m._d) return;
+    var form = m.closest('form'), ta = form && form.querySelector('[data-mcf=body]'), hint = form && form.querySelector('[data-mhint]');
+    if (!ta || !window.bfDictate) { toast('Talking to type isn\'t available here.'); return; }
+    m._d = window.bfDictate(m, ta, hint); m.onclick();
   });
   root.addEventListener('input', function (e) { var f = e.target && e.target.getAttribute && e.target.getAttribute('data-mcf'); if (f && S.mc) S.mc[f] = e.target.value; });
   function sendThreadMsg(id, btn) {
@@ -2047,6 +2055,7 @@ window.dashJobMounted = function (el, job) {
     return stop;
   }
   stopMic = dictate($('mic'), box, $('hint'));
+  window.bfDictate = dictate;
 
   // ---------- send ----------
   // Kyle asked (request #62) that all his notes on Nov 23 (Pacific) go to Glenrose; it ends by itself after today.
