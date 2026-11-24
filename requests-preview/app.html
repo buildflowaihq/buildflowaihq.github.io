@@ -616,7 +616,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241325";
+(function(){var BUILD="202611241340";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -899,10 +899,12 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // Slim row of section chips under the job header (phone-friendly). Money only where finance is shown; never for subs.
   function chipsHtml(v, j) {
     var H = (DATA.history || {})[v] || {}, sub = !!(DATA.me && DATA.me.trade);
-    var c = [['site', 'Notes'], ['logs', 'Daily logs']];
-    if (H.messages && H.messages.length) c.push(['messages', 'Messages']);
+    var c = [['site', 'Notes']];
+    if (!sub) c.push(['sched', 'Schedule']);
+    c.push(['logs', 'Daily logs']);
     if (H.files && H.files.length) c.push(['files', 'Files']);
-    if (!sub) { c.push(['sched', 'Schedule']); if (S.fin || j.fin || (j.money && j.money.length)) c.push(['money', 'Money']); }
+    if (H.messages && H.messages.length) c.push(['messages', 'Messages']);
+    if (!sub && (S.fin || j.fin || (j.money && j.money.length))) c.push(['money', 'Money']);
     return '<nav class="dk-chips" aria-label="Sections">' + c.map(function (x) { return '<button type="button" class="dk-chip" data-jump="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</nav>';
   }
   function histHtml(id) {
