@@ -658,7 +658,7 @@
     <input class="find" id="dash-find" type="search" placeholder="Search jobs" aria-label="Search jobs">
     <ul class="jl" id="dash-jl"></ul>
   </aside>
-  <div class="main" id="dash-main"></div>
+  <div class="main" id="dash-main"><p class="dk-src" style="padding:28px 16px;color:#9aa0a6">Loading your dashboard…</p></div>
   <div class="toast" id="dash-toast" role="status" hidden></div>
 </section>
 
@@ -1031,7 +1031,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Navigation: one page per function, old-system order and names ----
   var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys', ctint: 'Internal Users', ctven: 'Subs/Vendors', ctcl: 'Client Contacts', lopp: 'Lead Opportunities', lact: 'Lead Activities', lprop: 'Lead Proposals', lcal: 'Lead Activity Calendar', lmap: 'Lead Map' };
   // NS = pages KDB never used in Buildertrend (Michael approved 11/24): hidden from menus. To add one back, delete it from this list.
-  var NS = { rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
+  var NS = { war: 1, fpay: 1, rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
   var FTAB = { ctven: 'vendors', rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { co: 'co', po: 'fpo', bills: 'fbills', invoices: 'finv', estimate: 'fest', site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
@@ -1664,7 +1664,7 @@ window.dashJobMounted = function (el, job) {
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if ((tab === 'dash' || tab === 'todo') && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.__bfMe = String(me || '').toLowerCase(); window.dashInit({ presale: true, key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true, presale: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
+    if ((tab === 'dash' || tab === 'todo') && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.__bfMe = String(me || '').toLowerCase(); window.dashInit({ presale: true, key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true, presale: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (!me) { try { var __o = JSON.parse(localStorage.getItem('abf_me') || '{}'); if (__o && __o.k === String(key).slice(-6) && __o.me) me = __o.me; } catch (e) { } } if (me) { __go(); if (tab === 'dash') loadTodos(); } else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
@@ -2247,7 +2247,7 @@ window.dashJobMounted = function (el, job) {
     if (!key) { $('todoList').innerHTML = '<p class="empty">This page needs your personal link.</p>'; return; }
     return fetch(API + '?action=todos&k=' + encodeURIComponent(key)).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.ok) throw new Error('todos');
-      todos = d.items; me = d.me; admin = d.admin; $('todoErr').hidden = true; drawTodos();
+      todos = d.items; me = d.me; admin = d.admin; try { localStorage.setItem('abf_me', JSON.stringify({ k: String(key).slice(-6), me: d.me })); } catch (e) { } $('todoErr').hidden = true; drawTodos();
     }).catch(function () { $('todoErr').hidden = false; $('todoErr').textContent = 'Couldn\'t load the list. Pull down or tap To-do to try again.'; });
   }
   function act(id, op, until) {
