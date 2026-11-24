@@ -668,7 +668,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241237";
+(function(){var BUILD="202611241240";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1049,7 +1049,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var al = { glenrose: 1, loma: 1, harriet: 1, alameda700: 1, palm1026: 1 }, vw = S.sview || 'month';
     var tabs = ['month', 'week', 'list', 'gantt'].map(function (v) { return '<button type="button" class="dk-chip' + (vw === v ? ' on' : '') + '" data-sview="' + v + '">' + v.charAt(0).toUpperCase() + v.slice(1) + '</button>'; }).join('');
     var url = 'https://kdb-schedule.mekovacs22.workers.dev/?k=' + encodeURIComponent(S.key || '') + (id && al[id] ? '&job=' + id : '') + '&view=' + vw + '&embed=1';
-    return '<section class="card dk-sch"><div class="ch"><h2>Schedule</h2><div class="dk-acts">' + tabs + '</div></div><iframe class="dk-schf" title="Schedule" src="' + url + '" loading="lazy"></iframe><p class="dk-src">Use Push a trade or Move a date inside the calendar: it shows what moves and asks OK first. <a target="_blank" rel="noopener" href="' + url.replace('&embed=1', '') + '">Open full screen</a></p></section>';
+    return '<section class="card dk-sch"><iframe class="dk-schf" title="Schedule" src="' + url + '" loading="lazy"></iframe><p class="dk-src">Use Push a trade or Move a date inside the calendar: it shows what moves and asks OK first. <a target="_blank" rel="noopener" href="' + url.replace('&embed=1', '') + '">Open full screen</a></p></section>';
   }
   function jobHead(j) {
     var v = j.id, first = j.client.split(/ & | /)[0];
@@ -1556,9 +1556,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241237">
+<link rel="stylesheet" href="finance.css?v=202611241240">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241237"></script>
+<script src="finance.js?v=202611241240"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
