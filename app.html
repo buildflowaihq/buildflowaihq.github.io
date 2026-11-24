@@ -560,7 +560,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611232155";
+(function(){var BUILD="202611240959";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1150,9 +1150,12 @@ window.dashJobMounted = function (el, job) {
   function printPrep(title, text, when) {
     var w = window.open('', '_blank');
     if (!w) { alert('Allow pop-ups for this page to open the prep sheet.'); return; }
+    w.document.write(prepDoc(title, text, when)); w.document.close();
+  }
+  function prepDoc(title, text, when) {
     var d = new Date(when || Date.now());
     var sub = esc(d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
-    w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + ' - prep sheet</title><style>' +
+    return ('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + ' - prep sheet</title><style>' +
       '@page{size:letter;margin:.5in}*{box-sizing:border-box}' +
       'body{margin:0;background:#F2EBDD;color:#1d2a20;font:14px/1.45 -apple-system,"Helvetica Neue",Arial,sans-serif}' +
       '.pg{max-width:780px;margin:0 auto;padding:18px 18px 40px}' +
@@ -1171,7 +1174,6 @@ window.dashJobMounted = function (el, job) {
       '<div class="bar"><button onclick="window.print()">Print / Save as PDF</button></div>' +
       '<div class="hd"><div class="k">Prep sheet</div><h1>' + esc(title) + '</h1><div class="s">' + sub + '</div></div>' +
       '<div class="body">' + prepHtml(text) + '</div><div class="ft">Prepared by BuildFlowAI</div></div></body></html>');
-    w.document.close();
   }
   function prepSave(id, title, text) { try { localStorage.setItem('bf_prep:' + id, JSON.stringify({ title: title, text: text, at: Date.now() })); } catch (_) {} }
   function prepGet(id) { try { return JSON.parse(localStorage.getItem('bf_prep:' + id) || 'null'); } catch (_) { return null; } }
@@ -1179,7 +1181,13 @@ window.dashJobMounted = function (el, job) {
     var d = document.createElement('div'); d.className = 'm ' + (msg.role === 'user' ? 'me' : 'ai');
     var b = document.createElement('div'); b.className = 'b';
     if (msg.role !== 'user') b.innerHTML = '<div class="who">BuildFlowAI</div>';
-    var t = document.createElement('div'); linkify(t, msg.role === 'user' ? msg.text : split(msg.text || '').text); b.appendChild(t); // also cleans older saved replies
+    var t = document.createElement('div'); linkify(t, msg.role === 'user' ? msg.text : split(msg.text || '').text); if (msg.onTodo && msg.role !== 'user' && split(msg.text || '').text.length > 150) { // a Help me prep shows as the branded sheet itself, not plain text
+      var fr = document.createElement('iframe'); fr.className = 'prepframe'; fr.setAttribute('title', 'Prep sheet');
+      fr.style.cssText = 'width:100%;border:0;border-radius:12px;background:#F2EBDD;min-height:320px;display:block';
+      fr.srcdoc = prepDoc(msg.onTodoTitle || 'Prep sheet', split(msg.text).text, msg.at).replace(/<div class="bar">.*?<\/div>/, '');
+      fr.onload = function () { try { fr.style.height = (fr.contentDocument.documentElement.scrollHeight + 6) + 'px'; } catch (e) { } };
+      b.appendChild(fr);
+    } else b.appendChild(t); // also cleans older saved replies
     if (msg.files) { var f = document.createElement('div'); f.className = 'src'; f.textContent = 'Attached: ' + msg.files; b.appendChild(f); }
     if (msg.onTodo && msg.role !== 'user' && split(msg.text || '').text.length > 150) {
       var pb = document.createElement('button'); pb.type = 'button'; pb.className = 'chip'; pb.style.cssText = 'cursor:pointer;margin-top:8px'; pb.textContent = 'Print / save as PDF';
@@ -1614,6 +1622,7 @@ window.dashJobMounted = function (el, job) {
     var spec = 'Sections, in this order: ' + k.sections.map(function (x) { return '### ' + x.h + (x.fixed ? ' (write exactly: ' + x.fixed + ')' : x.d ? ' (' + x.d + ')' : ''); }).join('; ') + '.';
     pendingPrep = { kind: k.label, title: t.title, job: t.job || '', date: t.when || t.date || '', notes: t.detail || '', sections: k.sections, rules: PREP.rules };
     box.value = 'Help me get ready for this ' + k.label + ': ' + t.title + (t.job ? ' (' + t.job + ')' : '') + '. Build the prep sheet from the latest on this job.';
+    setTimeout(function () { if (!busy && box.value) $('send').click(); }, 200);   // Help me runs right away; nothing to press
   }
   function ago(iso) { if (!iso) return ''; var d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
   // Where each of my requests stands (working / team / done), shown on the request in plain words.
