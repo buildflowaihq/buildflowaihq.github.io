@@ -682,7 +682,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241545";
+(function(){var BUILD="202611241600";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1610,9 +1610,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241545">
+<link rel="stylesheet" href="finance.css?v=202611241600">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241545"></script>
+<script src="finance.js?v=202611241600"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
@@ -2246,7 +2246,8 @@ window.dashJobMounted = function (el, job) {
   function scrubKeys(x) { return String(x || '').replace(/https?:\/\/kdb-schedule\.[^\s|)]*[?&]k=[A-Za-z0-9]+[^\s|)]*/g, '(schedule: open Schedule in the app)').replace(/([?&])k=[A-Za-z0-9]{8,}/g, '$1'); }
   function drawTodos() {
     todos = todos.filter(function (x) { return !x.synthetic; }).concat(askTodos());
-    var people = []; todos.forEach(function (t) { if (people.indexOf(t.person) < 0) people.push(t.person); });
+    if (!admin) todos.forEach(function (t) { ['title', 'detail', 'note', 'auto'].forEach(function (f) { if (t[f]) t[f] = String(t[f]).replace(/mike@kdbla\.com/gi, 'the BuildFlowAI address').replace(/\bMichael( Kovacs)?\b/g, 'BuildFlowAI'); }); }); // Kyle, Mary and Sam never see Michael's name
+    var people = []; TEAM.forEach(function (m) { var n = String(m.name).split(' ')[0]; if (/^BuildFlowAI/.test(m.role || '') && n !== me) return; if (people.indexOf(n) < 0) people.push(n); }); todos.forEach(function (t) { if (people.indexOf(t.person) < 0) people.push(t.person); }); // everyone on the team is in the toggle, including people with nothing assigned yet
     var fl = $('filters'); fl.hidden = !admin; fl.innerHTML = '';
     if (admin) ['all'].concat(people).forEach(function (p) {
       var b = document.createElement('button'); b.type = 'button'; b.textContent = p === 'all' ? 'Everyone' : p; b.className = (who === p || (who === 'mine' && p === me)) ? 'on' : '';
