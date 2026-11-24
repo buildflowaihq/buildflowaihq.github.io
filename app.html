@@ -1040,7 +1040,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var list = shown.length ? '<div class="dk-mh"><span>To</span><span>From</span><span>Subject</span><span>Date Received</span></div><ul class="dk-dl dk-ml">' + shown.map(function (m) {
       return '<li><details><summary class="dk-mr"><span>' + esc(m.to || '') + '</span><span>' + esc(m.from || '') + '</span><span><b>' + esc(m.title || '(no subject)') + '</b></span><span>' + esc(fmtDT(m.date)) + '</span></summary><p>' + (sub ? '' : '<span class="dk-dm">' + esc(AUD[m._a]) + (m.sent ? ' · sent from here' : '') + '</span><br>') + esc(m.body || '') + '</p></details></li>'; }).join('') + '</ul>'
       : '<p class="dk-src">No messages here yet.</p>';
-    return '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + order.length + (order.length === 1 ? ' thread' : ' threads') + '</span>' + (S.ro || sub ? '' : '<button class="link" data-mnew="1">+ New message</button>') + '</div>' + tabs + comp + list + '</section>';
+    return '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + shown.length + (shown.length === 1 ? ' message' : ' messages') + '</span>' + (S.ro || sub ? '' : '<button class="link" data-mnew="1">+ New message</button>') + '</div>' + tabs + comp + list + '</section>';
   }
   function fmtDT(v) {
     v = String(v || ''); var m = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
