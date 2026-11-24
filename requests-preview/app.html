@@ -275,6 +275,7 @@
 .dash .dk-empty{color:var(--faint);font-size:14px;margin:6px 0}
 
 /* actions */
+.dash .dk-mc{display:grid;gap:8px;margin:10px 0 14px}.dash .dk-mc input,.dash .dk-mc textarea{width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;color:inherit;font:inherit;font-size:16px}
 .dash .dk-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line2);margin:0 -18px 6px;padding:0 18px}
 .dash .dk-tabs button{white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px 9px;font-size:14px;color:var(--muted);cursor:pointer;margin-bottom:-1px;display:inline-flex;gap:7px;align-items:center}
 .dash .dk-tabs button[aria-selected=true]{color:var(--ink);border-color:var(--accent)}
@@ -988,6 +989,50 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (!sub && (S.fin || j.fin || (j.money && j.money.length))) c.push(['money', 'Money']);
     return '<nav class="dk-chips dk-tabs" aria-label="Sections">' + c.map(function (x) { return '<button type="button" class="dk-chip" data-jump="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</nav>';
   }
+  // ---------- Messages: one thread list per job, with an Internal / Client / Subs switch and a composer ----------
+  var TEAMRX = /kdbla\.com|aramyankovacsdesign|kyleskovacs|\b(kyle|mary|sam|michael)\b|kovacs|swisher/i;
+  function msgAud(m, j) {
+    if (m.audience) return m.audience;
+    var parts = (String(m.from || '') + ' , ' + String(m.to || '')).toLowerCase();
+    var cl = (j && j.contacts || []).filter(function (c) { return String(c[0]).indexOf('Client') === 0; });
+    var isCl = cl.some(function (c) { return (c[2] && parts.indexOf(String(c[2]).toLowerCase()) >= 0) || (c[1] && parts.indexOf(String(c[1]).split(' ')[0].toLowerCase()) >= 0); });
+    if (isCl) return 'client';
+    var people = parts.split(/[,;]/).map(function (x) { return x.trim(); }).filter(Boolean);
+    return people.length && people.every(function (x) { return TEAMRX.test(x); }) ? 'internal' : 'subs';
+  }
+  var AUD = { internal: 'Internal', client: 'Client', subs: 'Subs & others' };
+  function sentKey(id) { return 'dk-msgsent-' + id; }
+  function sentLoad(id) { try { return JSON.parse(localStorage.getItem(sentKey(id)) || '[]'); } catch (e) { return []; } }
+  function msgDefaultTo(a, j) {
+    if (a === 'client') return (j.contacts || []).filter(function (c) { return String(c[0]).indexOf('Client') === 0 && c[2]; }).map(function (c) { return c[2]; }).join(', ');
+    if (a === 'internal') return Object.keys(PEOPLE).filter(function (k) { return k !== (DATA.me && DATA.me.id); }).map(function (k) { return PEOPLE[k]; }).join(', ');
+    return '';
+  }
+  function msgThreadHtml(id, H, jn) {
+    var j = job(id) || { contacts: [] }, sub = isSub();
+    var all = (sentLoad(id).concat(H.messages || [])).map(function (m) { return Object.assign({}, m, { _a: msgAud(m, j) }); });
+    if (sub) all = all.filter(function (m) { return m._a === 'subs'; });
+    var f = sub ? 'subs' : (S.maud || 'all'), shown = all.filter(function (m) { return f === 'all' || m._a === f; });
+    var th = {}, order = [];
+    shown.forEach(function (m) { var k = String(m.title || '(no subject)').replace(/^((re|fwd?|fw)\s*:\s*)+/i, '').trim().toLowerCase(); if (!th[k]) { th[k] = []; order.push(k); } th[k].push(m); });
+    order.forEach(function (k) { th[k].sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); }); });
+    order.sort(function (a, b) { return String(th[b][0].date || '').localeCompare(String(th[a][0].date || '')); });
+    var tabs = sub ? '' : '<div class="dk-tabs" role="tablist">' + [['all', 'All'], ['internal', 'Internal'], ['client', 'Client'], ['subs', 'Subs & others']].map(function (t) {
+      var n = t[0] === 'all' ? all.length : all.filter(function (m) { return m._a === t[0]; }).length;
+      return '<button role="tab" data-maud="' + t[0] + '" aria-selected="' + (f === t[0]) + '">' + t[1] + ' <span class="n">' + n + '</span></button>'; }).join('') + '</div>';
+    var c = S.mc, comp = '';
+    if (c && !S.ro && !sub) {
+      comp = '<form class="dk-mc" data-mcform="' + esc(id) + '"><div class="dk-acts">' + ['client', 'internal', 'subs'].map(function (a) { return '<button type="button" class="dk-chip' + (c.a === a ? ' on' : '') + '" data-mca="' + a + '">' + AUD[a] + '</button>'; }).join('') + '</div>' +
+        '<input type="text" data-mcf="to" placeholder="To (email addresses)" aria-label="To" value="' + esc(c.to) + '"><input type="text" data-mcf="subject" placeholder="Subject" aria-label="Subject" value="' + esc(c.subject) + '"><textarea data-mcf="body" rows="4" placeholder="Message" aria-label="Message">' + esc(c.body) + '</textarea>' +
+        '<div class="dk-acts"><button type="button" class="dk-chip on" data-msend="' + esc(id) + '">Send</button><button type="button" class="dk-chip" data-mcancel="1">Cancel</button></div><p class="dk-src">Goes by email from your own address. Replies come back to this thread. Nothing is sent until you press Send.</p></form>';
+    }
+    var list = order.length ? '<ul class="dk-dl">' + order.map(function (k) {
+      var ms = th[k], top = ms[0];
+      return '<li><details><summary><b>' + esc(String(top.title || '(no subject)').replace(/^((re|fwd?|fw)\s*:\s*)+/i, '')) + '</b><span class="dk-dm">' + (sub ? '' : esc(AUD[top._a]) + ' · ') + ms.length + (ms.length === 1 ? ' message' : ' messages') + ' · ' + esc(String(top.date || '').slice(0, 10)) + '</span></summary>' + ms.map(function (m) {
+        return '<p><span class="dk-dm">' + esc(m.from || '') + (m.to ? ' to ' + esc(m.to) : '') + ' · ' + esc(String(m.date || '').slice(0, 16)) + (m.sent ? ' · sent from here' : '') + '</span><br>' + esc(m.body || '') + '</p>'; }).join('') + '</details></li>'; }).join('') + '</ul>'
+      : '<p class="dk-src">No messages here yet.</p>';
+    return '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + order.length + (order.length === 1 ? ' thread' : ' threads') + '</span>' + (S.ro || sub ? '' : '<button class="link" data-mnew="1">+ New message</button>') + '</div>' + tabs + comp + list + '</section>';
+  }
   function histHtml(id) {
     var H = (DATA.history || {})[id] || {}, jn = job(id) || { name: '' };
     var h = legacyNotesHtml(id, H, jn);
@@ -997,9 +1042,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (shownLogs.length) h = h.replace(/<\/section>$/, '') + '<ul class="dk-dl">' + shownLogs.map(function (l) {
       return '<li><div class="dk-dh"><b>' + esc(l.date) + '</b>' + (l.title ? ' · ' + esc(l.title) : '') + '</div><div class="dk-dm">' + esc(l.author || '') + (l.visibility ? ' · ' + esc(l.visibility) : '') + (l.temps ? ' · ' + esc(l.temps) : '') + (l.photos && l.photos !== '0' && l.photos !== '0 photos' ? ' · ' + esc(String(l.photos)) + ' photo' + (String(l.photos)[0] === '1' ? '' : 's') : '') + (l.link ? ' · <a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source || 'Transcript') + '</a>' : (l.source ? ' · ' + esc(l.source) : '')) + '</div><p>' + esc(l.text || '') + '</p></li>';
     }).join('') + '</ul></section>';
-    if (H.messages && H.messages.length) h += '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + H.messages.length + '</span></div><ul class="dk-dl">' + H.messages.map(function (m) {
-      return '<li><details><summary><b>' + esc(m.title || '(no subject)') + '</b><span class="dk-dm">' + esc(m.from || '') + (m.to ? ' to ' + esc(m.to) : '') + ' · ' + esc(String(m.date || '').slice(0, 10)) + '</span></summary><p>' + esc(m.body || '') + '</p></details></li>';
-    }).join('') + '</ul></section>';
+    h += msgThreadHtml(id, H, jn);
     if (H.files && H.files.length) h += '<section class="card" id="dk-c-files"><div class="ch"><h2>Files</h2><span class="dk-src" style="margin:0">' + H.files.length + '</span></div><table class="dk-tbl"><thead><tr><th>Name</th><th>Folder</th><th>Date</th><th>Added by</th></tr></thead><tbody>' + H.files.map(function (f) {
       return '<tr><td>' + (f.url ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>' : esc(f.name)) + '</td><td>' + esc(f.folder || '') + '</td><td>' + esc(f.date || '') + '</td><td>' + esc(f.by || '') + '</td></tr>';
     }).join('') + '</tbody></table></section>';
@@ -1236,11 +1279,36 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if ((b = e.target.closest('[data-logf]'))) { S.logf = b.getAttribute('data-logf'); render(); return; }
     if ((b = e.target.closest('[data-jf]'))) { S.jf = b.getAttribute('data-jf'); render(); return; }
     if ((b = e.target.closest('[data-tab]'))) { S.tab = b.getAttribute('data-tab'); render(); return; }
+    if ((b = e.target.closest('[data-maud]'))) { S.maud = b.getAttribute('data-maud'); render(); return; }
+    if ((b = e.target.closest('[data-mnew]'))) { var mj = job(S.view); if (!mj) return; var a0 = S.maud && S.maud !== 'all' ? S.maud : 'client'; S.mc = { a: a0, to: msgDefaultTo(a0, mj), subject: '', body: '' }; render(); return; }
+    if ((b = e.target.closest('[data-mca]'))) { var mj2 = job(S.view); S.mc.a = b.getAttribute('data-mca'); S.mc.to = msgDefaultTo(S.mc.a, mj2 || { contacts: [] }); render(); return; }
+    if (e.target.closest('[data-mcancel]')) { S.mc = null; render(); return; }
+    if ((b = e.target.closest('[data-msend]'))) { sendThreadMsg(b.getAttribute('data-msend'), b); return; }
     if (e.target.closest('[data-todo]')) { if (window.showTab) window.showTab('todo'); return; }
     if ((b = e.target.closest('[data-say]'))) { if (window.chatDraft) window.chatDraft(b.getAttribute('data-say')); else if (window.showTab) window.showTab('chat'); return; }
     if (e.target.closest('[data-add]')) { var f = $('dash-addd'); if (!S.cal) { toast('The company calendar isn’t connected yet.'); return; } f.hidden = !f.hidden; if (!f.hidden) { f.date.value = DATA.today; f.title.focus(); } return; }
     if (e.target.closest('[data-addx]')) { $('dash-addd').hidden = true; return; }
   });
+  root.addEventListener('input', function (e) { var f = e.target && e.target.getAttribute && e.target.getAttribute('data-mcf'); if (f && S.mc) S.mc[f] = e.target.value; });
+  function sendThreadMsg(id, btn) {
+    if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; }
+    var c = S.mc; if (!c) return;
+    var to = String(c.to || '').split(/[,;\s]+/).filter(Boolean);
+    if (!to.length || !to.every(function (x) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); })) { toast('Add who it goes to (a full email address).'); return; }
+    if (!String(c.subject).trim() || !String(c.body).trim()) { toast('Add a subject and a message.'); return; }
+    if (!window.bfSendMail) { toast('Sending isn’t available here yet. Nothing was sent.'); return; }
+    var j = job(id); btn.disabled = true; btn.textContent = 'Sending…';
+    window.bfSendMail(to, c.subject, c.body).then(function (r) {
+      if (r && r.ok) {
+        var list = sentLoad(id); list.unshift({ title: c.subject, from: (DATA.me && DATA.me.name) || 'Me', to: to.join(', '), date: new Date().toISOString().slice(0, 16).replace('T', ' '), body: c.body, audience: c.a, sent: 1 });
+        try { localStorage.setItem(sentKey(id), JSON.stringify(list.slice(0, 50))); } catch (x) { }
+        S.mc = null; S.maud = 'all'; render(); toast('Sent to ' + to.join(', ') + '.');
+      } else {
+        btn.disabled = false; btn.textContent = 'Send';
+        toast(r && r.error === 'held_for_approval' ? 'That address isn’t on the approved list yet, so it was saved as a draft in your Gmail. Nothing went out.' : r && r.error === 'not_enabled' ? 'One-tap sending isn’t switched on for you yet. Nothing was sent.' : 'That didn’t send. Nothing went out. Try again in a moment.');
+      }
+    }, function () { btn.disabled = false; btn.textContent = 'Send'; toast('That didn’t send. Nothing went out. Try again in a moment.'); });
+  }
   function saveDate(form) {
     var title = form.title.value.trim(), date = form.date.value, time = form.time.value, err = $('dash-adderr');
     err.hidden = true; if (!title || !date) return;
@@ -1668,6 +1736,7 @@ window.dashJobMounted = function (el, job) {
     if ((tab === 'dash' || tab === 'todo') && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.dashInit({ presale: true, key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true, presale: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
   }
   window.showTab = show;
+  window.bfSendMail = function (to, subject, body) { return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: key, action: 'mail', mail: { to: to, subject: subject, body: body, attachments: [] } }) }).then(function (r) { return r.json(); }); };
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
   $('tabChat').onclick = function () { show('chat'); };
   $('tabTodo').onclick = function () { show('todo'); };
