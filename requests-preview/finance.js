@@ -243,7 +243,7 @@
   function calc(kind, rec) {
     var mk = S.cfg.settings.default_markup_pct, b = 0, p = 0, lt = [];
     (rec.lines || []).forEach(function (l) {
-      var q = l.qty === '' || l.qty == null ? 1 : n2(l.qty), bc = r2(q * n2(l.unit_cost)), m = l.markup_pct === '' || l.markup_pct == null ? (kind === 'po' ? 0 : mk) : n2(l.markup_pct), pr = r2(bc * (1 + m / 100)); b += bc; p += pr; lt.push(kind === 'po' ? bc : pr);
+      var q = l.qty === '' || l.qty == null ? 1 : n2(l.qty), bc = r2(q * n2(l.unit_cost)), m = l.markup_pct === '' || l.markup_pct == null ? (kind === 'po' ? 0 : mk) : n2(l.markup_pct), pr = (kind !== 'po' && l.price_override != null && l.price_override !== '') ? r2(n2(l.price_override)) : r2(bc * (1 + m / 100)); b += bc; p += pr; lt.push(kind === 'po' ? bc : pr);
     });
     return { builder: r2(b), price: r2(p), lt: lt };
   }
