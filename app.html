@@ -537,16 +537,27 @@
 .dash .dk-dd button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:11px 12px;font-size:15px;cursor:pointer;color:inherit}
 .dash .dk-dd button:hover{background:rgba(127,127,127,.15)}
 .dash .dk-dd button[aria-current=true]{font-weight:700;color:var(--accent)}
-@media (max-width:720px){
- .dash .dk-mb{display:inline-flex}
- .dash .dk-nbar{flex-wrap:wrap}.dash .dk-pt{order:3;flex:0 0 100%;font-size:13px;opacity:.75;margin:-2px 0 0 2px}
- .dash .dk-menu{display:none;flex-direction:column;gap:0;padding:0 0 10px}
- .dash .dk-menu.open{display:flex}
- .dash .dk-g{border-top:1px solid var(--line2)}
- .dash .dk-gb{width:100%;text-align:left;padding:14px 6px;font-size:17px;border-bottom:0}
- .dash .dk-dd{position:static;box-shadow:none;border:0;border-left:3px solid var(--line);border-radius:0;margin:0 0 8px 6px;padding:0 0 0 6px;min-width:0}
- .dash .dk-dd button{font-size:16px;padding:13px 8px}
-}
+.dash.dk-m .dk-nbar{flex-wrap:wrap}
+.dash.dk-m .dk-menu{display:none;flex-direction:column;gap:0;padding:0 0 10px}
+.dash.dk-m .dk-menu.open{display:flex}
+.dash.dk-m .dk-g{border-top:1px solid var(--line2)}
+.dash.dk-m .dk-gb{width:100%;text-align:left;padding:14px 6px;font-size:17px;border-bottom:0}
+.dash.dk-m .dk-dd{position:static;box-shadow:none;border:0;border-left:3px solid var(--line);border-radius:0;margin:0 0 8px 6px;padding:0 0 0 6px;min-width:0}
+.dash.dk-m .dk-dd button{font-size:16px;padding:13px 8px}
+.dash.dk-d .dk-nbar{flex-wrap:wrap}
+.dash .dk-lay{border:1px solid var(--line);background:none;color:inherit;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.dash .dk-seg{display:flex;gap:2px;background:rgba(127,127,127,.18);border-radius:999px;padding:3px;margin:8px 0}
+.dash .dk-seg button{flex:1;border:0;background:none;color:inherit;font:inherit;font-size:14px;font-weight:600;padding:10px 4px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.dash .dk-seg button.on{background:var(--accent);color:#000}
+.dash .dk-mjob{display:flex;gap:8px;align-items:center;padding:2px 0 8px}.dash .dk-mjob .dk-pick{flex:1;max-width:none}
+.dash .dk-htabs{display:flex;gap:6px;padding:0 0 10px}
+.dash .dk-htabs button{flex:1;border:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:14px;font-weight:600;padding:9px;border-radius:10px;cursor:pointer}
+.dash .dk-htabs button.on{background:var(--accent);color:#000;border-color:var(--accent)}
+.dash .dk-fabw{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));z-index:40;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.dash .dk-fab{width:58px;height:58px;border-radius:50%;border:0;background:var(--accent);color:#000;font-size:32px;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.4);cursor:pointer}
+.dash .dk-fabm{display:flex;flex-direction:column;gap:6px;background:var(--card,var(--bg));border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 10px 28px rgba(0,0,0,.4)}
+.dash .dk-fabm button{background:none;border:0;color:inherit;font:inherit;font-size:16px;text-align:left;padding:12px 16px;border-radius:10px;cursor:pointer}
+.dash .dk-fabm button:hover{background:rgba(127,127,127,.15)}
 .dash .dk-alb{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}.dash .dk-alb small{opacity:.6}
 .dash .dk-ph span small{display:block;opacity:.6;font-size:11px}
 
@@ -668,7 +679,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241307";
+(function(){var BUILD="202611241335";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1008,7 +1019,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   // ---- Navigation: one page per function, old-system order and names ----
   var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys', ctint: 'Internal Users', ctven: 'Subs/Vendors', ctcl: 'Client Contacts', lopp: 'Lead Opportunities', lact: 'Lead Activities', lprop: 'Lead Proposals', lcal: 'Lead Activity Calendar', lmap: 'Lead Map' };
-  var NS = { lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, war: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
+  var NS = { rfi: 1, upd: 1, fpay: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, war: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
   var FTAB = { ctven: 'vendors', rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
@@ -1020,6 +1031,26 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (BOOT && Date.now() - BOOT.t > 30000) BOOT = null;
     if (BOOT && S.view !== 'list' && S.view !== 'all' && S.view === BOOT.job) { S.page = BOOT.page; BOOT = null; }
     return S.view === 'list' ? 'list' : (S.page || 'summary');
+  }
+  // ---- Layout: phone or desktop, auto by screen width, person can override (remembered) ----
+  function isM() { var l = ''; try { l = localStorage.getItem('dk-layout') || ''; } catch (e) { } if (l === 'm') return true; if (l === 'd') return false; return window.innerWidth <= 720; }
+  function mobileNav(cp, sub, menu, pick) {
+    var seg = [['summary', 'Home'], ['sched', 'Schedule'], ['logs', 'Daily Logs'], ['todos', 'Tasks']].filter(function (x) { return !sub || x[0] === 'logs' || x[0] === 'todos' || x[0] === 'summary'; });
+    var inSeg = seg.some(function (x) { return x[0] === cp; }) && S.view !== 'list';
+    var sg = seg.map(function (x) { return '<button type="button" data-pg="' + x[0] + '" class="' + (!S.menu && inSeg && cp === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '<button type="button" data-mtoggle="1" class="' + (S.menu || !inSeg ? 'on' : '') + '">More</button>';
+    var ht = (cp === 'summary' && S.view !== 'list' && !S.menu) ? '<div class="dk-htabs"><button type="button" data-htab="sum" class="' + (S.htab !== 'feed' ? 'on' : '') + '">Summary</button><button type="button" data-htab="feed" class="' + (S.htab === 'feed' ? 'on' : '') + '">Activity Feed</button></div>' : '';
+    return '<div class="dk-nav dk-mnav"><div class="dk-seg">' + sg + '</div><div class="dk-mjob">' + pick + '<button type="button" class="dk-lay" data-layout="d">Desktop view</button></div>' + ht + '<div class="dk-menu' + (S.menu ? ' open' : '') + '">' + menu + '</div></div>';
+  }
+  function feedHtml(v) {
+    var items = DATA.activity.concat(DATA.btActivity || []).filter(function (a) { return v === 'all' || a.job === v; });
+    return (v === 'all' ? allHead('Activity Feed', 'Everything that changed, all open jobs') : '') + (items.length ? activityGrouped(items) : '<section class="card"><p class="dk-src">No activity yet.</p></section>');
+  }
+  function fabHtml() {
+    if (S.ro || S.view === 'list') return '';
+    var j = (S.view !== 'all') && job(S.view), jn = j ? j.name : '';
+    var say = function (l, t) { return '<button type="button" data-say="' + esc(t) + '">' + l + '</button>'; };
+    var m = S.fab ? '<div class="dk-fabm">' + (j ? say('Site note', 'Add a site note to ' + jn + ': ') + say('Daily log', 'Add a daily log to ' + jn + ': ') + (isSub() ? '' : say('Change order', 'Change order on ' + jn + ': ')) + say('Message ' + esc(j.client.split(/ & | /)[0]), 'Message to ' + j.client.split(/ & | /)[0] + ': ') : say('Site note', 'Add a site note: ') + say('Daily log', 'Add a daily log: ') + (isSub() ? '' : say('Change order', 'Change order: ')) + say('Message', 'Message: ')) + '<button type="button" data-rec="1">Record</button></div>' : '';
+    return '<div class="dk-fabw">' + m + '<button type="button" class="dk-fab" data-fab="1" aria-label="Quick actions" aria-expanded="' + !!S.fab + '">' + (S.fab ? '×' : '+') + '</button></div>';
   }
   function navHtml() {
     var cp = curPage(), sub = isSub();
@@ -1036,7 +1067,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var og = function (l, a) { return a.length ? '<optgroup label="' + l + '">' + a.map(opt).join('') + '</optgroup>' : ''; };
     var pick = '<select id="dash-pick" class="dk-pick" aria-label="Job">' + '<option value="all"' + (S.view === 'all' || S.view === 'list' ? ' selected' : '') + '>All jobs</option>' +
       og('Open', js.filter(function (j) { return !j.presale && !j.closed; })) + og('Pre-sale (Michael only)', js.filter(function (j) { return j.presale; })) + og('Closed', js.filter(function (j) { return j.closed && !j.presale; })) + '</select>';
-    return '<div class="dk-nav"><div class="dk-nbar"><button type="button" class="dk-mb" data-mtoggle="1" aria-expanded="' + !!S.menu + '"><span aria-hidden="true">☰</span> Menu</button><b class="dk-pt">' + PG[cp] + '</b>' + pick + '</div><div class="dk-menu' + (S.menu ? ' open' : '') + '">' + menu + '</div></div>';
+    if (isM()) return mobileNav(cp, sub, menu, pick);
+    return '<div class="dk-nav"><div class="dk-nbar"><button type="button" class="dk-mb" data-mtoggle="1" aria-expanded="' + !!S.menu + '"><span aria-hidden="true">☰</span> Menu</button><b class="dk-pt">' + PG[cp] + '</b>' + pick + '<button type="button" class="dk-lay" data-layout="m">Phone view</button></div><div class="dk-menu' + (S.menu ? ' open' : '') + '">' + menu + '</div></div>';
   }
   function histPart(id, key) {
     var parts = histHtml(id).split('<section '), want = 'id="' + HKEY[key] + '"';
@@ -1113,6 +1145,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var v = S.view, p = curPage();
     if (p === 'ctint' || p === 'ctcl' || p === 'ctven') return navHtml() + ctPage(p);
     if (v === 'list') return navHtml() + jobsListHtml();
+    if (isM() && p === 'summary' && S.htab === 'feed' && !S.menu) return navHtml() + feedHtml(v);
     if (v === 'all') return navHtml() + allPage(p);
     return navHtml() + jobPage(v, p);
   }
@@ -1121,7 +1154,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     sideHtml();
     loadWx(); DATA.wx = WX[wxKey()] || { time: [], code: [], hi: [], rain: [] };
     var h = pageHtml();
-    $('dash-main').innerHTML = asHtml() + h;
+    var rt = $('dash'); rt.classList.toggle('dk-m', isM()); rt.classList.toggle('dk-d', !isM());
+    $('dash-main').innerHTML = asHtml() + h + (isM() ? fabHtml() : '');
     // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
     if (((S.view !== 'all' && S.view !== 'list') || curPage() === 'ctven') && (curPage() === 'fin' || FTAB[curPage()]) && $('dash-ext') && !S.ro && window.dashJobMounted) { var jj = job(S.view) || openJobs()[0]; try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client, tab: FTAB[curPage()] || '' }); } catch (e) { }
       var ft = FTAB[curPage()];
@@ -1146,6 +1180,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   function remember(id) { S.last = id; try { localStorage.setItem('dk-job', id); } catch (e) { } }
   var root = $('dash');
+  var wasM = isM(); window.addEventListener('resize', function () { var m = isM(); if (m !== wasM) { wasM = m; S.menu = false; render(); } });
   root.addEventListener('change', function (e) {
     if (e.target && e.target.id === 'dash-pick') { var id = e.target.value; S.view = id; if (id !== 'all') remember(id); S.menu = false; render(); window.scrollTo({ top: 0 }); }
   });
@@ -1159,6 +1194,11 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   root.addEventListener('submit', function (e) { var f = e.target.closest && e.target.closest('[data-cmf]'); if (!f) return; e.preventDefault(); if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } postComment(f); });
   root.addEventListener('click', function (e) {
     var b;
+    if ((b = e.target.closest('[data-layout]'))) { try { localStorage.setItem('dk-layout', b.getAttribute('data-layout')); } catch (e2) { } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
+    if ((b = e.target.closest('[data-htab]'))) { S.htab = b.getAttribute('data-htab'); render(); return; }
+    if ((b = e.target.closest('[data-fab]'))) { S.fab = !S.fab; render(); return; }
+    if ((b = e.target.closest('[data-rec]'))) { S.fab = false; render(); var mic = document.getElementById('mic'); if (mic) mic.click(); return; }
+    if (S.fab && e.target.closest('.dk-fabm')) { S.fab = false; var fm = document.querySelector('.dk-fabm'); if (fm) fm.remove(); }
     if ((b = e.target.closest('[data-view]'))) { S.view = b.getAttribute('data-view'); S.tab = 'over'; if (S.view !== 'list') { S.page = (S.dlPage && S.view === S.dlJob) ? S.dlPage : 'summary'; if (S.view !== 'all') remember(S.view); } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-pg]'))) { var pg = b.getAttribute('data-pg'); if (pg === 'list') S.view = 'list'; else { if (S.view === 'list') S.view = S.last || 'all'; S.page = pg; } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-sview]'))) { S.sview = b.getAttribute('data-sview'); render(); return; }
@@ -1556,9 +1596,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241240">
+<link rel="stylesheet" href="finance.css?v=202611241335">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241240"></script>
+<script src="finance.js?v=202611241335"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
