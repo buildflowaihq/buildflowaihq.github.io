@@ -121,10 +121,13 @@
       rows.map(function (r) { return '<tr data-bf-open="' + kind + ':' + r.id + '" tabindex="0">' + cols.map(function (c) { var v = c[1](r); return '<td' + cc(c) + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
   }
   function insBadge(v) { return v.insurance_status === 'ok' ? badge('Insured') : v.insurance_status === 'expiring' ? badge('Draft').replace('Draft', 'Expires ' + fdate(v.insurance_expires)) : v.insurance_status === 'expired' ? badge('Void').replace('Void', 'Insurance expired') : '<span class="dk-m">None on file</span>'; }
+  var BILL_TABS = [['inbox', 'Inbox', function (b) { return b.display === 'Draft'; }], ['review', 'In Review', function (b) { return /review|pending/i.test(b.display); }], ['ready', 'Ready for Payment', function (b) { return b.display === 'Approved' || b.display === 'Overdue' || (b.display !== 'Paid' && b.display !== 'Draft' && b.display !== 'Void' && !/review|pending/i.test(b.display) && b.totals.remaining > 0); }], ['paid', 'Paid', function (b) { return b.display === 'Paid'; }], ['all', 'All Bills', function () { return true; }]];
   function billList(d) {
-    var bl = d.bills || [];
-    return '<div class="bf-bar"><label class="bf-btn alt bf-file">Snap receipt<input type="file" accept="image/*" capture="environment" multiple hidden data-bf-rcpt></label><span class="dk-m">Receipts and supplier bills that aren’t on a purchase order. Paid amounts count as actual cost. For a PO, record the bill on the PO.</span></div>' +
-      table([['Bill', function (r) { return esc(r.number); }], ['Title', function (r) { return esc(r.title); }], ['Pay to', function (r) { return esc(r.vendor.name); }], ['Status', function (r) { return badge(r.display); }], ['Amount', function (r) { return money(r.totals.amount); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1], ['Due', function (r) { return fdate(r.due_date); }]], bl, 'bill', 'No bills yet.');
+    var all = d.bills || [], bt = S.bt || 'all', cur = BILL_TABS.filter(function (t) { return t[0] === bt; })[0] || BILL_TABS[4];
+    var bl = all.filter(cur[2]);
+    var strip = '<div class="bf-btabs">' + BILL_TABS.map(function (t) { return '<button class="bf-btab" data-bf-bt="' + t[0] + '" aria-selected="' + (t[0] === bt) + '">' + t[1] + ' <span>' + all.filter(t[2]).length + '</span></button>'; }).join('') + '</div>';
+    return strip + '<div class="bf-bar"><label class="bf-btn alt bf-file">Snap receipt<input type="file" accept="image/*" capture="environment" multiple hidden data-bf-rcpt></label><span class="dk-m">Receipts and supplier bills that aren’t on a purchase order. Paid amounts count as actual cost. For a PO, record the bill on the PO.</span></div>' +
+      table([['Bill', function (r) { return esc(r.number); }], ['Title', function (r) { return esc(r.title); }], ['Pay to', function (r) { return esc(r.vendor.name); }], ['Status', function (r) { return badge(r.display); }], ['Amount', function (r) { return money(r.totals.amount); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1], ['Due', function (r) { return fdate(r.due_date); }]], bl, 'bill', 'Nothing here.');
   }
   function openBill(id) {
     var rec = id ? (S.data.bills || []).filter(function (x) { return x.id === id; })[0] : null;
@@ -218,9 +221,13 @@
     var st = S.cfg.settings;
     return '<details class="fold sub bf-iset"><summary><h3>Invoice settings</h3></summary><label>Who sends invoices (names, comma separated; blank = any approver)<input data-bf-iapp value="' + esc((st.invoice_approvers || []).join(', ')) + '"></label><label class="bf-chk"><input type="checkbox" data-bf-iqb' + (st.qbo && st.qbo.enabled ? ' checked' : '') + '> Hand sent invoices to QuickBooks (turn on after QuickBooks is connected)</label><button class="bf-btn alt" data-bf-isave>Save</button></details>';
   }
+  function invStrip(d) {
+    var rev = d.rollup.price.revised, paid = (d.invoices || []).reduce(function (t, i) { return t + (i.status === 'void' ? 0 : n2(i.totals.paid)); }, 0);
+    return '<div class="bf-istrip"><div><small>Total revised price</small><b>' + money(rev) + '</b></div><i>−</i><div><small>Payments</small><b>' + money(paid) + '</b></div><i>=</i><div><small>Remaining balance</small><b>' + money(rev - paid) + '</b></div></div>';
+  }
   function invList(d) {
-    return billingCard(d) + invReady(d) + invSettings() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
-      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && (r.qb.status === 'ready' || r.qb.status === 'queued') ? (r.qb.status === 'queued' ? 'Queued' : 'Ready') : '—'; }]], d.invoices, 'inv', 'No invoices yet.');
+    return invStrip(d) + billingCard(d) + invReady(d) + invSettings() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
+      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && (r.qb.status === 'ready' || r.qb.status === 'queued') ? (r.qb.status === 'queued' ? 'Queued' : 'Ready') : '—'; }]], (d.invoices || []).slice().sort(function (a, b) { return String(a.number).localeCompare(String(b.number), undefined, { numeric: true }); }), 'inv', 'No invoices yet.');
   }
 
   // ---------- editor (one panel for all three, same grid as the current job software)
@@ -499,6 +506,7 @@
   function onClick(e) {
     var t = e.target, b;
     if (b2Click(t)) return;
+    if ((b = t.closest('[data-bf-bt]'))) { S.bt = b.dataset.bfBt; draw(); return; }
     if ((b = t.closest('[data-bf-tab]'))) { S.tab = b.dataset.bfTab; draw(); return; }
     if ((b = t.closest('[data-bf-new]'))) { openEditor(b.dataset.bfNew); return; }
     if ((b = t.closest('[data-bf-open]'))) { var p = b.dataset.bfOpen.split(':'); S.tab = p[0]; if (p[0] === 'bill') openBill(p[1]); else openEditor(p[0], p[1]); return; }
