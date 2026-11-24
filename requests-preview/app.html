@@ -683,7 +683,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241530";
+(function(){var BUILD="202611241545";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1611,9 +1611,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241530">
+<link rel="stylesheet" href="finance.css?v=202611241545">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241530"></script>
+<script src="finance.js?v=202611241545"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
@@ -2272,10 +2272,10 @@ window.dashJobMounted = function (el, job) {
     var people = []; todos.forEach(function (t) { if (people.indexOf(t.person) < 0) people.push(t.person); });
     var fl = $('filters'); fl.hidden = !admin; fl.innerHTML = '';
     if (admin) ['all'].concat(people).forEach(function (p) {
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = p === 'all' ? 'Everyone' : p; b.className = (who === p || (who === 'mine' && p === 'all')) ? 'on' : '';
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = p === 'all' ? 'Everyone' : p; b.className = (who === p || (who === 'mine' && p === me)) ? 'on' : '';
       b.onclick = function () { who = p; drawTodos(); }; fl.appendChild(b);
     });
-    var list = todos.filter(function (t) { return !admin || who === 'mine' || who === 'all' || t.person === who; });
+    var list = todos.filter(function (t) { return !admin || who === 'all' || (who === 'mine' ? t.person === me : t.person === who); }); // admins start on their OWN list; Everyone shows the team
     var ask = list.filter(function (t) { return t.status === 'ask'; });
     var working = list.filter(function (t) { return t.status === 'working'; });
     var open = list.filter(function (t) { return t.status === 'open'; }).sort(function (a, b) { return (b.urgent - a.urgent) || (new Date(a.created) - new Date(b.created)); });
