@@ -544,6 +544,7 @@
     <div class="rs-in">
       <div class="rs-top"><h2>Record a meeting</h2><button type="button" class="rs-x" id="recClose" aria-label="Close">✕</button></div>
       <p class="rs-sub">BuildFlowAI says the recording notice out loud first. It saves and sends as you go, so long walk-throughs are fine. Keep the app open with the screen on.</p>
+      <label class="rs-job" style="display:block;font-size:14px;margin:0 0 10px">Which job is this about? <small>(optional)</small><select id="recJob" style="display:block;width:100%;margin-top:4px;padding:10px;font:inherit;border-radius:10px"><option value="">Not sure, work it out from the recording</option></select></label>
       <div id="recMount"></div>
       <p class="rs-err" id="recErr"></p>
       <button type="button" class="rs-send" id="recSend" hidden>Send to BuildFlowAI</button>
@@ -560,7 +561,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241008";
+(function(){var BUILD="202611241009";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1798,7 +1799,7 @@ window.dashJobMounted = function (el, job) {
         if (total < 2000) { rec.drop(id); return; }
         return pump(id, info.mime, info.startAt).then(function () {
           return post({ k: key, action: 'recdone', rec: id, last: info.last, bytes: total,
-            what: 'Meeting recording from the app, part ' + info.n + ' (the phone stopped its microphone and the app started it again, so the recording continues in the next part). Please transcribe it, write up the notes and action items, and file them to the right job.' });
+            what: recJobSay() + 'Meeting recording from the app, part ' + info.n + ' (the phone stopped its microphone and the app started it again, so the recording continues in the next part). Please transcribe it, write up the notes and action items, and file them to the right job.' });
         }).then(function (d) {
           if (d && !d.ok && d.error === 'missing') { setSent(id, (d.missing[0][0] || 0) - 1); throw new Error('missing'); }
           if (!d || !d.ok || d.bytes !== total) throw new Error('done');
@@ -1823,7 +1824,7 @@ window.dashJobMounted = function (el, job) {
         if (total < TINY_FINAL && (earlierParts > 0 || (clip.gaps && clip.gaps.length))) return { tiny: true };
         return pump(id, mime, c.startAt).then(function () {
           return post({ k: key, action: 'recdone', rec: id, last: last, bytes: total,
-            what: 'Meeting recording from the app. Please transcribe it and file it to the right job. Handle it as ONE walk-through: transcribe the whole recording once, then (1) write the Daily log notes for the job, marked INTERNAL (not client-visible) unless the speaker says to share them, and (2) turn the action items into sorted DRAFTS for Michael to review (crew task, owner question, or change order). Do not create To-dos or send anything to anyone. Keep the transcript and the audio on the job.\n\n' + clip.log });
+            what: recJobSay() + 'Meeting recording from the app. Please transcribe it and file it to the right job. Handle it as ONE walk-through: transcribe the whole recording once, then (1) write the Daily log notes for the job, marked INTERNAL (not client-visible) unless the speaker says to share them, and (2) turn the action items into sorted DRAFTS for Michael to review (crew task, owner question, or change order). Do not create To-dos or send anything to anyone. Keep the transcript and the audio on the job.\n\n' + clip.log });
         }).then(function (d) {
           if (d && !d.ok && d.error === 'missing') { setSent(id, (d.missing[0][0] || 0) - 1); throw new Error('missing'); }
           if (!d || !d.ok) throw new Error((d && d.error) || 'done');
@@ -1853,6 +1854,21 @@ window.dashJobMounted = function (el, job) {
       });
     }
     // A recording from Voice Memos / Files: same piece-by-piece sending, from the file itself.
+    // "Which job?" on the Record sheet: optional, the last job used is pre-selected, one tap to change.
+    var recJobsLoaded = false;
+    function loadRecJobs() {
+      if (recJobsLoaded || !key) return; recJobsLoaded = true;
+      fetch(CHAT + '/api/dash', { headers: { Authorization: 'Bearer ' + key }, cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+        var sel = $('recJob'), last = ''; try { last = localStorage.getItem('abf_recjob') || ''; } catch (e) { }
+        (d.jobs || []).filter(function (j) { return !j.presale; }).forEach(function (j) {
+          var o = document.createElement('option'); o.value = j.name || j.id; o.textContent = j.name || j.id; sel.appendChild(o);
+        });
+        if (last && Array.prototype.some.call(sel.options, function (o) { return o.value === last; })) sel.value = last;
+        else if (sel.options.length === 2) sel.selectedIndex = 1;
+      }).catch(function () { recJobsLoaded = false; });
+    }
+    function recJob() { var v = ($('recJob') && $('recJob').value) || ''; try { if (v) localStorage.setItem('abf_recjob', v); } catch (e) { } return v; }
+    function recJobSay() { var v = recJob(); return v ? 'Job: ' + v + '. ' : ''; }
     function sendFile(file) {
       if (!file) return;
       if (!file.size) { status('That file is empty.', true); return; }
@@ -1861,7 +1877,7 @@ window.dashJobMounted = function (el, job) {
       (function next(tries) {
         if (i >= n) {
           return post({ k: key, action: 'recdone', rec: id, last: n - 1, bytes: file.size,
-            what: 'Recording uploaded from the phone (' + file.name + ', ' + Math.round(file.size / 1048576 * 10) / 10 + ' MB). Please transcribe it and file it to the right job. Handle it as ONE walk-through: transcribe the whole recording once, then (1) write the Daily log notes for the job, marked INTERNAL (not client-visible) unless the speaker says to share them, and (2) turn the action items into sorted DRAFTS for Michael to review (crew task, owner question, or change order). Do not create To-dos or send anything to anyone. Keep the transcript and the audio on the job.' })
+            what: recJobSay() + 'Recording uploaded from the phone (' + file.name + ', ' + Math.round(file.size / 1048576 * 10) / 10 + ' MB). Please transcribe it and file it to the right job. Handle it as ONE walk-through: transcribe the whole recording once, then (1) write the Daily log notes for the job, marked INTERNAL (not client-visible) unless the speaker says to share them, and (2) turn the action items into sorted DRAFTS for Michael to review (crew task, owner question, or change order). Do not create To-dos or send anything to anyone. Keep the transcript and the audio on the job.' })
           .then(function (d) {
             if (!d || !d.ok || d.bytes !== file.size) throw new Error((d && d.error) || 'size');
             up = null; status('');
@@ -1880,7 +1896,7 @@ window.dashJobMounted = function (el, job) {
     }
     function open() {
       if (!window.BuildFlowVoice) { alert('The recorder did not load. Check your signal and try again.'); return; }
-      $('recSheet').hidden = false; if (!up) status('');
+      $('recSheet').hidden = false; if (!up) status(''); loadRecJobs();
       if (!rec) rec = BuildFlowVoice.mount($('recMount'), { noticeAudio: 'voice/notice.m4a', maxBytes: 400 * 1024 * 1024, storeKey: 'app',
         startLabel: 'Start recording',
         onPartEnd: function (info) { finishPart(info, 0); },
