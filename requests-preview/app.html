@@ -685,7 +685,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241620";
+(function(){var BUILD="202611241640";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -856,7 +856,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var wk = i > 4, body = evs.map(function (e) { return '<div class="dk-wev' + (e.hol ? ' hol' : '') + '"><b>' + esc(e.title) + '</b><span>' + esc(e.time || (e.hol ? '' : 'all day')) + '</span></div>'; }).join('') || (wk ? '<div class="dk-wn">Non-workday</div>' : '');
       h += '<li class="' + (iso === DATA.today ? 'now ' : '') + (wk ? 'wk' : '') + '"><div class="dk-wd"><b>' + d.getDate() + '</b><span>' + dayName(iso, { weekday: 'long' }) + '<small>' + dayName(iso, { month: 'short', year: 'numeric' }) + '</small></span></div><div class="dk-wb">' + body + '</div></li>';
     }
-    return '<section class="card"><div class="ch"><h2>This week’s agenda</h2><button class="link" data-say="Show me the schedule">View schedule</button></div><ul class="dk-week">' + h + '</ul></section>';
+    return '<section class="card"><div class="ch"><h2>This week’s agenda</h2><button class="link" data-pg="sched">View schedule</button></div><ul class="dk-week">' + h + '</ul></section>';
   }
   function updatesHtml() {
     return '<section class="card dk-cu"><b>0</b><span>Updates shared with clients this month</span><div class="dk-acts"><button class="dk-chip" data-say="Draft a client update">Client updates</button><button class="dk-chip" data-say="Show me the daily logs">Daily logs</button></div></section>';
@@ -1618,9 +1618,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241620">
+<link rel="stylesheet" href="finance.css?v=202611241640">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241620"></script>
+<script src="finance.js?v=202611241640"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
