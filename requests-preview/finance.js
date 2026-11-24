@@ -161,7 +161,7 @@
       ['Status changed', function (r) { return fdate((r.decided_at || r.sent_at || r.created_at || '').slice(0, 10)); }],
       ['Related POs', function (r) { return esc((r.po_ids || []).map(function (id) { return poN[id]; }).filter(Boolean).join(', ')); }],
       ['Signed', function (r) { var sg = (r.signers || []).filter(function (x) { return x.status === 'approved'; }); return sg.length ? fdate((sg[sg.length - 1].signed_at || '').slice(0, 10)) + (sg.length < (r.signers || []).length ? ' (' + sg.length + '/' + r.signers.length + ')' : '') : ''; }],
-      ['Evidence', function (r) { return r.approval_pdf ? '<button class="link" type="button" data-bf-fdl="' + esc(r.approval_pdf) + '">Approval PDF</button>' : ''; },
+      ['Evidence', function (r) { return r.approval_pdf ? '<button class="link" type="button" data-bf-fdl="' + esc(r.approval_pdf) + '">Approval PDF</button>' : '';}],
       ['', function (r) { return r.imported ? '' : '<button class="bf-btn alt sm" type="button" data-bf-open="co:' + esc(r.id) + '">' + (r.status === 'draft' || r.status === 'pending' ? 'Edit' : 'View') + '</button>'; }]];
     var h = '<div class="bf-bar"><button class="bf-btn" data-bf-new="co">+ Change order</button><span class="dk-m">Approved changes raise the contract price and the budget.</span></div>' + table(cols, rows, 'co', 'No change orders yet.');
     if (rows.length) h += '<p class="dk-m" style="text-align:right"><b>Totals</b> · builder cost ' + money(tc) + ' · total price ' + money(tp) + ' (void excluded)</p>';
