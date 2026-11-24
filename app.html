@@ -276,6 +276,7 @@
 
 /* actions */
 .dash .dk-mic.on{background:var(--accent);color:var(--bg);animation:pulse 1.2s ease-in-out infinite}
+.dash .dk-fl .dk-tbl tbody tr{position:relative}.dash .dk-fl .dk-tbl td:first-child a{display:flex;align-items:center;min-height:44px}.dash .dk-fl .dk-tbl td:first-child a::after{content:'';position:absolute;left:0;right:0;top:0;bottom:0}
 .dash .dk-mc{display:grid;gap:8px;margin:10px 0 14px}.dash .dk-mc input,.dash .dk-mc textarea{width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;color:inherit;font:inherit;font-size:16px}
 .dash .dk-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line2);margin:0 -18px 6px;padding:0 18px}
 .dash .dk-tabs button{white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px 9px;font-size:14px;color:var(--muted);cursor:pointer;margin-bottom:-1px;display:inline-flex;gap:7px;align-items:center}
@@ -701,7 +702,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611251145";
+(function(){var BUILD="202611241910";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
