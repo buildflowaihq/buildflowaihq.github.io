@@ -683,7 +683,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241510";
+(function(){var BUILD="202611241530";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -711,7 +711,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function fmtTime(iso) { return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
   var SNAP = DATA.schedule;  // job dates from contracts and emails, shown until the live calendar answers
   var $ = function (id) { return document.getElementById(id); };
-  var shown = function (j) { return !j.presale || S.presale; };   // pre-sale jobs show only where the host turns them on
+  var shown = function (j) { return !j.presale || (S.presale && !isSub()); };   // pre-sale jobs show only where the host turns them on
   var openJobs = function () { return DATA.jobs.filter(function (j) { return !j.presale && !j.closed; }); };
   var job = function (id) { return DATA.jobs.filter(function (j) { return j.id === id; })[0]; };
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -869,7 +869,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       return '<tr><td><i class="dk-dot" style="background:' + j.color + '"></i></td><td><button class="link" data-view="' + j.id + '">' + esc(j.name) + '</button></td><td>' + esc(parts[0] || '') + '</td><td>' + esc(parts[1] || j.city || '') + '</td><td>' + esc((parts[2] || '').split(' ')[0]) + '</td><td>' + esc(j.zip || '') + '</td><td>' + esc(pm ? pm[1] : '') + '</td><td>' + cl.map(function (c) { return esc(c[1]); }).join('<br>') + '</td><td>' + cl.map(function (c) { return esc(c[3] || ''); }).join('<br>') + '</td><td>' + cl.map(function (c) { return esc(c[2] || ''); }).join('<br>') + '</td><td><span class="dk-badge on">ONLINE</span></td></tr>';
     }).join('') || '<tr><td colspan="11" class="dk-src">No jobs here.</td></tr>';
     var cards = all.filter(function (j) { return st(j) === f; }).sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (j) { return '<button type="button" class="dk-jc" data-view="' + j.id + '"><i class="dk-dot" style="background:' + j.color + '"></i><span><b>' + esc(j.name) + '</b><small>' + esc(j.client || '') + ' · ' + esc(j.stage || '') + '</small></span><em>›</em></button>'; }).join('') || '<p class="dk-src">No jobs here.</p>';
-    var tabs = [['open', 'Open'], ['pre', 'Pre-sale (Michael only)'], ['closed', 'Closed']].filter(function (t) { return t[0] !== 'pre' || S.presale; }).map(function (t) { return '<button role="tab" data-jf="' + t[0] + '" aria-selected="' + (f === t[0]) + '">' + t[1] + ' <span class="n">' + cnt[t[0]] + '</span></button>'; }).join('');
+    var tabs = [['open', 'Open'], ['pre', 'Pre-sale'], ['closed', 'Closed']].filter(function (t) { return t[0] !== 'pre' || S.presale; }).map(function (t) { return '<button role="tab" data-jf="' + t[0] + '" aria-selected="' + (f === t[0]) + '">' + t[1] + ' <span class="n">' + cnt[t[0]] + '</span></button>'; }).join('');
     return '<div class="dk-top"><div><h1>Jobs</h1><p>' + all.length + ' jobs</p></div></div><section class="card"><div class="dk-tabs" role="tablist">' + tabs + '</div><div class="dk-jcards">' + cards + '</div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th></th><th>Job name</th><th>Street address</th><th>City</th><th>State</th><th>Zip code</th><th>Project manager</th><th>Clients</th><th>Client phone</th><th>Client email</th><th>Schedule status</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
   }
   function activityGrouped(list) {
@@ -1080,7 +1080,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var opt = function (j) { return '<option value="' + j.id + '"' + (S.view === j.id ? ' selected' : '') + '>' + esc(j.name) + '</option>'; };
     var og = function (l, a) { return a.length ? '<optgroup label="' + l + '">' + a.map(opt).join('') + '</optgroup>' : ''; };
     var pick = '<select id="dash-pick" class="dk-pick" aria-label="Job">' + '<option value="all"' + (S.view === 'all' || S.view === 'list' ? ' selected' : '') + '>All jobs</option>' +
-      og('Open', js.filter(function (j) { return !j.presale && !j.closed; })) + og('Pre-sale (Michael only)', js.filter(function (j) { return j.presale; })) + og('Closed', js.filter(function (j) { return j.closed && !j.presale; })) + '</select>';
+      og('Open', js.filter(function (j) { return !j.presale && !j.closed; })) + og('Pre-sale', js.filter(function (j) { return j.presale; })) + og('Closed', js.filter(function (j) { return j.closed && !j.presale; })) + '</select>';
     if (isM()) return mobileNav(cp, sub, menu, pick);
     return '<div class="dk-nav"><div class="dk-nbar"><button type="button" class="dk-mb" data-mtoggle="1" aria-expanded="' + !!S.menu + '"><span aria-hidden="true">☰</span> Menu</button><b class="dk-pt">' + PG[cp] + '</b>' + pick + '</div><div class="dk-menu' + (S.menu ? ' open' : '') + '">' + menu + '</div></div>';
   }
@@ -1611,9 +1611,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241510">
+<link rel="stylesheet" href="finance.css?v=202611241530">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241510"></script>
+<script src="finance.js?v=202611241530"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
@@ -1649,7 +1649,7 @@ window.dashJobMounted = function (el, job) {
     $('chat').hidden = tab !== 'chat'; $('todo').hidden = tab !== 'todo'; $('dash').hidden = tab !== 'dash';
     document.querySelector('.app').classList.toggle('wide', tab === 'dash');
     if (tab === 'todo') loadTodos();
-    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.dashInit({ presale: String(me || '').toLowerCase() === 'michael', key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true, presale: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
+    if (tab === 'dash' && !dashReady && window.dashInit) { dashReady = true; var __go = function () { window.dashInit({ presale: true, key: key, api: CHAT, cal: CAL, who: String(me || '').toLowerCase(), wx: { lat: 34.19, lon: -118.13 }, fin: 'https://kdb-finance.mekovacs22.workers.dev', tz: 'America/Los_Angeles', viewAs: (String(me || '').toLowerCase() === 'michael' ? [{ id: 'michael', name: 'Michael', lead: true, contract: true, presale: true }, { id: 'kyle', name: 'Kyle' }, { id: 'mary', name: 'Mary' }, { id: 'sam', name: 'Sam' }] : undefined) }); }; if (me) __go(); else { var __p = loadTodos(); Promise.resolve(__p).then(__go, __go); } }
   }
   window.showTab = show;
   window.chatDraft = function (text) { show('chat'); box.value = String(text || ''); box.dispatchEvent(new Event('input')); box.focus(); }; // e.g. "Message Jaime" from the Dashboard
