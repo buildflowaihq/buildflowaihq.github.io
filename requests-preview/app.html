@@ -680,7 +680,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241335";
+(function(){var BUILD="202611241345";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1020,7 +1020,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
   // ---- Navigation: one page per function, old-system order and names ----
   var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys', ctint: 'Internal Users', ctven: 'Subs/Vendors', ctcl: 'Client Contacts', lopp: 'Lead Opportunities', lact: 'Lead Activities', lprop: 'Lead Proposals', lcal: 'Lead Activity Calendar', lmap: 'Lead Map' };
-  var NS = { rfi: 1, upd: 1, fpay: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, war: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
+  // NS = pages KDB never used in Buildertrend (Michael approved 11/24): hidden from menus. To add one back, delete it from this list.
+  var NS = { rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
   var FTAB = { ctven: 'vendors', rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
@@ -1119,8 +1120,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     else if (p === 'todos') b = '<div class="cols"><div>' + actionsHtml(acts) + newHtml(v) + '</div><div>' + todoHtml() + '</div></div>';
     else if (p === 'sched') b = schedLink(v);
     else if (p === 'co') b = '<section class="card" id="dk-c-co"><div class="ch"><h2>Change Orders</h2></div><p><button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Start a change order</button></p><p class="dk-src">Pending and approved change orders are listed below.</p></section><div id="dash-ext"></div>';
+    else if (p === 'war') b = '<section class="card"><div class="ch"><h2>Warranties</h2></div><p class="dk-src">None logged for this job. Say or send “warranty item on ' + esc(j.name) + ': …” and it is filed here.</p></section>';
     else if (NS[p]) b = '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Not set up yet.</p></section>';
-    else if (p === 'upd') b = updatesHtml();
+    else if (p === 'upd') b = '<section class="card"><div class="ch"><h2>Client Updates</h2></div><p class="dk-src">Weekly client updates are being automated: a voice memo or photo becomes a daily log, and the week’s logs become a draft update for you to approve. Nothing goes to a client until you say so.</p></section>' + updatesHtml();
     else if (p === 'det') b = '<div class="cols"><div>' + peopleHtml(j) + whereC + '</div><div>' + contC + '</div></div>';
     else if (FTAB[p]) b = '<div id="dash-ext"></div>';
     else if (p === 'fin') b = '<div id="dk-c-money">' + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div><div id="dash-ext"></div>';
@@ -1597,9 +1599,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241335">
+<link rel="stylesheet" href="finance.css?v=202611241345">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241335"></script>
+<script src="finance.js?v=202611241345"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
