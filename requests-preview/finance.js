@@ -193,9 +193,20 @@
     if (rows.length) h += '<p class="dk-m" style="text-align:right"><b>Totals</b> · builder cost ' + money(tc) + ' · total price ' + money(tp) + ' (void excluded)</p>';
     return h;
   }
+  function invReady(d) {
+    var rows = (d.invoices || []).filter(function (i) { return i.status === 'draft' && i.draw_id; });
+    if (!rows.length) return '';
+    var can = S.cfg.settings.can_send_invoice;
+    return '<div class="bf-ready"><b>Ready for approval · ' + rows.length + '</b>' + rows.map(function (i) { return '<div class="bf-ready-row"><span>' + esc(i.title) + ' · ' + money(i.totals.total) + (i.client && i.client.name ? ' · ' + esc(i.client.name) : '') + '</span><button class="bf-btn" data-bf-open="inv:' + esc(i.id) + '">' + (can ? 'Review & send' : 'Review') + '</button></div>'; }).join('') + (can ? '' : '<small class="dk-m">Only ' + esc((S.cfg.settings.invoice_approvers || []).join(', ') || 'the approver') + ' can send.</small>') + '</div>';
+  }
+  function invSettings() {
+    if (!S.cfg.user || S.cfg.user.role !== 'owner') return '';
+    var st = S.cfg.settings;
+    return '<details class="fold sub bf-iset"><summary><h3>Invoice settings</h3></summary><label>Who sends invoices (names, comma separated; blank = any approver)<input data-bf-iapp value="' + esc((st.invoice_approvers || []).join(', ')) + '"></label><label class="bf-chk"><input type="checkbox" data-bf-iqb' + (st.qbo && st.qbo.enabled ? ' checked' : '') + '> Hand sent invoices to QuickBooks (turn on after QuickBooks is connected)</label><button class="bf-btn alt" data-bf-isave>Save</button></details>';
+  }
   function invList(d) {
-    return '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
-      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && r.qb.status === 'ready' ? 'Ready' : '—'; }]], d.invoices, 'inv', 'No invoices yet.');
+    return invReady(d) + invSettings() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
+      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && (r.qb.status === 'ready' || r.qb.status === 'queued') ? (r.qb.status === 'queued' ? 'Queued' : 'Ready') : '—'; }]], d.invoices, 'inv', 'No invoices yet.');
   }
 
   // ---------- editor (one panel for all three, same grid as the current job software)
@@ -464,6 +475,7 @@
     if (t.closest('[data-bf-vcancel]')) { S.vEdit = null; draw(); return; }
     if ((b = t.closest('[data-bf-vdel]'))) { if (confirm('Remove this vendor from your list? Existing purchase orders keep their name.')) call('POST', 'vendor/delete', { id: b.dataset.bfVdel }).then(function () { flash('Vendor removed.'); load(); }); return; }
     if (t.closest('[data-bf-bnew]')) { openBill(); return; }
+    if (t.closest('[data-bf-isave]')) { var ap = S.el.querySelector('[data-bf-iapp]').value.split(',').map(function (x) { return x.trim(); }).filter(Boolean), qb = S.el.querySelector('[data-bf-iqb]').checked; call('POST', 'cfg/invoicing', { approvers: ap, qb_enabled: qb }).then(function (r) { if (!r.ok) return flash(r.error, true); S.cfg.settings.invoice_approvers = r.approvers; S.cfg.settings.qbo.enabled = r.qb_enabled; flash('Saved.'); }); return; }
     if (t.closest('[data-bf-draws]')) { openDraws(); return; }
     if (t.closest('[data-bf-qb]')) { call('GET', 'qb-export?job=' + encodeURIComponent(S.job.id)).then(function (r) { openText('QuickBooks-ready invoices', r.ok ? JSON.stringify(r.invoices, null, 2) : r.error, 'Not sent to QuickBooks. This is the shape a later sync will use. ' + r.invoices.length + ' invoice(s).'); }); return; }
     if (!S.ed) return;
@@ -537,10 +549,9 @@
       if ((b = t.closest('[data-mk]'))) {
         var x = draws[+b.dataset.mk], rev = d.rollup.price.revised, amt = x.amount != null && x.amount !== '' ? n2(x.amount) : r2(rev * n2(x.pct) / 100);
         if (!(amt > 0)) return flash('Set a percent or amount first.', true);
-        var cs = (d.job.client && d.job.client.signers && d.job.client.signers[0]) || {};
-        call('POST', 'inv/save', { job: S.job.id, title: x.name + (x.milestone ? ' · ' + x.milestone : ''), mode: 'flat', flat_amount: amt, milestone: x.milestone, draw_id: x.id, client: cs }).then(function (r) {
-          if (!r.ok) return flash(r.error, true); x.invoice_id = r.invoice.id;
-          call('POST', 'draw/save', { job: S.job.id, draws: draws }).then(function () { flash('Draft invoice ' + r.invoice.number + ' created. Review it, then send.'); m.remove(); document.documentElement.classList.remove('bf-lock'); S.tab = 'inv'; load().then(function () { openEditor('inv', r.invoice.id); }); });
+        call('POST', 'draw/save', { job: S.job.id, draws: draws }).then(function () { return call('POST', 'draw/draft', { job: S.job.id, draw_id: x.id }); }).then(function (r) {
+          if (!r.ok) return flash(r.error, true);
+          flash('Draft invoice ' + r.invoice.number + ' created' + (r.includes_cos ? ' with ' + r.includes_cos + ' change order(s)' : '') + '. Review it, then send.'); m.remove(); document.documentElement.classList.remove('bf-lock'); S.tab = 'inv'; load().then(function () { openEditor('inv', r.invoice.id); });
         });
       }
     });
