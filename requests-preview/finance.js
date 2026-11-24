@@ -20,7 +20,8 @@
   }
   function flash(msg, bad) { S.note = msg; S.noteBad = !!bad; var t = S.el && S.el.querySelector('.bf-note'); if (t) { t.textContent = msg; t.className = 'bf-note show' + (bad ? ' bad' : ''); clearTimeout(flash.t); flash.t = setTimeout(function () { t.className = 'bf-note'; }, 6000); } }
   function load() {
-    return call('GET', 'job?job=' + encodeURIComponent(S.job.id)).then(function (d) {
+    var sw = S.swept === S.job.id ? Promise.resolve() : (S.swept = S.job.id, call('POST', 'draw/sweep', { job: S.job.id }).catch(function () {}));   // schedule steps marked done turn into draft draw invoices (once per open)
+    return sw.then(function () { return call('GET', 'job?job=' + encodeURIComponent(S.job.id)); }).then(function (d) {
       if (!d.ok) { S.err = d.error || 'Could not load'; S.data = null; draw(); return; }
       S.err = ''; S.data = d;
       return Promise.all([call('GET', 'vendors'), call('GET', 'payments?job=' + encodeURIComponent(S.job.id))]).then(function (a) { S.vendors = a[0].ok ? a[0].vendors : []; S.pays = a[1].ok ? a[1] : null; draw(); });
@@ -204,6 +205,12 @@
     if (!rows.length) return '';
     return '<div class="bf-ready"><b>Still waiting on the client · ' + rows.length + '</b>' + rows.map(function (c) { var n = Math.floor((Date.now() - Date.parse(c.sent_at)) / 864e5); return '<div class="bf-ready-row"><span>' + esc(c.number) + ' ' + esc(c.title) + ' · sent ' + n + ' days ago</span></div>'; }).join('') + '<div class="dk-m">Worth a call. Nothing is sent from here.</div></div>';
   }
+  function drawCard(d) {
+    var rows = (d.invoices || []).filter(function (i) { return i.approval && i.approval.status === 'awaiting_approval'; });
+    if (!rows.length) return '';
+    var can = S.cfg.settings.can_send_invoice;
+    return '<div class="bf-ready"><b>Draws ready to bill · ' + rows.length + '</b>' + rows.map(function (i) { return '<div class="bf-ready-row"><span>' + esc(i.title) + ' · ' + money(i.totals ? i.totals.total : i.flat_amount) + '<br><small class="dk-m">' + esc(i.approval.because || 'Schedule step done') + '</small></span>' + (can ? '<span class="bf-ready-btns"><button class="bf-btn" data-bf-drw="approve:' + esc(i.id) + '">Approve draw</button><button class="bf-btn alt" data-bf-drw="dismiss:' + esc(i.id) + '">Not now</button></span>' : '<small class="dk-m">Waiting on the approver</small>') + '</div>'; }).join('') + '<small class="dk-m">Approved draws go to QuickBooks as an invoice' + (S.cfg.settings.qbo && S.cfg.settings.qbo.enabled ? '.' : ' once QuickBooks is connected. Until then they are held. Nothing is sent to the client from here.') + '</small></div>';
+  }
   function billingCard(d) {
     var rows = (d.cos || []).filter(function (c) { return c.billing && c.billing.status === 'awaiting_approval'; });
     if (!rows.length) return '';
@@ -227,7 +234,7 @@
     return '<div class="bf-istrip"><div><small>Total revised price</small><b>' + money(rev) + '</b></div><i>−</i><div><small>Payments</small><b>' + money(paid) + '</b></div><i>=</i><div><small>Remaining balance</small><b>' + money(rev - paid) + '</b></div></div>';
   }
   function invList(d) {
-    return invStrip(d) + billingCard(d) + invReady(d) + invSettings() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
+    return invStrip(d) + drawCard(d) + billingCard(d) + invReady(d) + invSettings() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
       table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && (r.qb.status === 'ready' || r.qb.status === 'queued') ? (r.qb.status === 'queued' ? 'Queued' : 'Ready') : '—'; }]], (d.invoices || []).slice().sort(function (a, b) { return String(a.number).localeCompare(String(b.number), undefined, { numeric: true }); }), 'inv', 'No invoices yet.', invFoot(d));
   }
 
@@ -517,6 +524,7 @@
     if (t.closest('[data-bf-vcancel]')) { S.vEdit = null; draw(); return; }
     if ((b = t.closest('[data-bf-vdel]'))) { if (confirm('Remove this vendor from your list? Existing purchase orders keep their name.')) call('POST', 'vendor/delete', { id: b.dataset.bfVdel }).then(function () { flash('Vendor removed.'); load(); }); return; }
     if (t.closest('[data-bf-bnew]')) { openBill(); return; }
+    if ((b = t.closest('[data-bf-drw]'))) { var dq = b.dataset.bfDrw.split(':'); call('POST', 'inv/act', { job: S.job.id, id: dq[1], action: dq[0] === 'approve' ? 'draw_approve' : 'draw_dismiss' }).then(function (r) { if (!r.ok) return flash(r.error, true); flash(dq[0] === 'approve' ? 'Draw approved.' : 'Dismissed.'); load(); }); return; }
     if ((b = t.closest('[data-bf-bill]'))) { var q = b.dataset.bfBill.split(':'); call('POST', 'co/act', { job: S.job.id, id: q[1], action: q[0] === 'approve' ? 'billing_approve' : 'billing_dismiss' }).then(function (r) { if (!r.ok) return flash(r.error, true); flash(q[0] === 'approve' ? 'Billing approved.' : 'Dismissed.'); load(); }); return; }
     if (t.closest('[data-bf-isave]')) { var ap = S.el.querySelector('[data-bf-iapp]').value.split(',').map(function (x) { return x.trim(); }).filter(Boolean), qb = S.el.querySelector('[data-bf-iqb]').checked; call('POST', 'cfg/invoicing', { approvers: ap, qb_enabled: qb }).then(function (r) { if (!r.ok) return flash(r.error, true); S.cfg.settings.invoice_approvers = r.approvers; S.cfg.settings.qbo.enabled = r.qb_enabled; flash('Saved.'); }); return; }
     if (t.closest('[data-bf-draws]')) { openDraws(); return; }
