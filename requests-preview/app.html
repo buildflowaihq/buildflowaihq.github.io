@@ -540,6 +540,7 @@
  .dash .dk-menu button{display:block;width:100%;text-align:left;padding:12px 6px;font-size:16px;border-bottom:0;border-left:3px solid transparent}
  .dash .dk-menu button[aria-current=true]{border-left-color:var(--accent)}
 }
+.dash .dk-menu button.ns{opacity:.5}
 </style>
 </head>
 <body>
@@ -657,7 +658,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241640";
+(function(){var BUILD="202611241700";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -990,18 +991,21 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 
 
   // ---- Navigation: one page per function, old-system order and names ----
-  var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary' };
+  var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys' };
+  var NS = { fbids: 1, map: 1, war: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
+  var FTAB = { rfi: 'rfi', fest: 'overview', fbud: 'overview', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
+  function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
   var HKEY = { logs: 'dk-c-logs', msgs: 'dk-c-messages', docs: 'dk-c-files', comments: 'dk-c-comments', sel: 'dk-c-selections', photos: 'dk-c-photos' };
   function isSub() { return !!(DATA.me && DATA.me.trade); }
   function curPage() { return S.view === 'list' ? 'list' : (S.page || 'summary'); }
   function navHtml() {
     var cp = curPage(), sub = isSub();
-    var groups = [['Jobs', ['summary', 'list']], ['Project Management', ['sched', 'logs', 'todos', 'co', 'sel', 'notes']], ['Files', ['docs', 'photos']], ['Messaging', ['comments', 'msgs']], ['Financial', ['fin']]];
-    var ok = function (p) { return !(sub && /^(sched|co|sel|fin)$/.test(p)); };
+    var groups = [['Jobs', ['summary', 'det', 'fin', 'list', 'map']], ['Project Management', ['sched', 'logs', 'todos', 'co', 'sel', 'war', 'tc', 'plans', 'upd', 'subm', 'notes']], ['Files', ['docs', 'photos', 'vid']], ['Messaging', ['comments', 'msgs', 'rfi', 'nh', 'sur']], ['Financial', ['fbids', 'fest', 'fpo', 'fbills', 'fbud', 'finv', 'fpay']]];
+    var ok = function (p) { return !(sub && /^(sched|co|sel|fin|fbids|fest|fpo|fbills|fbud|finv|fpay|rfi|war|tc|plans|upd|subm)$/.test(p)); };
     var menu = groups.map(function (g) {
       var its = g[1].filter(ok); if (!its.length) return '';
-      var b = function (p, lab) { return '<button type="button" data-pg="' + p + '" aria-current="' + (cp === p) + '">' + lab + '</button>'; };
+      var b = function (p, lab) { return '<button type="button" data-pg="' + p + '"' + (NS[p] ? ' class="ns"' : '') + ' aria-current="' + (cp === p) + '">' + lab + '</button>'; };
             return '<div class="dk-g"><h6>' + g[0] + '</h6>' + its.map(function (p) { return b(p, PG[p]); }).join('') + '</div>';
     }).join('');
     var js = DATA.jobs.filter(shown);
@@ -1049,14 +1053,20 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var sch = DATA.schedule.filter(function (e) { return e.job === v; });
     var act = DATA.activity.concat(DATA.btActivity || []).filter(function (a) { return a.job === v; });
     var rem = DATA.reminders.filter(function (r) { return r.job === v; });
+    var whereC = '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>';
+    var contC = '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>';
     var b;
     if (p === 'notes') b = siteNotesHtml([v]);
     else if (p === 'todos') b = '<div class="cols"><div>' + actionsHtml(acts) + newHtml(v) + '</div><div>' + todoHtml() + '</div></div>';
     else if (p === 'sched') b = schedLink(v) + '<div class="cols"><div><div id="dk-c-sched">' + scheduleHtml(sch, 14) + '</div></div><div>' + weekHtml(sch) + '</div></div>';
-    else if (p === 'co') b = '<section class="card" id="dk-c-co"><div class="ch"><h2>Change Orders</h2></div><p><button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Start a change order</button></p><p class="dk-src">Approved change orders and their totals are on the <button type="button" class="link" data-pg="fin">Financial</button> page.</p></section>';
+    else if (p === 'co') b = '<section class="card" id="dk-c-co"><div class="ch"><h2>Change Orders</h2></div><p><button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Start a change order</button></p><p class="dk-src">Pending and approved change orders are listed below.</p></section><div id="dash-ext"></div>';
+    else if (NS[p]) b = '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Not set up yet.</p></section>';
+    else if (p === 'upd') b = updatesHtml();
+    else if (p === 'det') b = '<div class="cols"><div>' + peopleHtml(j) + whereC + '</div><div>' + contC + '</div></div>';
+    else if (FTAB[p]) b = '<div id="dash-ext"></div>';
     else if (p === 'fin') b = '<div id="dk-c-money">' + (j.fin ? finHtml(j) : moneyHtml(j.money, 'Job price summary')) + '</div><div id="dash-ext"></div>';
     else if (HKEY[p]) b = histPart(v, p) || '<section class="card"><div class="ch"><h2>' + PG[p] + '</h2></div><p class="dk-src">Nothing here yet for this job.</p></section>';
-    else b = '<div class="cols"><div>' + siteNotesHtml([v]) + peopleHtml(j) + actionsHtml(acts) + newHtml(v) + '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>' + '</div><div>' + updatesHtml() + weekHtml(sch) + contractsHtml(v) + '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>' + (act.length ? activityGrouped(act) : '') + remindersHtml(rem) + '</div></div>';
+    else b = '<div class="cols"><div>' + siteNotesHtml([v]) + peopleHtml(j) + actionsHtml(acts) + newHtml(v) + whereC + '</div><div>' + updatesHtml() + weekHtml(sch) + contractsHtml(v) + contC + (act.length ? activityGrouped(act) : '') + remindersHtml(rem) + '</div></div>';
     return jobHead(j) + b;
   }
   function pageHtml() {
@@ -1072,7 +1082,10 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var h = pageHtml();
     $('dash-main').innerHTML = asHtml() + h;
     // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
-    if (S.view !== 'all' && S.view !== 'list' && curPage() === 'fin' && $('dash-ext') && !S.ro && window.dashJobMounted) { var jj = job(S.view); try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client }); } catch (e) { } }
+    if (S.view !== 'all' && S.view !== 'list' && (curPage() === 'fin' || FTAB[curPage()]) && $('dash-ext') && !S.ro && window.dashJobMounted) { var jj = job(S.view); try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client }); } catch (e) { }
+      var ft = FTAB[curPage()];
+      if (ft) [200, 700, 1600, 3000].forEach(function (ms) { setTimeout(function () { var b = document.querySelector('#dash-ext [data-bf-tab="' + ft + '"]'); if (b && b.getAttribute('aria-selected') !== 'true') b.click(); }, ms); });
+    }
   }
 
   // ---- "View as": an owner sees another person's real dashboard, read-only. Uses the owner's own key; never acts as the other person. ----
@@ -1498,9 +1511,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241640">
+<link rel="stylesheet" href="finance.css?v=202611241700">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241710"></script>
+<script src="finance.js?v=202611241700"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
