@@ -685,7 +685,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241640";
+(function(){var BUILD="202611241700";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1110,8 +1110,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
       var h;
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
       h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
-        '<div class="cols"><div>' + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(DATA.schedule, 7) + glanceHtml() + '</div><div>' +
-        updatesHtml() + weekHtml(DATA.schedule) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
+        '<div class="cols"><div>' + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(allSched(), 7) + glanceHtml() + '</div><div>' +
+        updatesHtml() + weekHtml(allSched()) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
       return h;
     }
     var ids = openJobs().map(function (j) { return j.id; });
@@ -1124,7 +1124,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function jobPage(v, p) {
     var j = job(v);
     var acts = DATA.actions.filter(function (a) { return a.job === v; });
-    var sch = DATA.schedule.filter(function (e) { return e.job === v; });
+    var sch = allSched().filter(function (e) { return e.job === v; });
     var act = DATA.activity.concat(DATA.btActivity || []).filter(function (a) { return a.job === v; });
     var rem = DATA.reminders.filter(function (r) { return r.job === v; });
     var whereC = '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>';
@@ -1537,6 +1537,13 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         table(x.pos, [['PO #'], ['Title'], ['Performed By', 'Performed by'], ['PO Status', 'Status'], ['Cost', '', '$'], ['Paid']], 'No purchase orders yet.')) +
       '</section>';
   }
+  // Live schedule (kdb-schedule via the chat worker): the agenda and Upcoming read this, replacing the old snapshot dates for those jobs.
+  function allSched() { var live = S.liveJobs || {}; return DATA.schedule.filter(function (e) { return !live[e.job] || e.hol; }).concat(S.live || []); }
+  function loadLive() {
+    if (!S.base || !S.key) return;
+    fetch(S.base + '/api/dash/week', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' }).then(function (r) { return r.json(); })
+      .then(function (d) { if (!d || !d.ok) return; S.liveJobs = {}; (d.jobs || []).forEach(function (j) { S.liveJobs[j] = 1; }); S.live = d.items || []; render(); }).catch(function () { });
+  }
   function loadSnap() {
     if (!S.cal) return;
     fetch(S.cal + '?action=snapshot&k=' + encodeURIComponent(S.key))
@@ -1546,6 +1553,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   }
   // Company money from the client's own records (finance service). Falls back to the nightly read when it can't be reached.
   function loadFin() {
+    loadLive();
     if (!S.fin || !S.key) return;
     Promise.all(openJobs().map(function (j) {
       return fetch(S.fin.replace(/\/$/, '') + '/api/job?job=' + encodeURIComponent(j.id), { headers: { Authorization: 'Bearer ' + S.key } })
@@ -1618,9 +1626,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611241640">
+<link rel="stylesheet" href="finance.css?v=202611241700">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611241640"></script>
+<script src="finance.js?v=202611241700"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
