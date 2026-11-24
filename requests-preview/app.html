@@ -596,7 +596,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611241110";
+(function(){var BUILD="202611241130";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1300,7 +1300,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
         if (d.people && !opts.people) PEOPLE = d.people;
         SNAP = DATA.schedule;
       }, function () { /* no private data: the dashboard shows what it can */ })
-      .then(function () { render(); loadCal(); loadSnap(); loadFin(); });
+      .then(function () { var gj = new URLSearchParams(location.search).get('job'); if (gj && (gj === 'list' || job(gj))) S.view = gj; render(); loadCal(); loadSnap(); loadFin(); });
     if (!S.clock) {
       S.clock = true;
       var recheck = function () { if (S.started && todayIn() !== DATA.today) { DATA.today = todayIn(); WX = {}; render(); loadCal(); loadSnap(); loadFin(); } };
@@ -1316,6 +1316,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
 <script src="finance.js?v=202611241130"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
+/* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
+if (/[?&]go=dash/.test(location.search)) { var __t = setInterval(function () { var b = document.getElementById('tabDash'); if (b && window.dashInit) { clearInterval(__t); b.click(); } }, 250); setTimeout(function () { clearInterval(__t); }, 8000); }
 window.dashJobMounted = function (el, job) {
   if (!el || !window.BFFinance || !job) return;
   var k = new URLSearchParams(location.search).get('k') || '';
