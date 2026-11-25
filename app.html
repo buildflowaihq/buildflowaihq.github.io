@@ -284,6 +284,9 @@
 .dash .dk-empty{color:var(--faint);font-size:14px;margin:6px 0}
 
 /* actions */
+.dash .dk-mic.on{background:var(--accent);color:var(--bg);animation:pulse 1.2s ease-in-out infinite}
+.dash .dk-fl .dk-tbl tbody tr{position:relative}.dash .dk-fl .dk-tbl td:first-child a{display:flex;align-items:center;min-height:44px}.dash .dk-fl .dk-tbl td:first-child a::after{content:'';position:absolute;left:0;right:0;top:0;bottom:0}
+.dash .dk-mc{display:grid;gap:8px;margin:10px 0 14px}.dash .dk-mc input,.dash .dk-mc textarea{width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;color:inherit;font:inherit;font-size:16px}
 .dash .dk-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line2);margin:0 -18px 6px;padding:0 18px}
 .dash .dk-tabs button{white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px 9px;font-size:14px;color:var(--muted);cursor:pointer;margin-bottom:-1px;display:inline-flex;gap:7px;align-items:center}
 .dash .dk-tabs button[aria-selected=true]{color:var(--ink);border-color:var(--accent)}
@@ -591,7 +594,6 @@
 .dash .dk-men{background:rgba(141,184,242,.2);border-radius:4px;padding:0 3px}
 @media (max-width:640px){.dash .dk-mh{display:none}.dash .dk-mr{grid-template-columns:1fr}.dash .dk-fh{display:none}.dash .dk-fr{grid-template-columns:1fr}}
 .dash .dk-pf{border-bottom:1px solid var(--line2)}.dash .dk-pf summary{cursor:pointer;padding:10px 0}.dash .dk-pf .dk-pg{margin:6px 0 12px}
-.dash .dk-sh{font:inherit;font-size:12.5px;min-height:32px;padding:4px 12px;border-radius:999px;border:1px solid var(--line2);background:none;color:inherit;cursor:pointer}.dash .dk-sh.on{background:var(--accent);color:var(--bg);border-color:transparent;font-weight:600}.dash .dk-shw{display:block;margin-top:4px;text-align:center}
 </style>
 </head>
 <body>
@@ -709,7 +711,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611251125";
+(function(){var BUILD="202611242215";
 function check(){fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -844,6 +846,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   }
 
   function moneyHtml(rows, title) {
+    rows = rows || [];
     return '<section class="card"><details class="fold"><summary><h2>' + title + '</h2></summary><dl class="mt">' + rows.map(function (m) {
       var val = m[2] != null ? esc(m[2]) : '<span class="na">' + esc(m[3] || '') + '</span>';
       return '<dt>' + esc(m[0]) + (m[1] ? '<small>' + esc(m[1]) + '</small>' : '') + '</dt><dd>' + val + '</dd>';
@@ -1012,6 +1015,45 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (!sub && (S.fin || j.fin || (j.money && j.money.length))) c.push(['money', 'Money']);
     return '<nav class="dk-chips dk-tabs" aria-label="Sections">' + c.map(function (x) { return '<button type="button" class="dk-chip" data-jump="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</nav>';
   }
+  // ---------- Messages: one thread list per job, with an Internal / Client / Subs switch and a composer ----------
+  var TEAMRX = /kdbla\.com|aramyankovacsdesign|kyleskovacs|\b(kyle|mary|sam|michael)\b|kovacs|swisher/i;
+  function msgAud(m, j) {
+    if (m.audience) return m.audience;
+    var parts = (String(m.from || '') + ' , ' + String(m.to || '')).toLowerCase();
+    var cl = (j && j.contacts || []).filter(function (c) { return String(c[0]).indexOf('Client') === 0; });
+    var isCl = cl.some(function (c) { return (c[2] && parts.indexOf(String(c[2]).toLowerCase()) >= 0) || (c[1] && parts.indexOf(String(c[1]).split(' ')[0].toLowerCase()) >= 0); });
+    if (isCl) return 'client';
+    var people = parts.split(/[,;]/).map(function (x) { return x.trim(); }).filter(Boolean);
+    return people.length && people.every(function (x) { return TEAMRX.test(x); }) ? 'internal' : 'subs';
+  }
+  var AUD = { internal: 'Internal', client: 'Client', subs: 'Subs & others' };
+  function sentKey(id) { return 'dk-msgsent-' + id; }
+  function sentLoad(id) { try { return JSON.parse(localStorage.getItem(sentKey(id)) || '[]'); } catch (e) { return []; } }
+  function msgDefaultTo(a, j) {
+    if (a === 'client') return (j.contacts || []).filter(function (c) { return String(c[0]).indexOf('Client') === 0 && c[2]; }).map(function (c) { return c[2]; }).join(', ');
+    if (a === 'internal') return Object.keys(PEOPLE).filter(function (k) { return k !== (DATA.me && DATA.me.id) && /@/.test(PEOPLE[k]); }).map(function (k) { return PEOPLE[k]; }).join(', ');
+    return '';
+  }
+  function msgThreadHtml(id, H, jn) {
+    var j = job(id) || { contacts: [] }, sub = isSub();
+    var all = (sentLoad(id).concat(H.messages || [])).map(function (m) { return Object.assign({}, m, { _a: msgAud(m, j) }); });
+    if (sub) all = all.filter(function (m) { return m._a === 'subs'; });
+    var f = sub ? 'subs' : (S.maud || 'all'), shown = all.filter(function (m) { return f === 'all' || m._a === f; });
+    shown.sort(function (x, y) { return String(y.date || '').localeCompare(String(x.date || '')); });
+    var tabs = sub ? '' : '<div class="dk-tabs" role="tablist">' + [['all', 'All'], ['internal', 'Internal'], ['client', 'Client'], ['subs', 'Subs & others']].map(function (t) {
+      var n = t[0] === 'all' ? all.length : all.filter(function (m) { return m._a === t[0]; }).length;
+      return '<button role="tab" data-maud="' + t[0] + '" aria-selected="' + (f === t[0]) + '">' + t[1] + ' <span class="n">' + n + '</span></button>'; }).join('') + '</div>';
+    var c = S.mc, comp = '';
+    if (c && !S.ro && !sub) {
+      comp = '<form class="dk-mc" data-mcform="' + esc(id) + '"><div class="dk-acts">' + ['client', 'internal', 'subs'].map(function (a) { return '<button type="button" class="dk-chip' + (c.a === a ? ' on' : '') + '" data-mca="' + a + '">' + AUD[a] + '</button>'; }).join('') + '</div>' +
+        '<input type="text" data-mcf="to" placeholder="To (email addresses)" aria-label="To" value="' + esc(c.to) + '"><input type="text" data-mcf="subject" placeholder="Subject" aria-label="Subject" value="' + esc(c.subject) + '"><textarea data-mcf="body" rows="4" placeholder="Message" aria-label="Message">' + esc(c.body) + '</textarea>' +
+        '<div class="dk-acts"><button type="button" class="dk-chip on" data-msend="' + esc(id) + '">Send</button><button type="button" class="dk-chip dk-mic" data-mmic="1" aria-label="Speak your message">Speak</button><button type="button" class="dk-chip" data-mcancel="1">Cancel</button></div><p class="dk-src" data-mhint hidden></p><p class="dk-src">Goes by email from your own address. Replies come back to this thread. Nothing is sent until you press Send.</p></form>';
+    }
+    var list = shown.length ? '<div class="dk-mh"><span>To</span><span>From</span><span>Subject</span><span>Date Received</span></div><ul class="dk-dl dk-ml">' + shown.map(function (m) {
+      return '<li><details><summary class="dk-mr"><span>' + esc(m.to || '') + '</span><span>' + esc(m.from || '') + '</span><span><b>' + esc(m.title || '(no subject)') + '</b></span><span>' + esc(fmtDT(m.date)) + '</span></summary><p>' + (sub ? '' : '<span class="dk-dm">' + esc(AUD[m._a]) + (m.sent ? ' · sent from here' : '') + '</span><br>') + esc(m.body || '') + '</p></details></li>'; }).join('') + '</ul>'
+      : '<p class="dk-src">No messages here yet.</p>';
+    return '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + shown.length + (shown.length === 1 ? ' message' : ' messages') + '</span>' + (S.ro || sub ? '' : '<button class="link" data-mnew="1">+ New message</button>') + '</div>' + tabs + comp + list + '</section>';
+  }
   function fmtDT(v) {
     v = String(v || ''); var m = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
     if (!m) return v;
@@ -1037,9 +1079,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (shownLogs.length) h = h.replace(/<\/section>$/, '') + '<ul class="dk-dl">' + shownLogs.map(function (l) {
       return '<li><div class="dk-dh"><b>' + esc(String(l.date || '').replace(/, \d{4}$/, '')) + '</b>' + (l.title ? ' | ' + esc(l.title) : '') + '</div><div class="dk-dm">' + esc(l.author || '') + (l.visibility ? ' · ' + esc(l.visibility) : '') + (l.temps ? ' · ' + esc(String(l.temps).replace(/^(\d+)F\/(\d+)F$/, '$1°F↑ $2°F↓')) : '') + (l.photos && l.photos !== '0' && l.photos !== '0 photos' ? ' · ' + esc(String(l.photos)) + ' photo' + (String(l.photos)[0] === '1' ? '' : 's') : '') + (l.link ? ' · <a href="' + esc(l.link) + '" target="_blank" rel="noopener">' + esc(l.source || 'Transcript') + '</a>' : (l.source ? ' · ' + esc(l.source) : '')) + '</div>' + logNotes(l.text) + '</li>';
     }).join('') + '</ul></section>';
-    if (H.messages && H.messages.length) h += '<section class="card" id="dk-c-messages"><div class="ch"><h2>Messages</h2><span class="dk-src" style="margin:0">' + H.messages.length + '</span></div><div class="dk-mh"><span>To</span><span>From</span><span>Subject</span><span>Date Received</span></div><ul class="dk-dl dk-ml">' + H.messages.map(function (m) {
-      return '<li><details><summary class="dk-mr"><span>' + esc(m.to || '') + '</span><span>' + esc(m.from || '') + '</span><span><b>' + esc(m.title || '(no subject)') + '</b></span><span>' + esc(fmtDT(m.date)) + '</span></summary><p>' + esc(m.body || '') + '</p></details></li>';
-    }).join('') + '</ul></section>';
+    h += msgThreadHtml(id, H, jn);
     if (H.files && H.files.length) {
       var fg = {}, ford = [];
       H.files.forEach(function (f) { var p = String(f.folder || '').split(' / '), k = p[2] || p[1] || p[0] || 'Documents'; if (!fg[k]) { fg[k] = []; ford.push(k); } fg[k].push(f); });
@@ -1081,7 +1121,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Navigation: one page per function, old-system order and names ----
   var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys', ctint: 'Internal Users', ctven: 'Subs/Vendors', ctcl: 'Client Contacts', lopp: 'Lead Opportunities', lact: 'Lead Activities', lprop: 'Lead Proposals', lcal: 'Lead Activity Calendar', lmap: 'Lead Map' };
   // NS = pages KDB never used in Buildertrend (Michael approved 11/24): hidden from menus. To add one back, delete it from this list.
-  var NS = { war: 1, fpay: 1, rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, sur: 1 };
+  var NS = { war: 1, fpay: 1, rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
   var FTAB = { ctven: 'vendors', rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
@@ -1097,7 +1137,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Layout: phone or desktop, auto by screen width, person can override (remembered) ----
   function isM() { var l = ''; try { l = localStorage.getItem('dk-layout') || ''; } catch (e) { } if (l === 'm') return true; if (l === 'd') return false; return window.innerWidth <= 720; }
   function setLayoutLabel() { var b = document.getElementById('call'); if (!b) return; var l = b.querySelector('.lbl'); if (l) l.textContent = isM() ? 'Desktop' : 'Phone'; b.setAttribute('aria-label', isM() ? 'Switch to desktop view' : 'Switch to phone view'); }
-  window.dashToggleLayout = function () { try { localStorage.setItem('dk-layout', isM() ? 'd' : 'm'); } catch (e) { } S.menu = false; setLayoutLabel(); try { if (DATA && DATA.jobs) render(); } catch (e) { } };
+  window.dashToggleLayout = function () { try { localStorage.setItem('dk-layout', isM() ? 'd' : 'm'); } catch (e) { } if (window.top === window && window.innerWidth > 720) { location.reload(); return; } S.menu = false; setLayoutLabel(); try { if (DATA && DATA.jobs) render(); } catch (e) { } };
   setLayoutLabel();
   function mobileNav(cp, sub, menu, pick) {
     var seg = [['summary', 'Home'], ['sched', 'Schedule'], ['logs', 'Daily Logs'], ['todos', 'Tasks']].filter(function (x) { return !sub || x[0] === 'logs' || x[0] === 'todos' || x[0] === 'summary'; });
@@ -1107,14 +1147,14 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     return '<div class="dk-nav dk-mnav"><div class="dk-seg">' + sg + '</div><div class="dk-mjob">' + pick + '</div>' + ht + '<div class="dk-menu' + (S.menu ? ' open' : '') + '">' + menu + '</div></div>';
   }
   function feedHtml(v) {
-    var items = DATA.activity.concat(DATA.btActivity || []).filter(function (a) { return v === 'all' || a.job === v; });
+    var items = (S.liveFeed || []).concat(DATA.activity, DATA.btActivity || []).filter(function (a) { return v === 'all' || a.job === v; });
     return (v === 'all' ? allHead('Activity Feed', 'Everything that changed, all open jobs') : '') + (items.length ? activityGrouped(items) : '<section class="card"><p class="dk-src">No activity yet.</p></section>');
   }
   function fabHtml() {
     if (S.ro || S.view === 'list') return '';
     var j = (S.view !== 'all') && job(S.view), jn = j ? j.name : '';
     var say = function (l, t) { return '<button type="button" data-say="' + esc(t) + '">' + l + '</button>'; };
-    var m = S.fab ? '<div class="dk-fabm">' + (j ? say('Site note', 'Add a site note to ' + jn + ': ') + say('Daily log', 'Add a daily log to ' + jn + ': ') + (isSub() ? '' : say('Change order', 'Change order on ' + jn + ': ')) + say('Message ' + esc(j.client.split(/ & | /)[0]), 'Message to ' + j.client.split(/ & | /)[0] + ': ') : say('Site note', 'Add a site note: ') + say('Daily log', 'Add a daily log: ') + (isSub() ? '' : say('Change order', 'Change order: ')) + say('Message', 'Message: ')) + '<button type="button" data-rec="1">Record</button></div>' : '';
+    var m = S.fab ? '<div class="dk-fabm">' + (j ? say('Site note', 'Add a site note to ' + jn + ': ') + say('Daily log', 'Add a daily log to ' + jn + ': ') + (isSub() ? '' : say('Change order', 'Change order on ' + jn + ': ')) + '<button type="button" data-mopen="1">Message ' + esc(j.client.split(/ & | /)[0]) + '</button>' : say('Site note', 'Add a site note: ') + say('Daily log', 'Add a daily log: ') + (isSub() ? '' : say('Change order', 'Change order: ')) + '<button type="button" data-mopen="1">Message</button>') + '<button type="button" data-rec="1">Record</button></div>' : '';
     return '<div class="dk-fabw">' + m + '<button type="button" class="dk-fab" data-fab="1" aria-label="Quick actions" aria-expanded="' + !!S.fab + '">' + (S.fab ? '×' : '+') + '</button></div>';
   }
   function navHtml() {
@@ -1151,16 +1191,16 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function jobHead(j) {
     var v = j.id, first = j.client.split(/ & | /)[0];
     return '<div class="dk-top"><div><h1><span class="dk-dot" style="background:' + j.color + '"></span><span class="dk-nm">' + esc(j.name) + '</span> <span class="stage ' + (j.build ? 'build' : '') + '">' + esc(j.stage) + '</span></h1><p>' + esc(j.client) + ' · ' + esc(j.city) + peopleLine(j) + '</p>' +
-        '<div class="dk-acts dk-qa"><button type="button" class="dk-chip" data-say="Message to ' + esc(first) + ': ">' + SVG.msg + 'Message ' + esc(first) + '</button>' + (!!(DATA.me && DATA.me.trade) ? '' : '<button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Change order</button>') + '<button type="button" class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + '<a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a>' + '<button type="button" class="dk-chip" data-say="Add a site note to ' + esc(j.name) + ': ">+ Note</button><button type="button" class="dk-chip" data-say="Add a daily log to ' + esc(j.name) + ': ">+ Log</button>' + (S.contract ? '<button type="button" class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>';
+        '<div class="dk-acts dk-qa"><button type="button" class="dk-chip" data-mopen="1">' + SVG.msg + 'Message ' + esc(first) + '</button>' + (!!(DATA.me && DATA.me.trade) ? '' : '<button type="button" class="dk-chip" data-say="Change order on ' + esc(j.name) + ': ">Change order</button>') + '<button type="button" class="dk-chip" data-act="meet" data-job="' + j.id + '">' + SVG.cam + 'Web meeting</button>' + '<a class="dk-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(j.addr) + '">' + SVG.pin + 'Directions</a>' + '<button type="button" class="dk-chip" data-say="Add a site note to ' + esc(j.name) + ': ">+ Note</button><button type="button" class="dk-chip" data-say="Add a daily log to ' + esc(j.name) + ': ">+ Log</button>' + (S.contract ? '<button type="button" class="dk-chip" data-act="contract" data-job="' + j.id + '">' + SVG.doc + 'Contract: send to client</button>' : '') + '</div></div>' + wxHtml() + '</div>';
   }
   function allHead(t, sub) { return '<div class="dk-top"><div><h1>' + t + '</h1><p>' + sub + '</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>'; }
   function allPage(p) {
     if (p === 'summary') {
       var h;
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-      h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + '<div class="dk-acts"><button type="button" class="dk-chip" data-pg="nh">Notifications <b id="dash-nbadge"></b></button>' + (S.lead ? '<button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
+      h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(allSched(), 7) + glanceHtml() + '</div><div>' +
-        updatesHtml() + weekHtml(allSched()) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
+        updatesHtml() + weekHtml(allSched()) + todoHtml() + activityGrouped((S.liveFeed || []).concat(DATA.activity)) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
       return h;
     }
     var ids = openJobs().map(function (j) { return j.id; });
@@ -1174,7 +1214,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var j = job(v);
     var acts = DATA.actions.filter(function (a) { return a.job === v; });
     var sch = allSched().filter(function (e) { return e.job === v; });
-    var act = DATA.activity.concat(DATA.btActivity || []).filter(function (a) { return a.job === v; });
+    var act = (S.liveFeed || []).concat(DATA.activity, DATA.btActivity || []).filter(function (a) { return a.job === v; });
     var rem = DATA.reminders.filter(function (r) { return r.job === v; });
     var whereC = '<section class="card"><div class="ch"><h2>Where it stands</h2></div><dl class="kv"><dt>Waiting on</dt><dd>' + j.waiting.map(function (w) { return '<span class="x"><span class="dk-who">' + esc(w[0]) + '</span> ' + esc(w[1]) + (w[2] ? ' <span style="color:#F6B3AA;font-weight:600">· ' + esc(w[2]) + '</span>' : '') + '</span>'; }).join('') + '</dd><dt>Next</dt><dd>' + esc(j.next) + '</dd><dt>Client said</dt><dd>' + (j.said ? '“' + esc(j.said[0]) + '” <span style="color:var(--muted)">· ' + esc(j.said[1]) + '</span>' : '<span style="color:var(--muted)">Nothing new this week</span>') + '</dd></dl></section>';
     var contC = '<section class="card"><div class="ch"><h2>Contacts</h2></div><dl class="kv">' + j.contacts.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('') + '</dl></section>';
@@ -1205,7 +1245,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (p === 'ctint') {
       var me = DATA.me && DATA.me.id;
       var rows = Object.keys(PEOPLE).map(function (k) { return '<tr><td>' + esc(k.charAt(0).toUpperCase() + k.slice(1)) + '</td><td><a href="mailto:' + esc(PEOPLE[k]) + '">' + esc(PEOPLE[k]) + '</a></td></tr>'; }).join('') || '<tr><td colspan="2" class="dk-src">No one listed.</td></tr>';
-      return ctHead('Internal Users') + '<div id="dash-team"><section class="card"><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>Name</th><th>Email</th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
+      return ctHead('Internal Users') + '<section class="card"><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>Name</th><th>Email</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
     }
     if (p === 'ctcl') {
       var rs = [];
@@ -1214,73 +1254,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     }
     return ctHead('Subs/Vendors') + '<div id="dash-ext"></div>';
   }
-  // ---- Notifications (worker kdb-notify): your own notification history, your switches, and (company owner) the company history. App + email only today; text and phone push are not set up.
-  var NOTIFY = 'https://kdb-notify.mekovacs22.workers.dev';
-  function nfetch(path, body) { return fetch(NOTIFY + '/api/notify/' + path, { method: body ? 'POST' : 'GET', headers: Object.assign({ Authorization: 'Bearer ' + S.key }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json().then(function (d) { d.__status = r.status; return d; }); }); }
-  function nhBadge() { var b = $('dash-nbadge'); if (!b || S.ro) return; nfetch('inbox?limit=50').then(function (d) { var b2 = $('dash-nbadge'); if (b2 && d.unread) b2.textContent = '(' + d.unread + ')'; }).catch(function () { }); }
-  function nhAgo(ts) { var m = Math.round((Date.now() - ts) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : new Date(ts).toLocaleDateString(); }
-  function nhMount() {
-    var root = $('dash-nh'); if (!root) return; root.innerHTML = '<section class="card"><p class="dk-src">Loading…</p></section>';
-    Promise.all([nfetch('inbox?limit=100'), nfetch('settings'), nfetch('history?limit=100')]).then(function (r) {
-      var inb = r[0], set = r[1], his = r[2], h = '';
-      if (inb.__status === 401 || inb.__status === 400) { root.innerHTML = '<section class="card"><p class="dk-src">Notifications need your own sign-in. Sign in with your email, then they appear here.</p></section>'; return; }
-      var items = inb.items || [];
-      h += '<section class="card"><div class="dk-top"><div><h2>For you' + (inb.unread ? ' · ' + inb.unread + ' new' : '') + '</h2></div>' + (inb.unread ? '<button type="button" class="dk-chip" data-nread="1">Mark all read</button>' : '') + '</div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>When</th><th>What</th><th>Job</th><th>By</th></tr></thead><tbody>' +
-        (items.map(function (i) { return '<tr' + (i.read ? '' : ' style="font-weight:600"') + '><td>' + nhAgo(i.ts) + '</td><td>' + esc(i.title) + '</td><td>' + esc(i.job_name || '') + '</td><td>' + esc(i.actor || '') + '</td></tr>'; }).join('') || '<tr><td colspan="4" class="dk-src">Nothing yet. You will see changes that involve you here.</td></tr>') + '</tbody></table></div></section>';
-      var sw = set.switches || {}, cats = set.categories || {};
-      h += '<section class="card"><h2>What you get</h2><p class="dk-src">In the app and by email. Text and phone push are not set up yet.</p><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>Category</th><th>In the app</th><th>Email</th></tr></thead><tbody>' +
-        Object.keys(cats).map(function (c) { var v = sw[c] || {}; return '<tr><td>' + esc(cats[c]) + '</td><td><input type="checkbox" data-nset="' + c + ':app"' + (v.app ? ' checked' : '') + '></td><td><input type="checkbox" data-nset="' + c + ':email"' + (v.email ? ' checked' : '') + '></td></tr>'; }).join('') + '</tbody></table></div></section>';
-      if (his.items) h += '<section class="card"><h2>Company history</h2><p class="dk-src">Everything the app announced, who was told, and who was held back (clients and subs are held until you switch them on).</p><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>When</th><th>What</th><th>Job</th><th>Told</th><th>Held</th></tr></thead><tbody>' +
-        (his.items.map(function (i) { return '<tr><td>' + nhAgo(i.ts) + '</td><td>' + esc(i.title) + '</td><td>' + esc(i.job_name || '') + '</td><td>' + esc((i.to || []).map(function (t) { return t.who; }).join(', ')) + '</td><td>' + esc((i.held || []).map(function (t) { return t.who; }).join(', ')) + '</td></tr>'; }).join('') || '<tr><td colspan="5" class="dk-src">Nothing yet.</td></tr>') + '</tbody></table></div></section>';
-      root.innerHTML = h;
-      root.onclick = function (e) { if (e.target.closest('[data-nread]')) nfetch('read', { all: true }).then(nhMount); };
-      root.onchange = function (e) { var k = e.target.getAttribute && e.target.getAttribute('data-nset'); if (!k) return; var a = k.split(':'), cc = {}; cc[a[0]] = {}; cc[a[0]][a[1]] = e.target.checked; nfetch('settings', { cats: cc }).then(function () { toast('Saved'); }); };
-    }).catch(function () { root.innerHTML = '<section class="card"><p class="dk-src">Could not load notifications. Try again in a minute.</p></section>'; });
-  }
-
-  // ---- Per-file "Share with client" (like Buildertrend's per-file switch). Works on files the client portal knows (the job's Client Portal folder).
-  var SHARE = { job: '', items: null, busy: false };
-  function shareNorm(n) { return String(n || '').replace(/\r$/, '').trim().toLowerCase(); }
-  function shareMount() {
-    var p = curPage(), j = S.view;
-    if (location.pathname.indexOf('requests-preview') < 0) return;   // preview only until Michael OKs
-    if ((p !== 'docs' && p !== 'photos') || !j || j === 'list' || j === 'all' || S.ro || !S.base || !S.key) return;
-    var root = document.getElementById('dk-c-files') || document.getElementById('dk-c-photos'); if (!root) return;
-    var paint = function () {
-      var used = {}, find = function (name, type) { var n = shareNorm(name); var arr = SHARE.items || []; for (var i = 0; i < arr.length; i++) { var it = arr[i]; if (!used[it.id] && it.type === type && (shareNorm(it.title) === n)) { used[it.id] = 1; return it; } } return null; };
-      var btn = function (it) { return it ? '<button type="button" class="dk-sh' + (it.shared ? ' on' : '') + '" data-sid="' + esc(it.id) + '" aria-pressed="' + (it.shared ? 'true' : 'false') + '" title="' + (it.shared ? 'The client can see this. Tap to hide.' : 'Hidden from the client. Tap to share.') + '">' + (it.shared ? 'Shared' : 'Share') + '</button>' : '<span class="dk-src" title="Only files in the job\'s Client Portal folder can be shared">\u2014</span>'; };
-      Array.prototype.forEach.call(document.querySelectorAll('#dk-c-files table.dk-tbl'), function (t) {
-        if (t.getAttribute('data-sh')) return; t.setAttribute('data-sh', '1');
-        var hr = t.querySelector('thead tr'); if (hr) hr.insertAdjacentHTML('beforeend', '<th>Client</th>');
-        Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function (tr) { var c = tr.cells[0]; var it = find(c ? c.textContent : '', 'doc'); tr.insertAdjacentHTML('beforeend', '<td>' + btn(it) + '</td>'); });
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('#dk-c-photos a.dk-ph'), function (a) {
-        if (a.getAttribute('data-sh')) return; a.setAttribute('data-sh', '1');
-        var nm = (a.querySelector('.dk-pn') || a).textContent || (a.querySelector('img') || {}).alt || ''; var it = find(nm, 'photo');
-        if (it) a.insertAdjacentHTML('beforeend', '<span class="dk-shw">' + btn(it) + '</span>');
-      });
-    };
-    if (SHARE.job === j && SHARE.items) return paint();
-    if (SHARE.busy) return; SHARE.busy = true;
-    fetch(S.base + '/api/dash/share?job=' + encodeURIComponent(j), { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' }).then(function (r) { return r.json(); })
-      .then(function (d) { SHARE.busy = false; if (d && d.ok) { SHARE.job = j; SHARE.items = d.items || []; if (curPage() === p && S.view === j) paint(); } }).catch(function () { SHARE.busy = false; });
-  }
-  document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('.dk-sh'); if (!b) return;
-    e.preventDefault(); e.stopPropagation();
-    var id = b.getAttribute('data-sid'), want = b.getAttribute('aria-pressed') !== 'true';
-    if (b.disabled) return; b.disabled = true;
-    fetch(S.base + '/api/dash/share', { method: 'POST', headers: { Authorization: 'Bearer ' + S.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ job: SHARE.job, id: id, shared: want }) })
-      .then(function (r) { return r.json(); }).then(function (d) {
-        b.disabled = false; if (!d || !d.ok) { b.title = (d && d.error) || 'Could not change this file.'; b.textContent = 'Try again'; return; }
-        (SHARE.items || []).forEach(function (it) { if (it.id === id) it.shared = want; });
-        b.classList.toggle('on', want); b.setAttribute('aria-pressed', want ? 'true' : 'false'); b.textContent = want ? 'Shared' : 'Share'; b.title = want ? 'The client can see this. Tap to hide.' : 'Hidden from the client. Tap to share.';
-      }).catch(function () { b.disabled = false; b.textContent = 'Try again'; });
-  }, true);
   function pageHtml() {
     var v = S.view, p = curPage();
     if (p === 'ctint' || p === 'ctcl' || p === 'ctven') return navHtml() + ctPage(p);
-    if (p === 'nh') return navHtml() + ctHead('Notification History') + '<div id="dash-nh"></div>';
     if (v === 'list') return navHtml() + jobsListHtml();
     if (isM() && p === 'summary' && S.htab === 'feed' && !S.menu) return navHtml() + feedHtml(v);
     if (v === 'all') return navHtml() + allPage(p);
@@ -1298,9 +1274,6 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var rt = $('dash'); rt.classList.toggle('dk-m', isM()); rt.classList.toggle('dk-d', !isM());
     $('dash-main').innerHTML = asHtml() + h + (isM() ? fabHtml() : '');
     if (window.onDashJob) { try { window.onDashJob(); } catch (e) { } }
-    try { if ($('dash-nh')) nhMount(); else nhBadge(); } catch (e) { }
-    shareMount();   // per-file "Share with client" switches on Documents and Photos
-    if (window.teamMount && $('dash-team')) { try { window.teamMount($('dash-team')); } catch (e) { } }   // real logins: the Team screen (shell file auth.js); the read-only table above stays if it is not there
     // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
     if (((S.view !== 'all' && S.view !== 'list') || curPage() === 'ctven') && (curPage() === 'fin' || FTAB[curPage()]) && $('dash-ext') && !S.ro && window.dashJobMounted) { var jj = job(S.view) || openJobs()[0]; try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client, tab: FTAB[curPage()] || '' }); } catch (e) { }
       var ft = FTAB[curPage()];
@@ -1339,7 +1312,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   root.addEventListener('submit', function (e) { var f = e.target.closest && e.target.closest('[data-cmf]'); if (!f) return; e.preventDefault(); if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } postComment(f); });
   root.addEventListener('click', function (e) {
     var b;
-    if ((b = e.target.closest('[data-layout]'))) { try { localStorage.setItem('dk-layout', b.getAttribute('data-layout')); } catch (e2) { } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
+    if ((b = e.target.closest('[data-layout]'))) { try { localStorage.setItem('dk-layout', b.getAttribute('data-layout')); } catch (e2) { } if (window.top === window && window.innerWidth > 720) { location.reload(); return; } S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
     if ((b = e.target.closest('[data-htab]'))) { S.htab = b.getAttribute('data-htab'); render(); return; }
     if ((b = e.target.closest('[data-fab]'))) { S.fab = !S.fab; render(); return; }
     if ((b = e.target.closest('[data-rec]'))) { S.fab = false; render(); var mic = document.getElementById('mic'); if (mic) mic.click(); return; }
@@ -1359,11 +1332,43 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if ((b = e.target.closest('[data-logf]'))) { S.logf = b.getAttribute('data-logf'); render(); return; }
     if ((b = e.target.closest('[data-jf]'))) { S.jf = b.getAttribute('data-jf'); render(); return; }
     if ((b = e.target.closest('[data-tab]'))) { S.tab = b.getAttribute('data-tab'); render(); return; }
+    if ((b = e.target.closest('[data-mopen]'))) { if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; } S.fab = false; S.page = 'msgs'; if (S.view === 'list') S.view = S.last || 'all'; var oj = job(S.view); S.mc = oj && !isSub() ? { a: 'client', to: msgDefaultTo('client', oj), subject: '', body: '' } : null; S.menu = false; render(); window.scrollTo({ top: 0 }); return; }
+    if ((b = e.target.closest('[data-maud]'))) { S.maud = b.getAttribute('data-maud'); render(); return; }
+    if ((b = e.target.closest('[data-mnew]'))) { var mj = job(S.view); if (!mj) return; var a0 = S.maud && S.maud !== 'all' ? S.maud : 'client'; S.mc = { a: a0, to: msgDefaultTo(a0, mj), subject: '', body: '' }; render(); return; }
+    if ((b = e.target.closest('[data-mca]'))) { var mj2 = job(S.view); S.mc.a = b.getAttribute('data-mca'); S.mc.to = msgDefaultTo(S.mc.a, mj2 || { contacts: [] }); render(); return; }
+    if (e.target.closest('[data-mcancel]')) { S.mc = null; render(); return; }
+    if ((b = e.target.closest('[data-msend]'))) { sendThreadMsg(b.getAttribute('data-msend'), b); return; }
     if (e.target.closest('[data-todo]')) { if (window.showTab) window.showTab('todo'); return; }
     if ((b = e.target.closest('[data-say]'))) { if (window.chatDraft) window.chatDraft(b.getAttribute('data-say')); else if (window.showTab) window.showTab('chat'); return; }
     if (e.target.closest('[data-add]')) { var f = $('dash-addd'); if (!S.cal) { toast('The company calendar isn’t connected yet.'); return; } f.hidden = !f.hidden; if (!f.hidden) { f.date.value = DATA.today; f.title.focus(); } return; }
     if (e.target.closest('[data-addx]')) { $('dash-addd').hidden = true; return; }
   });
+  root.addEventListener('click', function (e) { // Speak button in the message composer: dictate into the body box; nothing sends until Send
+    var m = e.target && e.target.closest && e.target.closest('[data-mmic]'); if (!m || m._d) return;
+    var form = m.closest('form'), ta = form && form.querySelector('[data-mcf=body]'), hint = form && form.querySelector('[data-mhint]');
+    if (!ta || !window.bfDictate) { toast('Talking to type isn\'t available here.'); return; }
+    m._d = window.bfDictate(m, ta, hint); m.onclick();
+  });
+  root.addEventListener('input', function (e) { var f = e.target && e.target.getAttribute && e.target.getAttribute('data-mcf'); if (f && S.mc) S.mc[f] = e.target.value; });
+  function sendThreadMsg(id, btn) {
+    if (S.ro) { toast('You’re viewing ' + DATA.me.name + '’s dashboard. Switch back to yourself to make changes.'); return; }
+    var c = S.mc; if (!c) return;
+    var to = String(c.to || '').split(/[,;\s]+/).filter(Boolean);
+    if (!to.length || !to.every(function (x) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); })) { toast('Add who it goes to (a full email address).'); return; }
+    if (!String(c.subject).trim() || !String(c.body).trim()) { toast('Add a subject and a message.'); return; }
+    if (!window.bfSendMail) { toast('Sending isn’t available here yet. Nothing was sent.'); return; }
+    var j = job(id); btn.disabled = true; btn.textContent = 'Sending…';
+    window.bfSendMail(to, c.subject, c.body).then(function (r) {
+      if (r && r.ok) {
+        var list = sentLoad(id); list.unshift({ title: c.subject, from: (DATA.me && DATA.me.name) || 'Me', to: to.join(', '), date: new Date().toISOString().slice(0, 16).replace('T', ' '), body: c.body, audience: c.a, sent: 1 });
+        try { localStorage.setItem(sentKey(id), JSON.stringify(list.slice(0, 50))); } catch (x) { }
+        S.mc = null; S.maud = 'all'; render(); toast('Sent to ' + to.join(', ') + '.');
+      } else {
+        btn.disabled = false; btn.textContent = 'Send';
+        toast(r && r.error === 'held_for_approval' ? 'That address isn’t on the approved list yet, so it was saved as a draft in your Gmail. Nothing went out.' : r && r.error === 'not_enabled' ? 'One-tap sending isn’t switched on for you yet. Nothing was sent.' : 'That didn’t send. Nothing went out. Try again in a moment.');
+      }
+    }, function () { btn.disabled = false; btn.textContent = 'Send'; toast('That didn’t send. Nothing went out. Try again in a moment.'); });
+  }
   function saveDate(form) {
     var title = form.title.value.trim(), date = form.date.value, time = form.time.value, err = $('dash-adderr');
     err.hidden = true; if (!title || !date) return;
@@ -1666,7 +1671,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   function loadLive() {
     if (!S.base || !S.key) return;
     fetch(S.base + '/api/dash/week', { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' }).then(function (r) { return r.json(); })
-      .then(function (d) { if (!d || !d.ok) { S.liveErr = 'bad response'; return; } S.liveJobs = {}; (d.jobs || []).forEach(function (j) { S.liveJobs[j] = 1; }); S.liveSched = d.items || []; render(); }).catch(function (e) { S.liveErr = String(e); });
+      .then(function (d) { if (!d || !d.ok) { S.liveErr = 'bad response'; return; } S.liveJobs = {}; (d.jobs || []).forEach(function (j) { S.liveJobs[j] = 1; }); S.liveSched = d.items || []; S.liveFeed = d.feed || []; render(); }).catch(function (e) { S.liveErr = String(e); });
   }
   function loadSnap() {
     if (!S.cal) return;
@@ -1750,9 +1755,9 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611251125">
+<link rel="stylesheet" href="finance.css?v=202611250620">
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611251125"></script>
+<script src="finance.js?v=202611250622"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
