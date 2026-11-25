@@ -223,6 +223,44 @@
     var can = S.cfg.settings.can_send_invoice;
     return '<div class="bf-ready"><b>Ready for approval · ' + rows.length + '</b>' + rows.map(function (i) { return '<div class="bf-ready-row"><span>' + esc(i.title) + ' · ' + money(i.totals.total) + (i.client && i.client.name ? ' · ' + esc(i.client.name) : '') + '</span><button class="bf-btn" data-bf-open="inv:' + esc(i.id) + '">' + (can ? 'Review & send' : 'Review') + '</button></div>'; }).join('') + (can ? '' : '<small class="dk-m">Only ' + esc((S.cfg.settings.invoice_approvers || []).join(', ') || 'the approver') + ' can send.</small>') + '</div>';
   }
+  // ---------- QuickBooks panel (owner only): connect, keys, test, sync. All the work is done by the finance worker; this only shows state and presses its buttons.
+  function qbLoad() { if (S.qb && (S.qb.loading || S.qb.data || S.qb.err)) return; var keep = S.qb || {}; S.qb = { loading: true, steps: keep.steps, link: keep.link }; call('GET', 'accounting/status').then(function (r) { S.qb = { data: r.ok ? r : null, err: r.ok ? '' : r.error, steps: keep.steps, link: keep.link }; draw(); }); }
+  function qbPanel() {
+    if (!S.cfg.user || S.cfg.user.role !== 'owner') return '';
+    qbLoad(); var q = S.qb || {}, d = q.data, h = '<details class="fold sub bf-qbp" open><summary><h3>QuickBooks</h3></summary>';
+    if (!d) return h + '<p class="dk-m">' + (q.err ? esc(q.err) : 'Loading…') + '</p></details>';
+    var sb = d.environment !== 'production', ok = function (v, t, f) { return '<li>' + (v ? '✓ ' + t : '○ ' + f) + '</li>'; };
+    h += '<p><span class="bf-qbtag' + (sb ? '' : ' live') + '">' + (sb ? 'SANDBOX (test company, no real money)' : 'LIVE') + '</span></p><ul class="bf-qbl">' +
+      ok(d.keys_installed, 'App keys installed', 'App keys not installed yet') + ok(d.connected, 'Connected' + (d.company ? ' to ' + esc(d.company) : ''), 'Not connected to a QuickBooks company') +
+      ok(d.switch_on, 'Sending invoices to QuickBooks is ON', 'Sending invoices to QuickBooks is OFF (use the checkbox above when ready)') + '</ul>' +
+      (d.last_sync ? '<small class="dk-m">Last sync ' + esc(ftime(d.last_sync)) + (d.last_report ? ' · sent ' + d.last_report.pushed + ', payments in ' + d.last_report.pulled + (d.last_report.flagged ? ', check ' + d.last_report.flagged : '') : '') + '</small>' : '') +
+      (d.last_error ? '<p class="bf-warn">' + esc(d.last_error) + '</p>' : '') + '<div class="bf-bar">';
+    if (!d.keys_installed) h += '<button class="bf-btn" data-bf-qb="keys:sandbox">Add sandbox keys</button>';
+    else if (!d.connected) h += '<button class="bf-btn" data-bf-qb="connect">Connect QuickBooks</button><button class="bf-btn alt" data-bf-qb="kyle">Make a link for Kyle</button>';
+    else h += (sb ? '<button class="bf-btn" data-bf-qb="selftest">Run sandbox test</button>' : '') + '<button class="bf-btn alt" data-bf-qb="sync">Sync now</button><button class="bf-btn alt" data-bf-qb="paycheck">Check QuickBooks Payments</button><button class="bf-btn alt" data-bf-qb="disconnect">Disconnect</button>';
+    h += '</div>';
+    if (d.keys_installed) h += '<small class="dk-m"><a href="#" data-bf-qb="keys:production">Production keys link</a></small>';
+    if (q.busy) h += '<p class="dk-m">Working…</p>';
+    if (q.link) h += '<div class="bf-ready"><b>' + esc(q.link.label) + '</b><input readonly value="' + esc(q.link.url) + '" onclick="this.select()"><div class="bf-bar"><button class="bf-btn" data-bf-qb="copy">Copy link</button>' + (navigator.share ? '<button class="bf-btn alt" data-bf-qb="share">Share…</button>' : '') + '</div><small class="dk-m">' + esc(q.link.note) + '</small></div>';
+    if (q.steps) h += '<ul class="bf-qbl">' + q.steps.map(function (s) { return '<li>' + (s.ok ? '✓ ' : '✗ ') + esc(s.name) + (s.detail ? ' · <small>' + esc(s.detail) + '</small>' : '') + '</li>'; }).join('') + '</ul>';
+    return h + '</details>';
+  }
+  function qbAct(a) {
+    var q = S.qb || (S.qb = {}); var done = function () { q.busy = false; q.data = null; q.err = ''; q.loading = false; draw(); };
+    if (a === 'copy' || a === 'share') { var u = q.link && q.link.url; if (!u) return; if (a === 'share' && navigator.share) { navigator.share({ url: u, title: q.link.label }).catch(function () {}); return; } (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { flash('Link copied.'); }, function () { flash('Press and hold the link to copy it.', true); }); return; }
+    if (a === 'disconnect' && !confirm('Disconnect QuickBooks? Nothing in QuickBooks is deleted. Sending invoices there turns off.')) return;
+    q.busy = true; q.steps = a === 'selftest' ? null : q.steps; draw();
+    var p = a.split(':'), path = { connect: 'connect-link', kyle: 'connect-link', keys: 'keys-link', selftest: 'selftest', sync: 'sync', paycheck: 'payments-check', disconnect: 'disconnect' }[p[0]];
+    call('POST', 'accounting/' + path, p[0] === 'keys' ? { env: p[1] } : {}).then(function (r) {
+      if (!r.ok && r.ok !== undefined && !r.steps) { q.busy = false; draw(); return flash(r.error || 'Did not work', true); }
+      if (p[0] === 'connect' || p[0] === 'keys') { window.location.href = r.link; return; }
+      if (p[0] === 'kyle') { q.link = { url: r.link, label: 'Connect link for Kyle (one use, ' + r.expires_in_days + ' days)', note: 'Kyle opens this on his phone or computer, signs in to QuickBooks and taps Connect. It is not sent to anyone from here.' }; q.busy = false; draw(); return; }
+      if (p[0] === 'selftest') { q.steps = r.steps; flash(r.ok ? 'Sandbox test passed.' : 'Sandbox test stopped. See below.', !r.ok); }
+      else if (p[0] === 'sync') flash('Synced. Sent ' + r.pushed.length + ', payments in ' + r.pulled.length + (r.errors.length ? ', problems ' + r.errors.length : '') + '.', !!r.errors.length);
+      else if (p[0] === 'paycheck') { q.steps = [{ ok: !!r.enabled_guess, name: r.enabled_guess ? 'QuickBooks Payments looks turned on' : 'QuickBooks Payments does not look turned on', detail: Object.keys(r.online_payment_flags || {}).map(function (k) { return k + ': ' + r.online_payment_flags[k]; }).join(', ') }]; }
+      done();
+    });
+  }
   function invSettings() {
     if (!S.cfg.user || S.cfg.user.role !== 'owner') return '';
     var st = S.cfg.settings;
@@ -234,7 +272,7 @@
     return '<div class="bf-istrip"><div><small>Total revised price</small><b>' + money(rev) + '</b></div><i>−</i><div><small>Payments</small><b>' + money(paid) + '</b></div><i>=</i><div><small>Remaining balance</small><b>' + money(rev - paid) + '</b></div></div>';
   }
   function invList(d) {
-    return invStrip(d) + drawCard(d) + billingCard(d) + invReady(d) + invSettings() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
+    return invStrip(d) + drawCard(d) + billingCard(d) + invReady(d) + invSettings() + qbPanel() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
       table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && (r.qb.status === 'ready' || r.qb.status === 'queued') ? (r.qb.status === 'queued' ? 'Queued' : 'Ready') : '—'; }]], (d.invoices || []).slice().sort(function (a, b) { return String(a.number).localeCompare(String(b.number), undefined, { numeric: true }); }), 'inv', 'No invoices yet.', invFoot(d));
   }
 
@@ -528,6 +566,7 @@
     if ((b = t.closest('[data-bf-bill]'))) { var q = b.dataset.bfBill.split(':'); call('POST', 'co/act', { job: S.job.id, id: q[1], action: q[0] === 'approve' ? 'billing_approve' : 'billing_dismiss' }).then(function (r) { if (!r.ok) return flash(r.error, true); flash(q[0] === 'approve' ? 'Billing approved.' : 'Dismissed.'); load(); }); return; }
     if (t.closest('[data-bf-isave]')) { var ap = S.el.querySelector('[data-bf-iapp]').value.split(',').map(function (x) { return x.trim(); }).filter(Boolean), qb = S.el.querySelector('[data-bf-iqb]').checked; call('POST', 'cfg/invoicing', { approvers: ap, qb_enabled: qb }).then(function (r) { if (!r.ok) return flash(r.error, true); S.cfg.settings.invoice_approvers = r.approvers; S.cfg.settings.qbo.enabled = r.qb_enabled; flash('Saved.'); }); return; }
     if (t.closest('[data-bf-draws]')) { openDraws(); return; }
+    if ((b = t.closest('[data-bf-qb]')) && b.dataset.bfQb) { if (b.tagName === 'A') e.preventDefault(); qbAct(b.dataset.bfQb); return; }
     if (t.closest('[data-bf-qb]')) { call('GET', 'qb-export?job=' + encodeURIComponent(S.job.id)).then(function (r) { openText('QuickBooks-ready invoices', r.ok ? JSON.stringify(r.invoices, null, 2) : r.error, 'Not sent to QuickBooks. This is the shape a later sync will use. ' + r.invoices.length + ' invoice(s).'); }); return; }
     if (!S.ed) return;
     if ((b = t.closest('[data-bf-addline]'))) { var ty = b.dataset.bfAddline, nl = blankLine(S.ed.kind); if (ty) { nl.type = ty; nl.desc = { group: 'Group: ', allowance: 'Allowance: ', flat: 'Flat fee: ' }[ty]; if (ty === 'group') { nl.unit_cost = 0; nl.qty = 0; } } S.ed.rec.lines.push(nl); drawEditor(); return; }
