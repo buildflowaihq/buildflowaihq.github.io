@@ -591,6 +591,7 @@
 .dash .dk-men{background:rgba(141,184,242,.2);border-radius:4px;padding:0 3px}
 @media (max-width:640px){.dash .dk-mh{display:none}.dash .dk-mr{grid-template-columns:1fr}.dash .dk-fh{display:none}.dash .dk-fr{grid-template-columns:1fr}}
 .dash .dk-pf{border-bottom:1px solid var(--line2)}.dash .dk-pf summary{cursor:pointer;padding:10px 0}.dash .dk-pf .dk-pg{margin:6px 0 12px}
+.dash .dk-sh{font:inherit;font-size:12.5px;min-height:32px;padding:4px 12px;border-radius:999px;border:1px solid var(--line2);background:none;color:inherit;cursor:pointer}.dash .dk-sh.on{background:var(--accent);color:var(--bg);border-color:transparent;font-weight:600}.dash .dk-shw{display:block;margin-top:4px;text-align:center}
 </style>
 </head>
 <body>
@@ -709,7 +710,7 @@
 
 <script>
 /* Self-update: if a newer app is published, reload once. */
-(function(){var BUILD="202611251045";
+(function(){var BUILD="202611251125";
 function check(){fetch("../version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.json()}).then(function(v){
  if(v&&v.build&&v.build!==BUILD){if(window.__abfRecBusy&&window.__abfRecBusy())return;var k="bf_reload_"+v.build;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){}
  try{var u=new URL(location.href);u.searchParams.set("_b",v.build);location.replace(u.href)}catch(e){location.reload()}}}).catch(function(){})}
@@ -1081,7 +1082,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   // ---- Navigation: one page per function, old-system order and names ----
   var PG = { summary: 'Summary', list: 'Jobs List', sched: 'Schedule', logs: 'Daily Logs', todos: 'Tasks', co: 'Change Orders', sel: 'Selections', notes: 'Site Notes', docs: 'Documents', photos: 'Photos', comments: 'Comments', msgs: 'Messages', fin: 'Job Price Summary', fbids: 'Bids', fest: 'Estimate', fpo: 'Purchase Orders', fbills: 'Bills', fbud: 'Job Costing Budget', finv: 'Invoices', fpay: 'Online Payment Report', det: 'Job Details', map: 'Jobs Map', war: 'Warranties', tc: 'Time Clock', plans: 'Plans and Specs', upd: 'Client Updates', subm: 'Submittals', vid: 'Videos', rfi: 'RFIs', nh: 'Notification History', sur: 'Surveys', ctint: 'Internal Users', ctven: 'Subs/Vendors', ctcl: 'Client Contacts', lopp: 'Lead Opportunities', lact: 'Lead Activities', lprop: 'Lead Proposals', lcal: 'Lead Activity Calendar', lmap: 'Lead Map' };
   // NS = pages KDB never used in Buildertrend (Michael approved 11/24): hidden from menus. To add one back, delete it from this list.
-  var NS = { war: 1, fpay: 1, rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, nh: 1, sur: 1 };
+  var NS = { war: 1, fpay: 1, rfi: 1, lopp: 1, lact: 1, lprop: 1, lcal: 1, lmap: 1, fbids: 1, map: 1, tc: 1, plans: 1, subm: 1, vid: 1, sur: 1 };
   var FTAB = { ctven: 'vendors', rfi: 'rfi', fest: 'est', fbud: 'jcb', fpo: 'po', fbills: 'bills', finv: 'inv', fpay: 'pay', co: 'co' };
   function finPage(p) { return p === 'fin' || p === 'co' || (p && p.charAt(0) === 'f' && PG[p] && p !== 'fin' && p !== 'photos'); }
   var DCMAP = { site: 'notes', logs: 'logs', messages: 'msgs', files: 'docs', comments: 'comments', selections: 'sel', photos: 'photos', sched: 'sched', money: 'fin', todos: 'todos' };
@@ -1158,7 +1159,7 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     if (p === 'summary') {
       var h;
       var hr = hourIn(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-      h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + (S.lead ? '<div class="dk-acts"><button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button></div>' : '') + '</div>' + wxHtml() + '</div>' +
+      h = '<div class="dk-top"><div><h1>' + greet + (DATA.me.name ? ', ' + esc(DATA.me.name) : '') + '</h1><p>' + dayName(DATA.today, { weekday: 'long', month: 'long', day: 'numeric' }) + ' · ' + openJobs().length + ' open jobs · ' + DATA.actions.filter(function (a) { return a.due === 'over'; }).length + ' overdue</p>' + '<div class="dk-acts"><button type="button" class="dk-chip" data-pg="nh">Notifications <b id="dash-nbadge"></b></button>' + (S.lead ? '<button class="dk-chip" data-act="meet" data-job="">' + SVG.cam + 'Web meeting</button>' : '') + '</div></div>' + wxHtml() + '</div>' +
         '<div class="cols"><div>' + siteNotesHtml(openJobs().map(function (j) { return j.id; }).concat('company')) + actionsHtml(DATA.actions) + newHtml() + scheduleHtml(allSched(), 7) + glanceHtml() + '</div><div>' +
         updatesHtml() + weekHtml(allSched()) + todoHtml() + activityGrouped(DATA.activity) + remindersHtml(DATA.reminders) + moneyHtml(DATA.money, 'Company money') + '</div></div>';
       return h;
@@ -1214,9 +1215,73 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     }
     return ctHead('Subs/Vendors') + '<div id="dash-ext"></div>';
   }
+  // ---- Notifications (worker kdb-notify): your own notification history, your switches, and (company owner) the company history. App + email only today; text and phone push are not set up.
+  var NOTIFY = 'https://kdb-notify.mekovacs22.workers.dev';
+  function nfetch(path, body) { return fetch(NOTIFY + '/api/notify/' + path, { method: body ? 'POST' : 'GET', headers: Object.assign({ Authorization: 'Bearer ' + S.key }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json().then(function (d) { d.__status = r.status; return d; }); }); }
+  function nhBadge() { var b = $('dash-nbadge'); if (!b || S.ro) return; nfetch('inbox?limit=50').then(function (d) { var b2 = $('dash-nbadge'); if (b2 && d.unread) b2.textContent = '(' + d.unread + ')'; }).catch(function () { }); }
+  function nhAgo(ts) { var m = Math.round((Date.now() - ts) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : new Date(ts).toLocaleDateString(); }
+  function nhMount() {
+    var root = $('dash-nh'); if (!root) return; root.innerHTML = '<section class="card"><p class="dk-src">Loading…</p></section>';
+    Promise.all([nfetch('inbox?limit=100'), nfetch('settings'), nfetch('history?limit=100')]).then(function (r) {
+      var inb = r[0], set = r[1], his = r[2], h = '';
+      if (inb.__status === 401 || inb.__status === 400) { root.innerHTML = '<section class="card"><p class="dk-src">Notifications need your own sign-in. Sign in with your email, then they appear here.</p></section>'; return; }
+      var items = inb.items || [];
+      h += '<section class="card"><div class="dk-top"><div><h2>For you' + (inb.unread ? ' · ' + inb.unread + ' new' : '') + '</h2></div>' + (inb.unread ? '<button type="button" class="dk-chip" data-nread="1">Mark all read</button>' : '') + '</div><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>When</th><th>What</th><th>Job</th><th>By</th></tr></thead><tbody>' +
+        (items.map(function (i) { return '<tr' + (i.read ? '' : ' style="font-weight:600"') + '><td>' + nhAgo(i.ts) + '</td><td>' + esc(i.title) + '</td><td>' + esc(i.job_name || '') + '</td><td>' + esc(i.actor || '') + '</td></tr>'; }).join('') || '<tr><td colspan="4" class="dk-src">Nothing yet. You will see changes that involve you here.</td></tr>') + '</tbody></table></div></section>';
+      var sw = set.switches || {}, cats = set.categories || {};
+      h += '<section class="card"><h2>What you get</h2><p class="dk-src">In the app and by email. Text and phone push are not set up yet.</p><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>Category</th><th>In the app</th><th>Email</th></tr></thead><tbody>' +
+        Object.keys(cats).map(function (c) { var v = sw[c] || {}; return '<tr><td>' + esc(cats[c]) + '</td><td><input type="checkbox" data-nset="' + c + ':app"' + (v.app ? ' checked' : '') + '></td><td><input type="checkbox" data-nset="' + c + ':email"' + (v.email ? ' checked' : '') + '></td></tr>'; }).join('') + '</tbody></table></div></section>';
+      if (his.items) h += '<section class="card"><h2>Company history</h2><p class="dk-src">Everything the app announced, who was told, and who was held back (clients and subs are held until you switch them on).</p><div class="dk-tw"><table class="dk-tbl"><thead><tr><th>When</th><th>What</th><th>Job</th><th>Told</th><th>Held</th></tr></thead><tbody>' +
+        (his.items.map(function (i) { return '<tr><td>' + nhAgo(i.ts) + '</td><td>' + esc(i.title) + '</td><td>' + esc(i.job_name || '') + '</td><td>' + esc((i.to || []).map(function (t) { return t.who; }).join(', ')) + '</td><td>' + esc((i.held || []).map(function (t) { return t.who; }).join(', ')) + '</td></tr>'; }).join('') || '<tr><td colspan="5" class="dk-src">Nothing yet.</td></tr>') + '</tbody></table></div></section>';
+      root.innerHTML = h;
+      root.onclick = function (e) { if (e.target.closest('[data-nread]')) nfetch('read', { all: true }).then(nhMount); };
+      root.onchange = function (e) { var k = e.target.getAttribute && e.target.getAttribute('data-nset'); if (!k) return; var a = k.split(':'), cc = {}; cc[a[0]] = {}; cc[a[0]][a[1]] = e.target.checked; nfetch('settings', { cats: cc }).then(function () { toast('Saved'); }); };
+    }).catch(function () { root.innerHTML = '<section class="card"><p class="dk-src">Could not load notifications. Try again in a minute.</p></section>'; });
+  }
+
+  // ---- Per-file "Share with client" (like Buildertrend's per-file switch). Works on files the client portal knows (the job's Client Portal folder).
+  var SHARE = { job: '', items: null, busy: false };
+  function shareNorm(n) { return String(n || '').replace(/\r$/, '').trim().toLowerCase(); }
+  function shareMount() {
+    var p = curPage(), j = S.view;
+    if (location.pathname.indexOf('requests-preview') < 0) return;   // preview only until Michael OKs
+    if ((p !== 'docs' && p !== 'photos') || !j || j === 'list' || j === 'all' || S.ro || !S.base || !S.key) return;
+    var root = document.getElementById('dk-c-files') || document.getElementById('dk-c-photos'); if (!root) return;
+    var paint = function () {
+      var used = {}, find = function (name, type) { var n = shareNorm(name); var arr = SHARE.items || []; for (var i = 0; i < arr.length; i++) { var it = arr[i]; if (!used[it.id] && it.type === type && (shareNorm(it.title) === n)) { used[it.id] = 1; return it; } } return null; };
+      var btn = function (it) { return it ? '<button type="button" class="dk-sh' + (it.shared ? ' on' : '') + '" data-sid="' + esc(it.id) + '" aria-pressed="' + (it.shared ? 'true' : 'false') + '" title="' + (it.shared ? 'The client can see this. Tap to hide.' : 'Hidden from the client. Tap to share.') + '">' + (it.shared ? 'Shared' : 'Share') + '</button>' : '<span class="dk-src" title="Only files in the job\'s Client Portal folder can be shared">\u2014</span>'; };
+      Array.prototype.forEach.call(document.querySelectorAll('#dk-c-files table.dk-tbl'), function (t) {
+        if (t.getAttribute('data-sh')) return; t.setAttribute('data-sh', '1');
+        var hr = t.querySelector('thead tr'); if (hr) hr.insertAdjacentHTML('beforeend', '<th>Client</th>');
+        Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function (tr) { var c = tr.cells[0]; var it = find(c ? c.textContent : '', 'doc'); tr.insertAdjacentHTML('beforeend', '<td>' + btn(it) + '</td>'); });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('#dk-c-photos a.dk-ph'), function (a) {
+        if (a.getAttribute('data-sh')) return; a.setAttribute('data-sh', '1');
+        var nm = (a.querySelector('.dk-pn') || a).textContent || (a.querySelector('img') || {}).alt || ''; var it = find(nm, 'photo');
+        if (it) a.insertAdjacentHTML('beforeend', '<span class="dk-shw">' + btn(it) + '</span>');
+      });
+    };
+    if (SHARE.job === j && SHARE.items) return paint();
+    if (SHARE.busy) return; SHARE.busy = true;
+    fetch(S.base + '/api/dash/share?job=' + encodeURIComponent(j), { headers: { Authorization: 'Bearer ' + S.key }, cache: 'no-store' }).then(function (r) { return r.json(); })
+      .then(function (d) { SHARE.busy = false; if (d && d.ok) { SHARE.job = j; SHARE.items = d.items || []; if (curPage() === p && S.view === j) paint(); } }).catch(function () { SHARE.busy = false; });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.dk-sh'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var id = b.getAttribute('data-sid'), want = b.getAttribute('aria-pressed') !== 'true';
+    if (b.disabled) return; b.disabled = true;
+    fetch(S.base + '/api/dash/share', { method: 'POST', headers: { Authorization: 'Bearer ' + S.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ job: SHARE.job, id: id, shared: want }) })
+      .then(function (r) { return r.json(); }).then(function (d) {
+        b.disabled = false; if (!d || !d.ok) { b.title = (d && d.error) || 'Could not change this file.'; b.textContent = 'Try again'; return; }
+        (SHARE.items || []).forEach(function (it) { if (it.id === id) it.shared = want; });
+        b.classList.toggle('on', want); b.setAttribute('aria-pressed', want ? 'true' : 'false'); b.textContent = want ? 'Shared' : 'Share'; b.title = want ? 'The client can see this. Tap to hide.' : 'Hidden from the client. Tap to share.';
+      }).catch(function () { b.disabled = false; b.textContent = 'Try again'; });
+  }, true);
   function pageHtml() {
     var v = S.view, p = curPage();
     if (p === 'ctint' || p === 'ctcl' || p === 'ctven') return navHtml() + ctPage(p);
+    if (p === 'nh') return navHtml() + ctHead('Notification History') + '<div id="dash-nh"></div>';
     if (v === 'list') return navHtml() + jobsListHtml();
     if (isM() && p === 'summary' && S.htab === 'feed' && !S.menu) return navHtml() + feedHtml(v);
     if (v === 'all') return navHtml() + allPage(p);
@@ -1234,6 +1299,8 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
     var rt = $('dash'); rt.classList.toggle('dk-m', isM()); rt.classList.toggle('dk-d', !isM());
     $('dash-main').innerHTML = asHtml() + h + (isM() ? fabHtml() : '');
     if (window.onDashJob) { try { window.onDashJob(); } catch (e) { } }
+    try { if ($('dash-nh')) nhMount(); else nhBadge(); } catch (e) { }
+    shareMount();   // per-file "Share with client" switches on Documents and Photos
     if (window.teamMount && $('dash-team')) { try { window.teamMount($('dash-team')); } catch (e) { } }   // real logins: the Team screen (shell file auth.js); the read-only table above stays if it is not there
     // Host hook: the app shell can mount its own editable cards (for example finance) under a job page. Not called in read-only "View as".
     if (((S.view !== 'all' && S.view !== 'list') || curPage() === 'ctven') && (curPage() === 'fin' || FTAB[curPage()]) && $('dash-ext') && !S.ro && window.dashJobMounted) { var jj = job(S.view) || openJobs()[0]; try { window.dashJobMounted($('dash-ext'), { id: jj.id, name: jj.name, client: jj.client, tab: FTAB[curPage()] || '' }); } catch (e) { }
@@ -1684,10 +1751,10 @@ check();document.addEventListener("visibilitychange",function(){if(!document.hid
   };
 })();
 </script>
-<link rel="stylesheet" href="finance.css?v=202611251045">
+<link rel="stylesheet" href="finance.css?v=202611251125">
 <script src="auth.js?v=202611251045"></script>
 <script src="workweek.js?v=1"></script>
-<script src="finance.js?v=202611251045"></script>
+<script src="finance.js?v=202611251125"></script>
 <script>
 /* Shell hook (not part of the dashboard block): the dashboard calls this after each job page is drawn. */
 /* Deep links: ?go=dash opens the Dashboard tab, &job=glenrose opens that job (&job=list the jobs table). */
