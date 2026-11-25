@@ -381,6 +381,7 @@
     if (!m) { m = document.createElement('div'); m.className = 'bf-modal'; m.setAttribute('data-editor', '1'); S.el.appendChild(m); document.documentElement.classList.add('bf-lock'); }
     var keep = m.querySelector('.bf-body'), st = keep ? keep.scrollTop : 0;
     m.innerHTML = '<div class="bf-panel" role="dialog" aria-modal="true">' + h + '</div>';
+    lockRo();
     var nb = m.querySelector('.bf-body'); if (nb) nb.scrollTop = st;
     refreshTotals();
   }
