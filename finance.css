@@ -85,5 +85,3 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
 .bf-chev{background:none;border:0;color:var(--muted,#A9A79F);font-size:14px;cursor:pointer;padding:2px 4px}
 .bf-istrip .bf-st{align-self:center}
 table.bt tfoot td{border-top:1px solid var(--line,#33373D);padding-top:8px}
-
-.bf-qbl{list-style:none;padding:0;margin:8px 0}.bf-qbl li{padding:3px 0}.bf-qbtag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:999px;border:1px solid #b78a00;color:#8a6500}.bf-qbtag.live{border-color:#2c6e3a;color:#2c6e3a}.bf-qbp input[readonly]{width:100%;min-height:44px;margin:8px 0}
