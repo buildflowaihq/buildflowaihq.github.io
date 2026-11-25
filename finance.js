@@ -51,7 +51,16 @@
   }
 
   // ---------- drawing
-  function draw() {
+  // a login that may view invoices but not change them (Sam): hide every invoice write control
+  function lockRo() {
+    var el = S.el; if (!el || !S.ro) return;
+    [].slice.call(el.querySelectorAll('[data-bf-new="inv"],[data-bf-draws],[data-bf-drw],[data-bf-bill],form[data-bf-pay="inv"],.bf-iset')).forEach(function (n) { n.style.display = 'none'; });
+    if (S.ed && S.ed.kind === 'inv') [].slice.call(document.querySelectorAll('.bf-modal [data-bf-act], .bf-modal form[data-bf-pay], .bf-modal [data-bf-pay]')).forEach(function (n) { if (!/close|back|cancel|view/i.test(n.textContent) || n.tagName === 'FORM') n.style.display = 'none'; });
+    if (S.ed && S.ed.kind === 'inv') [].slice.call(document.querySelectorAll('.bf-modal input, .bf-modal select, .bf-modal textarea')).forEach(function (n) { n.disabled = true; });
+    [].slice.call(el.querySelectorAll('[data-bf-open^="inv:"]')).forEach(function (n) { if (/send|review/i.test(n.textContent)) n.textContent = 'View'; });
+  }
+  function draw() { drawBase(); lockRo(); }
+  function drawBase() {
     var el = S.el; if (!el) return;
     var keepM = [].slice.call(el.querySelectorAll('.bf-modal:not([data-editor])'));
     keepM.forEach(function (m) { m.remove(); });
@@ -660,7 +669,24 @@
     el.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.ed) closeEditor(); if (e.key === 'Enter' && e.target.matches('tr[data-bf-open]')) e.target.click(); });
   }
 
+  // Field crew screen: pick the job, photograph the receipt, done. No lists, no amounts.
+  function receiptOnly(el, opts) {
+    S.api = String(opts.api || '').replace(/\/$/, ''); S.key = opts.key; S.el = el;
+    var jobs = [], sel = '', msg = '';
+    function paint() {
+      el.innerHTML = '<div class="bf-note' + (msg ? ' show' : '') + '">' + esc(msg) + '</div><h2>Add a receipt</h2>' + (jobs.length ? '<label>Which job?<select data-bf-rj>' + jobs.map(function (j) { return '<option value="' + esc(j.id) + '"' + (j.id === sel ? ' selected' : '') + '>' + esc(j.name) + '</option>'; }).join('') + '</select></label><p><label class="bf-btn">Take or choose a photo<input type="file" accept="image/*" capture="environment" multiple data-bf-rf style="display:none"></label></p>' : '<p class="dk-empty">No jobs are set up for your login yet.</p>');
+    }
+    el.addEventListener('change', function (e) {
+      if (e.target.hasAttribute('data-bf-rj')) { sel = e.target.value; return; }
+      if (!e.target.hasAttribute('data-bf-rf')) return;
+      var list = [].slice.call(e.target.files), n = 0; msg = 'Sending ' + list.length + '…'; paint();
+      list.reduce(function (p, f) { return p.then(function () { return shrink(f).then(function (b64) { return call('POST', 'receipt/upload', { job: sel, mime: 'image/jpeg', image: b64 }); }).then(function (r) { if (r.ok) n++; }).catch(function () {}); }); }, Promise.resolve()).then(function () { msg = n + ' receipt' + (n === 1 ? '' : 's') + ' saved. The office will check ' + (n === 1 ? 'it' : 'them') + '.' + (n < list.length ? ' ' + (list.length - n) + ' did not go through, try again.' : ''); paint(); });
+    });
+    call('GET', 'receipt/jobs').then(function (r) { jobs = r.ok ? r.jobs : []; sel = jobs[0] ? jobs[0].id : ''; if (!r.ok) msg = r.error || 'Could not load'; paint(); });
+    paint();
+  }
   window.BFFinance = {
+    receiptOnly: receiptOnly,
     // opts: { api, key, job:{id,name,client}, snap:{f,pos,cos,inv,budget} }
     mount: function (el, opts) {
       var sameJob = !!(S.job && S.job.id === opts.job.id);
@@ -670,7 +696,7 @@
       if (!sameJob) { S.tab = opts.tab || 'overview'; S.ed = null; S.data = null; S.note = ''; }
       draw();
       var jobId = S.job.id;
-      (S.cfg ? Promise.resolve() : call('GET', 'config').then(function (c) { if (!c.ok) { S.err = c.error === 'not signed in' ? 'The finance tools are not turned on for this link yet.' : c.error; return; } S.cfg = c; }))
+      (S.cfg ? Promise.resolve() : call('GET', 'config').then(function (c) { if (!c.ok) { S.err = c.error === 'not signed in' ? 'The finance tools are not turned on for this link yet.' : c.error; return; } S.cfg = c; S.ro = !!(c.user && c.user.perms && c.user.perms.create_invoices === false); }))
         .then(function () { if (S.err || S.job.id !== jobId) return; return load(); })
         .then(function () { if (S.data && S.job.id === jobId) return maybeImport(); });
     }
