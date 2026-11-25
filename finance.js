@@ -20,7 +20,8 @@
   }
   function flash(msg, bad) { S.note = msg; S.noteBad = !!bad; var t = S.el && S.el.querySelector('.bf-note'); if (t) { t.textContent = msg; t.className = 'bf-note show' + (bad ? ' bad' : ''); clearTimeout(flash.t); flash.t = setTimeout(function () { t.className = 'bf-note'; }, 6000); } }
   function load() {
-    return call('GET', 'job?job=' + encodeURIComponent(S.job.id)).then(function (d) {
+    var sw = S.swept === S.job.id ? Promise.resolve() : (S.swept = S.job.id, call('POST', 'draw/sweep', { job: S.job.id }).catch(function () {}));   // schedule steps marked done turn into draft draw invoices (once per open)
+    return sw.then(function () { return call('GET', 'job?job=' + encodeURIComponent(S.job.id)); }).then(function (d) {
       if (!d.ok) { S.err = d.error || 'Could not load'; S.data = null; draw(); return; }
       S.err = ''; S.data = d;
       return Promise.all([call('GET', 'vendors'), call('GET', 'payments?job=' + encodeURIComponent(S.job.id))]).then(function (a) { S.vendors = a[0].ok ? a[0].vendors : []; S.pays = a[1].ok ? a[1] : null; draw(); });
@@ -60,7 +61,7 @@
     if (!d) { el.innerHTML = h + '<p class="dk-empty">Loading…</p>'; return; }
     var T = [['overview', 'Overview'], ['est', 'Estimate'], ['jcb', 'Job costing budget'], ['po', 'Purchase orders', d.rollup.pending.pos], ['co', 'Change orders', d.rollup.pending.cos], ['inv', 'Invoices', d.rollup.pending.invoices_draft], ['bills', 'Bills', (d.rollup.pending.bills || 0)], ['pay', 'Payments'], ['cm', 'Credit memos'], ['dep', 'Deposits', (d.rollup.billing.deposits_held > 0 ? 1 : 0)], ['rfi', 'RFIs', (d.rollup.pending.rfis || 0)], ['vendors', 'Vendors']];
     if (!S.single) h += '<div class="dk-tabs bf-tabs" role="tablist">' + T.map(function (t) { return '<button role="tab" data-bf-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="n">' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
-    h += '<div class="bf-quick" aria-label="Quick actions"><button class="bf-btn" data-bf-new="co">+ Change order</button><button class="bf-btn" data-bf-new="po">+ PO</button><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-bnew>+ Bill / receipt photo</button></div>';
+    h += '<div class="bf-quick" aria-label="Quick actions"><button class="bf-btn" data-bf-new="co">+ Change order</button><button class="bf-btn" data-bf-new="po">+ PO</button><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-bnew>+ Bill / receipt</button></div>';
     h += S.tab === 'overview' ? overview(d) : S.tab === 'est' ? estTab(d) : S.tab === 'jcb' ? jcbTab(d) : S.tab === 'po' ? poList(d) : S.tab === 'co' ? coList(d) : S.tab === 'vendors' ? vendorTab() : S.tab === 'bills' ? billList(d) : S.tab === 'pay' ? payTab() : S.tab === 'cm' ? cmTab(d) : S.tab === 'dep' ? depTab(d) : S.tab === 'rfi' ? rfiTab(d) : invList(d);
     el.innerHTML = h;
     keepM.forEach(function (m) { el.appendChild(m); });
@@ -97,7 +98,7 @@
     var total = e.lines.reduce(function (a, l) { return a + l.cost; }, 0), rows = '';
     groups.forEach(function (g) { rows += '<tr class="grp"><td colspan="5"><b>' + esc(g.name) + '</b></td><td class="r"><b>' + money(g.total) + '</b></td><td></td><td></td></tr>'; g.lines.forEach(function (l) { rows += '<tr><td>' + esc(l.title) + '</td><td>' + esc(l.code) + '</td><td>' + esc(l.desc) + '</td><td class="r">' + l.qty + '</td><td class="r">' + money(l.unit_cost) + '</td><td class="r">' + money(l.cost) + '</td><td class="r">' + (l.markup == null ? '' : l.markup + '%') + '</td><td class="r">' + (l.markup == null ? '' : (l.unit_price != null ? '$' + Number(l.unit_price).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : money((l.unit_cost || 0) * (1 + l.markup / 100)))) + '</td></tr>'; }); });
     rows += '<tr class="grp"><td colspan="5"><b>Builder cost</b></td><td class="r"><b>' + money(total) + '</b></td><td></td><td></td></tr>' + (e.profit ? '<tr><td colspan="5">' + esc(e.profit_label || 'Profit') + '</td><td class="r">' + money(e.profit) + '</td></tr><tr class="grp"><td colspan="5"><b>Total price</b></td><td class="r"><b>' + money(e.price || total + e.profit) + '</b></td></tr>' : '');
-    return '<details class="fold sub"><summary><h3>Estimate · ' + e.lines.length + ' lines' + (e.locked ? ' · ' + esc(e.locked) : '') + '</h3></summary><div class="tw"><table class="bt"><thead><tr><th>Title</th><th>Cost code</th><th>Description</th><th class="r">Qty</th><th class="r">Unit cost</th><th class="r">Builder cost</th><th class="r">Markup</th><th class="r">Unit price</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
+    return '<details class="fold sub"><summary><h3>Estimate · ' + e.lines.length + ' lines' + (e.locked ? ' · ' + esc(e.locked) : '') + ' · Total price ' + money(e.price || (total + (e.profit || 0))) + '</h3></summary><div class="tw"><table class="bt"><thead><tr><th>Title</th><th>Cost code</th><th>Description</th><th class="r">Qty</th><th class="r">Unit cost</th><th class="r">Builder cost</th><th class="r">Markup</th><th class="r">Unit price</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
   }
   function jcb(r) { // Job costing budget: same columns and grouping as the old software (category rows with cost codes under them)
     var cats = {}, order = []; r.budget.forEach(function (x) { var c = x.category || 'Uncategorized'; if (!cats[c]) { cats[c] = []; order.push(c); } cats[c].push(x); });
@@ -106,23 +107,28 @@
     function sum(a, k) { return a.reduce(function (t, x) { return t + (Number(x[k]) || 0); }, 0); }
     function cells(a) { var v = {}; cols.forEach(function (k) { v[k] = sum(a, k); }); v.projected = sum(a, 'projected'); v.toc = v.projected - v.actual; v.variance = v.revised - v.projected;
       return cols.map(function (k) { return '<td class="r">' + (v[k] ? money(v[k]) : '--') + '</td>'; }).join('') + '<td class="r' + (v.variance < 0 ? ' bf-neg' : '') + '">' + (v.variance ? money(v.variance) : '--') + '</td><td class="r">' + money(v.projected) + '</td><td class="r">' + money(v.toc) + '</td>'; }
-    var rows = order.map(function (c) { var a = cats[c]; return '<tr class="grp"><td><b>' + esc(c) + '</b></td>' + cells(a) + '</tr>' + a.map(function (x) { return '<tr><td style="padding-left:22px">' + esc(x.code) + '</td>' + cells([x]) + '</tr>'; }).join(''); }).join('');
+    var rows = order.map(function (c) { var a = cats[c]; var gi = order.indexOf(c); return '<tr class="grp"><td><button type="button" class="bf-chev" data-bf-grp="' + gi + '" aria-expanded="true" aria-label="Collapse or expand">▾</button> <b>' + esc(c) + '</b></td>' + cells(a) + '</tr>' + a.map(function (x) { return '<tr data-bf-gc="' + gi + '"><td style="padding-left:22px">' + esc(x.code) + '</td>' + cells([x]) + '</tr>'; }).join(''); }).join('');
     var c = r.cost || {}, pr = r.price || {}, mg = pr.revised ? Math.round(r.projected_profit / pr.revised * 100) : 0;
-    return '<div class="big">' + kpi('Revised price', money(pr.revised)) + kpi('Projected cost', money(c.projected)) + kpi('Projected profit', money(r.projected_profit), mg + '% profit margin') + '</div>' +
+    return '<div class="bf-istrip"><div><small>Revised price</small><b>' + money(pr.revised) + '</b></div><i>−</i><div><small>Projected cost</small><b>' + money(c.projected) + '</b></div><i>=</i><div><small>Projected profit</small><b>' + money(r.projected_profit) + '</b></div><span class="bf-st">' + mg + '% profit margin</span></div>' +
       '<div class="tw"><table class="bt"><thead><tr><th>Cost codes</th><th class="r">Original budget costs</th><th class="r">Revised budget costs</th><th class="r">Pending costs</th><th class="r">Committed costs</th><th class="r">Actual costs</th><th class="r">Builder variance</th><th class="r">Projected costs</th><th class="r">Cost to complete</th></tr></thead><tbody>' + rows +
       '<tr class="grp"><td><b>Totals</b></td>' + cells(r.budget) + '</tr></tbody></table></div>';
   }
   function badge(s) { var k = String(s).toLowerCase().replace(/\s+/g, '-'); return '<span class="bf-st bf-' + esc(k) + '">' + esc(s) + '</span>'; }
-  function table(cols, rows, kind, empty) {
+  var LOWP = ['RFIs','Comments','Client','Created','Files','Builder cost','Viewed','QuickBooks','Due','Paid','Remaining'];   // less important columns drop out on a phone so price and status stay on screen
+  function cc(c) { var k = (c[2] ? 'r' : '') + (LOWP.indexOf(c[0]) >= 0 ? ' lo' : ''); return k.trim() ? ' class="' + k.trim() + '"' : ''; }
+  function table(cols, rows, kind, empty, foot) {
     if (!rows.length) return '<p class="dk-empty">' + empty + '</p>';
-    return '<div class="tw"><table class="bt bf-click"><thead><tr>' + cols.map(function (c) { return '<th' + (c[2] ? ' class="r"' : '') + '>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
-      rows.map(function (r) { return '<tr data-bf-open="' + kind + ':' + r.id + '" tabindex="0">' + cols.map(function (c) { var v = c[1](r); return '<td' + (c[2] ? ' class="r"' : '') + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    return '<div class="tw"><table class="bt bf-click"><thead><tr>' + cols.map(function (c) { return '<th' + cc(c) + '>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr data-bf-open="' + kind + ':' + r.id + '" tabindex="0">' + cols.map(function (c) { var v = c[1](r); return '<td' + cc(c) + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>' + (foot ? '<tfoot><tr>' + cols.map(function (c, i) { return '<td' + cc(c) + '><b>' + (i === 0 ? 'Totals' : (foot[c[0]] != null ? foot[c[0]] : '')) + '</b></td>'; }).join('') + '</tr></tfoot>' : '') + '</table></div>';
   }
   function insBadge(v) { return v.insurance_status === 'ok' ? badge('Insured') : v.insurance_status === 'expiring' ? badge('Draft').replace('Draft', 'Expires ' + fdate(v.insurance_expires)) : v.insurance_status === 'expired' ? badge('Void').replace('Void', 'Insurance expired') : '<span class="dk-m">None on file</span>'; }
+  var BILL_TABS = [['inbox', 'Inbox', function (b) { return b.display === 'Draft'; }], ['review', 'In Review', function (b) { return /review|pending/i.test(b.display); }], ['ready', 'Ready for Payment', function (b) { return b.display === 'Approved' || b.display === 'Overdue' || (b.display !== 'Paid' && b.display !== 'Draft' && b.display !== 'Void' && !/review|pending/i.test(b.display) && b.totals.remaining > 0); }], ['paid', 'Paid', function (b) { return b.display === 'Paid'; }], ['all', 'All Bills', function (b) { return b.display !== 'Draft'; }]];
   function billList(d) {
-    var bl = d.bills || [];
-    return '<div class="bf-bar"><button class="bf-btn" data-bf-bnew>+ Bill</button><label class="bf-btn alt bf-file">Add receipt photo<input type="file" accept="image/*" capture="environment" multiple hidden data-bf-rcpt></label><span class="dk-m">Receipts and supplier bills that aren’t on a purchase order. Paid amounts count as actual cost. For a PO, record the bill on the PO.</span></div>' +
-      table([['Bill', function (r) { return esc(r.number); }], ['Title', function (r) { return esc(r.title); }], ['Pay to', function (r) { return esc(r.vendor.name); }], ['Status', function (r) { return badge(r.display); }], ['Amount', function (r) { return money(r.totals.amount); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1], ['Due', function (r) { return fdate(r.due_date); }]], bl, 'bill', 'No bills yet.');
+    var all = d.bills || [], bt = S.bt || (all.some(function (b) { return b.display === 'Draft'; }) ? 'inbox' : 'all'), cur = BILL_TABS.filter(function (t) { return t[0] === bt; })[0] || BILL_TABS[4];
+    var bl = all.filter(cur[2]);
+    var strip = '<div class="bf-btabs">' + BILL_TABS.map(function (t) { return '<button class="bf-btab" data-bf-bt="' + t[0] + '" aria-selected="' + (t[0] === bt) + '">' + t[1] + ' <span>' + all.filter(t[2]).length + '</span></button>'; }).join('') + '</div>';
+    return strip + '<div class="bf-bar"><label class="bf-btn alt bf-file">Snap receipt<input type="file" accept="image/*" capture="environment" multiple hidden data-bf-rcpt></label><span class="dk-m">Receipts and supplier bills that aren’t on a purchase order. Paid amounts count as actual cost. For a PO, record the bill on the PO.</span></div>' +
+      table([['Bill', function (r) { return esc(r.number); }], ['Title', function (r) { return esc(r.title); }], ['Pay to', function (r) { return esc(r.vendor.name); }], ['Status', function (r) { return badge(r.display); }], ['Amount', function (r) { return money(r.totals.amount); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1], ['Due', function (r) { return fdate(r.due_date); }]], bl, 'bill', 'Nothing here.');
   }
   function openBill(id) {
     var rec = id ? (S.data.bills || []).filter(function (x) { return x.id === id; })[0] : null;
@@ -172,7 +178,7 @@
   }
   function poList(d) {
     return '<div class="bf-bar"><button class="bf-btn" data-bf-new="po">+ Purchase order</button><span class="dk-m">Approved POs count as committed costs.</span></div>' +
-      table([['PO #', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Performed by', function (r) { return esc(r.vendor.name); }], ['Status', function (r) { return badge(r.display); }], ['Work', function (r) { return r.status === 'void' ? '' : esc(r.work_status === 'complete' ? 'Complete' : 'Not complete'); }], ['Cost', function (r) { return money(r.totals.cost); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1]], d.pos, 'po', 'No purchase orders yet.');
+      table([['PO #', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Work', function (r) { return r.status === 'void' ? '' : esc(r.work_status === 'complete' ? 'Complete' : 'Not complete'); }], ['Performed by', function (r) { return esc(r.vendor.name); }], ['Cost', function (r) { return money(r.totals.cost); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Remaining', function (r) { return money(r.totals.remaining); }, 1]], d.pos, 'po', 'No purchase orders yet.');
   }
   function coList(d) {
     var rf = d.rfis || [], poN = {}; (d.pos || []).forEach(function (p) { poN[p.id] = p.number; });
@@ -183,19 +189,53 @@
       ['RFIs', function (r) { return rf.filter(function (x) { return x.link_kind === 'co' && x.link_id === r.id; }).length || ''; }], ['Comments', function (r) { return (r.comments || []).length || ''; }],
       ['Client', function () { return esc(cl); }], ['Created', function (r) { return fdate((r.created_at || '').slice(0, 10)); }], ['Files', function (r) { return (r.attachments || []).length || ''; }],
       ['Builder cost', function (r) { return money(r.totals.builder); }, 1], ['Total price', function (r) { return money(r.totals.price); }, 1],
-      ['Status', function (r) { return badge(r.status === 'pending' ? 'Waiting on client' : r.status.charAt(0).toUpperCase() + r.status.slice(1)); }],
+      ['Status', function (r) { return badge(r.superseded ? 'Replaced' : r.status === 'pending' ? 'Waiting on client' : r.status.charAt(0).toUpperCase() + r.status.slice(1)); }],
       ['Status changed', function (r) { return fdate((r.decided_at || r.sent_at || r.created_at || '').slice(0, 10)); }],
       ['Related POs', function (r) { return esc((r.po_ids || []).map(function (id) { return poN[id]; }).filter(Boolean).join(', ')); }],
       ['Signed', function (r) { var sg = (r.signers || []).filter(function (x) { return x.status === 'approved'; }); return sg.length ? fdate((sg[sg.length - 1].signed_at || '').slice(0, 10)) + (sg.length < (r.signers || []).length ? ' (' + sg.length + '/' + r.signers.length + ')' : '') : ''; }],
       ['Evidence', function (r) { return r.approval_pdf ? '<button class="link" type="button" data-bf-fdl="' + esc(r.approval_pdf) + '">Approval PDF</button>' : '';}],
-      ['', function (r) { return r.imported ? '' : '<button class="bf-btn alt sm" type="button" data-bf-open="co:' + esc(r.id) + '">' + (r.status === 'draft' || r.status === 'pending' ? 'Edit' : 'View') + '</button>'; }]];
-    var h = '<div class="bf-bar"><button class="bf-btn" data-bf-new="co">+ Change order</button><span class="dk-m">Approved changes raise the contract price and the budget.</span></div>' + table(cols, rows, 'co', 'No change orders yet.');
+      ['', function (r) { return '<button class="bf-btn alt sm" type="button" data-bf-open="co:' + esc(r.id) + '">' + (r.status === 'draft' || r.status === 'pending' ? 'Edit' : 'View') + '</button>'; }]];
+    var h = waitCard(d) + billingCard(d) + '<div class="bf-bar"><button class="bf-btn" data-bf-new="co">+ Change order</button><span class="dk-m">Approved changes raise the contract price and the budget.</span></div>' + table(cols, rows, 'co', 'No change orders yet.');
     if (rows.length) h += '<p class="dk-m" style="text-align:right"><b>Totals</b> · builder cost ' + money(tc) + ' · total price ' + money(tp) + ' (void excluded)</p>';
     return h;
   }
+  function waitCard(d) {   // in-app reminder only: nothing is sent to the client. Sent change orders still unsigned after 3 days.
+    var cut = Date.now() - 3 * 864e5;
+    var rows = (d.cos || []).filter(function (c) { return c.status === 'pending' && c.sent_at && Date.parse(c.sent_at) < cut; });
+    if (!rows.length) return '';
+    return '<div class="bf-ready"><b>Still waiting on the client · ' + rows.length + '</b>' + rows.map(function (c) { var n = Math.floor((Date.now() - Date.parse(c.sent_at)) / 864e5); return '<div class="bf-ready-row"><span>' + esc(c.number) + ' ' + esc(c.title) + ' · sent ' + n + ' days ago</span></div>'; }).join('') + '<div class="dk-m">Worth a call. Nothing is sent from here.</div></div>';
+  }
+  function drawCard(d) {
+    var rows = (d.invoices || []).filter(function (i) { return i.approval && i.approval.status === 'awaiting_approval'; });
+    if (!rows.length) return '';
+    var can = S.cfg.settings.can_send_invoice;
+    return '<div class="bf-ready"><b>Draws ready to bill · ' + rows.length + '</b>' + rows.map(function (i) { return '<div class="bf-ready-row"><span>' + esc(i.title) + ' · ' + money(i.totals ? i.totals.total : i.flat_amount) + '<br><small class="dk-m">' + esc(i.approval.because || 'Schedule step done') + '</small></span>' + (can ? '<span class="bf-ready-btns"><button class="bf-btn" data-bf-drw="approve:' + esc(i.id) + '">Approve draw</button><button class="bf-btn alt" data-bf-drw="dismiss:' + esc(i.id) + '">Not now</button></span>' : '<small class="dk-m">Waiting on the approver</small>') + '</div>'; }).join('') + '<small class="dk-m">Approved draws go to QuickBooks as an invoice' + (S.cfg.settings.qbo && S.cfg.settings.qbo.enabled ? '.' : ' once QuickBooks is connected. Until then they are held. Nothing is sent to the client from here.') + '</small></div>';
+  }
+  function billingCard(d) {
+    var rows = (d.cos || []).filter(function (c) { return c.billing && c.billing.status === 'awaiting_approval'; });
+    if (!rows.length) return '';
+    var can = S.cfg.settings.can_send_invoice;
+    return '<div class="bf-ready"><b>Signed change orders to bill · ' + rows.length + '</b>' + rows.map(function (c) { return '<div class="bf-ready-row"><span>' + esc(c.number) + ' ' + esc(c.title) + ' · ' + money(c.billing.amount) + '</span>' + (can ? '<span class="bf-ready-btns"><button class="bf-btn" data-bf-bill="approve:' + esc(c.id) + '">Approve billing</button><button class="bf-btn alt" data-bf-bill="dismiss:' + esc(c.id) + '">Not now</button></span>' : '<small class="dk-m">Waiting on the approver</small>') + '</div>'; }).join('') + '<small class="dk-m">Approved billing goes to QuickBooks as an invoice' + (S.cfg.settings.qbo && S.cfg.settings.qbo.enabled ? '.' : ' once QuickBooks is connected. Until then it is held.') + '</small></div>';
+  }
+  function invReady(d) {
+    var rows = (d.invoices || []).filter(function (i) { return i.status === 'draft' && i.draw_id && !i.approval; });
+    if (!rows.length) return '';
+    var can = S.cfg.settings.can_send_invoice;
+    return '<div class="bf-ready"><b>Ready for approval · ' + rows.length + '</b>' + rows.map(function (i) { return '<div class="bf-ready-row"><span>' + esc(i.title) + ' · ' + money(i.totals.total) + (i.client && i.client.name ? ' · ' + esc(i.client.name) : '') + '</span><button class="bf-btn" data-bf-open="inv:' + esc(i.id) + '">' + (can ? 'Review & send' : 'Review') + '</button></div>'; }).join('') + (can ? '' : '<small class="dk-m">Only ' + esc((S.cfg.settings.invoice_approvers || []).join(', ') || 'the approver') + ' can send.</small>') + '</div>';
+  }
+  function invSettings() {
+    if (!S.cfg.user || S.cfg.user.role !== 'owner') return '';
+    var st = S.cfg.settings;
+    return '<details class="fold sub bf-iset"><summary><h3>Invoice settings</h3></summary><label>Who sends invoices (names, comma separated; blank = any approver)<input data-bf-iapp value="' + esc((st.invoice_approvers || []).join(', ')) + '"></label><label class="bf-chk"><input type="checkbox" data-bf-iqb' + (st.qbo && st.qbo.enabled ? ' checked' : '') + '> Hand sent invoices to QuickBooks (turn on after QuickBooks is connected)</label><button class="bf-btn alt" data-bf-isave>Save</button></details>';
+  }
+  function invFoot(d) { var a = (d.invoices || []).filter(function (i) { return i.status !== 'void'; }), t = function (f) { return money(a.reduce(function (x, i) { return x + n2(f(i)); }, 0)); }; return { Total: t(function (i) { return i.totals.total; }), Paid: t(function (i) { return i.totals.paid; }), 'Balance due': t(function (i) { return i.totals.balance; }) }; }
+  function invStrip(d) {
+    var rev = d.rollup.price.revised, paid = (d.invoices || []).reduce(function (t, i) { return t + (i.status === 'void' ? 0 : n2(i.totals.paid)); }, 0);
+    return '<div class="bf-istrip"><div><small>Total revised price</small><b>' + money(rev) + '</b></div><i>−</i><div><small>Payments</small><b>' + money(paid) + '</b></div><i>=</i><div><small>Remaining balance</small><b>' + money(rev - paid) + '</b></div></div>';
+  }
   function invList(d) {
-    return '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
-      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && r.qb.status === 'ready' ? 'Ready' : '—'; }]], d.invoices, 'inv', 'No invoices yet.');
+    return invStrip(d) + drawCard(d) + billingCard(d) + invReady(d) + invSettings() + '<div class="bf-bar"><button class="bf-btn" data-bf-new="inv">+ Invoice</button><button class="bf-btn alt" data-bf-draws>Payment schedule</button><button class="bf-btn alt" data-bf-qb>QuickBooks export</button></div>' +
+      table([['Invoice', function (r) { return esc(r.number) + (r.imported ? ' <small class="bf-imp">Imported</small>' : ''); }], ['Title', function (r) { return esc(r.title); }], ['Status', function (r) { return badge(r.display); }], ['Total', function (r) { return money(r.totals.total); }, 1], ['Paid', function (r) { return money(r.totals.paid); }, 1], ['Balance due', function (r) { return money(r.totals.balance); }, 1], ['Viewed', function (r) { return r.viewed_at ? 'Yes' : ''; }], ['Due', function (r) { return fdate(r.due_date); }], ['QuickBooks', function (r) { return r.qb && r.qb.status === 'synced' ? 'Synced' : r.qb && (r.qb.status === 'ready' || r.qb.status === 'queued') ? (r.qb.status === 'queued' ? 'Queued' : 'Ready') : '—'; }]], (d.invoices || []).slice().sort(function (a, b) { return String(a.number).localeCompare(String(b.number), undefined, { numeric: true }); }), 'inv', 'No invoices yet.', invFoot(d));
   }
 
   // ---------- editor (one panel for all three, same grid as the current job software)
@@ -207,7 +247,7 @@
     else {
       var base = { lines: [blankLine(kind)], status: 'draft', events: [], bills: [], payments: [], title: '' };
       if (kind === 'po') Object.assign(base, { vendor: { name: '', email: '' }, scope: '', notes_internal: '', notes_vendor: '', variance: {}, due_date: '' });
-      if (kind === 'co') Object.assign(base, { description: '', days_impact: 0, signers_planned: cs.map(function (s) { return { name: s.name, email: s.email }; }), approval_deadline: '', notes_internal: '' });
+      if (kind === 'co') Object.assign(base, { invoice_on_approval: true, description: '', days_impact: 0, signers_planned: cs.map(function (s) { return { name: s.name, email: s.email }; }), approval_deadline: '', notes_internal: '' });
       if (kind === 'inv') Object.assign(base, { mode: 'lines', flat_amount: '', terms: S.cfg.settings.default_terms, invoice_date: ymd(new Date()), due_date: '', tax_pct: 0, retainage_pct: 0, notes_client: '', milestone: '', client: cs[0] ? { name: cs[0].name, email: cs[0].email } : { name: '', email: '' }, co_ids: [] });
       S.ed = { kind: kind, rec: base, isNew: true };
     }
@@ -224,9 +264,20 @@
   function calc(kind, rec) {
     var mk = S.cfg.settings.default_markup_pct, b = 0, p = 0, lt = [];
     (rec.lines || []).forEach(function (l) {
-      var q = l.qty === '' || l.qty == null ? 1 : n2(l.qty), bc = r2(q * n2(l.unit_cost)), m = l.markup_pct === '' || l.markup_pct == null ? (kind === 'po' ? 0 : mk) : n2(l.markup_pct), pr = r2(bc * (1 + m / 100)); b += bc; p += pr; lt.push(kind === 'po' ? bc : pr);
+      var q = l.qty === '' || l.qty == null ? 1 : n2(l.qty), bc = r2(q * n2(l.unit_cost)), m = l.markup_pct === '' || l.markup_pct == null ? (kind === 'po' ? 0 : mk) : n2(l.markup_pct), pr = (kind !== 'po' && l.price_override != null && l.price_override !== '') ? r2(n2(l.price_override)) : r2(bc * (1 + m / 100)); b += bc; p += pr; lt.push(kind === 'po' ? bc : pr);
     });
     return { builder: r2(b), price: r2(p), lt: lt };
+  }
+  // read-only record from the old system: a plain summary instead of a form full of empty fields
+  function importedSummary(k, r) {
+    var t = r.totals || {}, total = k === 'inv' ? t.total : (t.price != null ? t.price : t.total), nm = k === 'po' ? 'purchase order' : k === 'co' ? 'change order' : 'invoice';
+    var st = k === 'co' ? ({ draft: 'Draft', pending: 'Waiting on client', approved: 'Approved', declined: 'Declined', void: 'Void' }[r.status]) : (r.display || r.status);
+    var next = r.superseded ? 'Replaced by ' + r.superseded.number + ', the BuildFlow copy. This one is kept for the record.' : r.status === 'draft' ? 'Still a draft. It was not sent from the old system. Create it again here with + ' + (k === 'co' ? 'Change order' : k === 'po' ? 'PO' : 'Invoice') + ' to send it.' : r.status === 'void' ? 'Nothing. It was voided.' : k === 'inv' ? (t.balance > 0.004 ? money(t.balance) + ' is still due.' : 'Nothing. It is paid.') : 'Nothing. It is done and counted in the job total.';
+    var out = '<div class="bf-sum"><div class="bf-sum-top"><div><div class="dk-m">' + esc(nm) + ' copied from your current software</div><h3>' + esc(r.title || r.number) + '</h3></div><div class="bf-sum-total">' + money(total) + '<small>' + esc(st || '') + '</small></div></div>' +
+      '<p><b>Next step:</b> ' + esc(next) + '</p>' + (r.approval_deadline ? '<p class="dk-m">Respond by ' + fdate(r.approval_deadline) + '</p>' : '') + (r.description ? '<p>' + esc(r.description) + '</p>' : '') + '</div>';
+    var ls = (r.lines || []).filter(function (l) { return !/^Imported from your current software/.test(l.desc || ''); });
+    if (ls.length) out += '<h4>What it covers</h4><ul class="bf-sum-lines">' + ls.map(function (l, i) { var pr = l.price_override != null ? l.price_override : r2(n2(l.unit_cost) * (l.qty == null || l.qty === '' ? 1 : n2(l.qty)) * (1 + n2(l.markup_pct) / 100)); return '<li><span>' + esc(l.desc) + (l.cost_code ? '<small>' + esc(l.cost_code) + '</small>' : '') + '</span><b>' + money(pr) + '</b></li>'; }).join('') + '</ul>';
+    return out;
   }
   function drawEditor() {
     var ed = S.ed; if (!ed) return; var k = ed.kind, r = ed.rec, d = S.data, can = S.cfg.can_approve;
@@ -235,12 +286,12 @@
     var stat = k === 'po' ? r.display || 'Draft' : k === 'co' ? ({ draft: 'Draft', pending: 'Waiting on client', approved: 'Approved', declined: 'Declined', void: 'Void' }[r.status]) : r.display || 'Draft';
     var h = '<div class="bf-head"><div><b>' + esc(title) + '</b> ' + badge(stat) + (r.imported ? ' <small class="bf-imp">from your current software</small>' : '') + '</div><button class="bf-x big" data-bf-close aria-label="Close">×</button></div><div class="bf-body">';
     if (k === 'po' && r.status === 'draft' && r.vendor && r.vendor.name) { var vv = (S.vendors || []).filter(function (x) { return x.name.toLowerCase() === r.vendor.name.toLowerCase(); })[0]; if (vv && (vv.insurance_status === 'expired' || vv.insurance_status === 'none')) h += '<p class="bf-warn">' + esc(vv.name) + ' has ' + (vv.insurance_status === 'expired' ? 'insurance that expired ' + fdate(vv.insurance_expires) : 'no insurance on file') + '. Check before you approve.</p>'; else if (!vv) h += '<p class="dk-m">Not in your vendor list yet. Add them under Vendors to track insurance.</p>'; }
-    if (r.imported) h += '<p class="bf-warn">This came from your current software. Totals and status are copied; line detail was not available. It is read-only here.</p>';
     if (k === 'po' && r.approved_by) h += '<p class="dk-m">Approved by ' + esc(r.approved_by) + ' on ' + fdate((r.approved_at || '').slice(0, 10)) + '</p>';
+    var hForm = h.length;
     h += '<form class="bf-form" data-bf-form autocomplete="off"><fieldset ' + (locked ? 'disabled' : '') + '>';
     h += '<label>Title<input data-f="title" value="' + esc(r.title) + '"></label>';
     if (k === 'po') h += '<div class="bf-row"><label>Assigned to (who is doing the work)<input data-f="vendor.name" list="bf-vendors" value="' + esc(r.vendor.name) + '"></label><datalist id="bf-vendors">' + (S.vendors || []).map(function (v) { return '<option value="' + esc(v.name) + '">'; }).join('') + '</datalist><label>Their email<input data-f="vendor.email" type="email" value="' + esc(r.vendor.email) + '"></label></div><div class="bf-row"><label>Scheduled completion<input data-f="due_date" type="date" value="' + esc(r.due_date) + '"></label><label class="bf-chk"><input data-f="materials_only" type="checkbox" ' + (r.materials_only ? 'checked' : '') + '> Materials only</label><label class="bf-chk"><input data-f="variance.is" type="checkbox" ' + (r.variance && r.variance.is ? 'checked' : '') + '> Variance PO</label></div><label>Scope of work<textarea data-f="scope" rows="3">' + esc(r.scope) + '</textarea></label>';
-    if (k === 'co') h += '<label>Description for the client<textarea data-f="description" rows="3">' + esc(r.description) + '</textarea></label><div class="bf-row"><label>Days added to schedule<input data-f="days_impact" inputmode="numeric" value="' + esc(r.days_impact || 0) + '"></label><label>Respond by<input data-f="approval_deadline" type="date" value="' + esc(r.approval_deadline) + '"></label></div><div class="bf-row"><label>How is this billed?<select data-f="payment_effect"><option value="">Choose…</option><option value="billed_with_next_progress"' + (r.payment_effect === 'billed_with_next_progress' ? ' selected' : '') + '>With the next progress payment</option><option value="billed_on_approval"' + (r.payment_effect === 'billed_on_approval' ? ' selected' : '') + '>When approved</option><option value="custom"' + (r.payment_effect === 'custom' ? ' selected' : '') + '>Custom</option></select></label><label>Custom billing wording<input data-f="payment_text" value="' + esc(r.payment_text || '') + '"></label></div><label class="bf-chk"><input type="checkbox" data-f="invoice_on_approval"' + (r.invoice_on_approval ? ' checked' : '') + '> Invoice the client when this is approved (makes a draft invoice)</label><label>Plans and specs link<input data-f="plans_url" value="' + esc(r.plans_url || '') + '" placeholder="https://…"></label><label>Scope sections for the agreement (a heading on its own line, then the text; blank line between sections)<textarea data-f="_sections" rows="6" placeholder="Summary&#10;What this change covers…">' + esc(r._sections != null ? r._sections : (r.sections || []).map(function (x) { return x.title + '\n' + x.body; }).join('\n\n')) + '</textarea></label><div class="bf-bar"><button type="button" class="bf-btn alt" data-bf-sectpl>Use the standard section headings</button></div>';
+    if (k === 'co') h += '<label>Description for the client<textarea data-f="description" rows="3">' + esc(r.description) + '</textarea></label><div class="bf-row"><label>Days added to schedule<input data-f="days_impact" inputmode="numeric" value="' + esc(r.days_impact || 0) + '"></label><label>Respond by<input data-f="approval_deadline" type="date" value="' + esc(r.approval_deadline) + '"></label></div><div class="bf-row"><label>How is this billed?<select data-f="payment_effect"><option value="">Choose…</option><option value="billed_with_next_progress"' + (r.payment_effect === 'billed_with_next_progress' ? ' selected' : '') + '>With the next progress payment</option><option value="billed_on_approval"' + (r.payment_effect === 'billed_on_approval' ? ' selected' : '') + '>When approved</option><option value="custom"' + (r.payment_effect === 'custom' ? ' selected' : '') + '>Custom</option></select></label><label>Custom billing wording<input data-f="payment_text" value="' + esc(r.payment_text || '') + '"></label></div><label class="bf-chk"><input type="checkbox" data-f="invoice_on_approval"' + (r.invoice_on_approval ? ' checked' : '') + '> When this is signed, ask the approver to approve billing it (goes to QuickBooks)</label><label>Plans and specs link<input data-f="plans_url" value="' + esc(r.plans_url || '') + '" placeholder="https://…"></label><label>Scope sections for the agreement (a heading on its own line, then the text; blank line between sections)<textarea data-f="_sections" rows="6" placeholder="Summary&#10;What this change covers…">' + esc(r._sections != null ? r._sections : (r.sections || []).map(function (x) { return x.title + '\n' + x.body; }).join('\n\n')) + '</textarea></label><div class="bf-bar"><button type="button" class="bf-btn alt" data-bf-sectpl>Use the standard section headings</button></div>';
     if (k === 'inv') {
       var draws = (d.job.draws || []).filter(function (x) { return !x.invoice_id || x.invoice_id === r.id; });
       h += '<div class="bf-row"><label>Bill to<input data-f="client.name" value="' + esc(r.client.name) + '"></label><label>Their email<input data-f="client.email" type="email" value="' + esc(r.client.email) + '"></label></div>' +
@@ -269,6 +320,7 @@
         ((d.pos || []).length ? '<h4>Related purchase orders</h4><div class="bf-checks">' + d.pos.map(function (x) { return '<label class="bf-chk"><input type="checkbox" data-poid="' + esc(x.id) + '"' + ((r.po_ids || []).indexOf(x.id) >= 0 ? ' checked' : '') + '> ' + esc(x.number + ' ' + x.title) + '</label>'; }).join('') + '</div>' : '');
     }
     h += '</fieldset></form>';
+    if (r.imported) h = h.slice(0, hForm) + importedSummary(k, r);
     if (!S.ed.isNew) h += attachBox(r, k) + (k === 'po' ? waiverBox(r) : '');
     // bills / payments
     if (k === 'po' && r.status === 'approved') h += '<h4>Bills</h4>' + payTable(r.bills, 'bill_delete', 'bill_id') + (r.totals.remaining > 0.004 ? '<form class="bf-form bf-inline" data-bf-pay="bill"><input name="amount" inputmode="decimal" placeholder="Amount" required><input name="date" type="date" value="' + ymd(new Date()) + '"><input name="method" placeholder="Method (check, ACH, card)"><input name="ref" placeholder="Bill / ref #"><button class="bf-btn" type="submit">Record bill</button></form>' : '');
@@ -294,6 +346,12 @@
     return '<div class="tw"><table class="bt"><thead><tr><th>Date</th><th>Method</th><th>Ref</th><th class="r">Amount</th><th></th></tr></thead><tbody>' + rows.map(function (p) { return '<tr><td>' + fdate(p.date) + '</td><td>' + esc(p.method) + '</td><td>' + esc(p.ref) + '</td><td class="r">' + money(p.amount) + '</td><td>' + (S.ed.rec.imported ? '' : '<button class="bf-x" data-bf-act="' + act + '" data-idf="' + idf + '" data-idv="' + p.id + '" title="Remove">×</button>') + '</td></tr>'; }).join('') + '</tbody></table></div>';
   }
   function actions(k, r, locked, can) {
+    var h0 = actions0(k, r, locked, can);
+    if (k !== 'co' || S.ed.isNew) return h0;
+    var bb = function (a, label, cls) { return '<button class="bf-btn ' + (cls || '') + '" type="button" data-bf-act="' + a + '">' + label + '</button>'; };
+    return bb('contract', 'Preview contract', 'alt') + (r.imported && r.status === 'draft' ? bb('finish', 'Finish in BuildFlow') : '') + h0;
+  }
+  function actions0(k, r, locked, can) {
     var b = function (a, label, cls) { return '<button class="bf-btn ' + (cls || '') + '" type="button" data-bf-act="' + a + '">' + label + '</button>'; };
     var h = '';
     if (r.imported) return b('close', 'Close', 'alt');
@@ -456,6 +514,8 @@
   function onClick(e) {
     var t = e.target, b;
     if (b2Click(t)) return;
+    if ((b = t.closest('[data-bf-grp]'))) { var open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', open); b.textContent = open ? '▾' : '▸'; b.closest('table').querySelectorAll('[data-bf-gc="' + b.dataset.bfGrp + '"]').forEach(function (r) { r.hidden = !open; }); return; }
+    if ((b = t.closest('[data-bf-bt]'))) { S.bt = b.dataset.bfBt; draw(); return; }
     if ((b = t.closest('[data-bf-tab]'))) { S.tab = b.dataset.bfTab; draw(); return; }
     if ((b = t.closest('[data-bf-new]'))) { openEditor(b.dataset.bfNew); return; }
     if ((b = t.closest('[data-bf-open]'))) { var p = b.dataset.bfOpen.split(':'); S.tab = p[0]; if (p[0] === 'bill') openBill(p[1]); else openEditor(p[0], p[1]); return; }
@@ -464,6 +524,9 @@
     if (t.closest('[data-bf-vcancel]')) { S.vEdit = null; draw(); return; }
     if ((b = t.closest('[data-bf-vdel]'))) { if (confirm('Remove this vendor from your list? Existing purchase orders keep their name.')) call('POST', 'vendor/delete', { id: b.dataset.bfVdel }).then(function () { flash('Vendor removed.'); load(); }); return; }
     if (t.closest('[data-bf-bnew]')) { openBill(); return; }
+    if ((b = t.closest('[data-bf-drw]'))) { var dq = b.dataset.bfDrw.split(':'); call('POST', 'inv/act', { job: S.job.id, id: dq[1], action: dq[0] === 'approve' ? 'draw_approve' : 'draw_dismiss' }).then(function (r) { if (!r.ok) return flash(r.error, true); flash(dq[0] === 'approve' ? 'Draw approved.' : 'Dismissed.'); load(); }); return; }
+    if ((b = t.closest('[data-bf-bill]'))) { var q = b.dataset.bfBill.split(':'); call('POST', 'co/act', { job: S.job.id, id: q[1], action: q[0] === 'approve' ? 'billing_approve' : 'billing_dismiss' }).then(function (r) { if (!r.ok) return flash(r.error, true); flash(q[0] === 'approve' ? 'Billing approved.' : 'Dismissed.'); load(); }); return; }
+    if (t.closest('[data-bf-isave]')) { var ap = S.el.querySelector('[data-bf-iapp]').value.split(',').map(function (x) { return x.trim(); }).filter(Boolean), qb = S.el.querySelector('[data-bf-iqb]').checked; call('POST', 'cfg/invoicing', { approvers: ap, qb_enabled: qb }).then(function (r) { if (!r.ok) return flash(r.error, true); S.cfg.settings.invoice_approvers = r.approvers; S.cfg.settings.qbo.enabled = r.qb_enabled; flash('Saved.'); }); return; }
     if (t.closest('[data-bf-draws]')) { openDraws(); return; }
     if (t.closest('[data-bf-qb]')) { call('GET', 'qb-export?job=' + encodeURIComponent(S.job.id)).then(function (r) { openText('QuickBooks-ready invoices', r.ok ? JSON.stringify(r.invoices, null, 2) : r.error, 'Not sent to QuickBooks. This is the shape a later sync will use. ' + r.invoices.length + ' invoice(s).'); }); return; }
     if (!S.ed) return;
@@ -491,6 +554,8 @@
     if (a === 'confirm-send') return actCall(k, 'send').then(function (res) { if (res) afterAct(res, res.mail && res.mail.delivered ? 'Sent' + (res.mail.mode !== 'live' ? ' in test mode: the email went only to Michael, not the real recipient.' : '.') : 'Link ready. The email service is not connected yet, so nothing was emailed. Copy the link below to send it yourself.'); });
     if (a === 'approve') return save().then(function (rec) { if (rec) actCall('po', 'approve').then(function (res) { if (res) afterAct(res, 'Approved. It now counts as a committed cost.'); }); });
     if (a === 'void') { if (!confirm('Void this ' + (k === 'po' ? 'purchase order' : k === 'co' ? 'change order' : 'invoice') + '? It stops counting everywhere.')) return; return actCall(k, 'void').then(function (res) { if (res) afterAct(res, 'Voided.'); }); }
+    if (a === 'contract') { return call('GET', 'co/contract?job=' + encodeURIComponent(S.job.id) + '&id=' + encodeURIComponent(S.ed.rec.id)).then(function (res) { if (!res.ok) return flash(res.error || 'Could not open the contract', true); var m = document.createElement('div'); m.className = 'bf-modal bf-contract'; document.documentElement.classList.add('bf-lock'); m.innerHTML = '<div class="bf-panel"><div class="bf-head"><b>Contract preview</b><button class="bf-x big" data-bf-close2>×</button></div><div class="bf-body bf-cbody"><iframe class="bf-cframe" title="Contract preview"></iframe></div></div>'; m.querySelector('iframe').srcdoc = res.html; m.addEventListener('click', function (e) { if (e.target.closest('[data-bf-close2]')) { m.remove(); if (!S.ed) document.documentElement.classList.remove('bf-lock'); } }); S.el.appendChild(m); }); }
+    if (a === 'finish') { if (!confirm('Make an editable BuildFlow copy of this change order? The imported one stays on file, marked as replaced.')) return; return actCall('co', 'finish').then(function (res) { if (!res) return; flash('Copy ' + res.co.number + ' created. Fill in the rest, preview the contract, then send.'); closeEditor(); S.tab = 'co'; load().then(function () { openEditor('co', res.co.id); }); }); }
     if (a === 'recall') return actCall(k, 'recall').then(function (res) { if (res) afterAct(res, 'The sent link no longer works. Edit it, then send it again.'); });
     if (a === 'del') { if (!confirm('Delete this draft?')) return; return actCall(k, 'delete').then(function (res) { if (res) afterAct(res, 'Deleted.'); }); }
     if (a === 'manual') { var note = prompt('How did the client approve? (for example: signed paper copy, or email on Nov 22)'); if (!note) return; return actCall('co', 'manual_approve', { note: note }).then(function (res) { if (res) afterAct(res, 'Approved for the client. Price and budget updated.'); }); }
@@ -537,10 +602,9 @@
       if ((b = t.closest('[data-mk]'))) {
         var x = draws[+b.dataset.mk], rev = d.rollup.price.revised, amt = x.amount != null && x.amount !== '' ? n2(x.amount) : r2(rev * n2(x.pct) / 100);
         if (!(amt > 0)) return flash('Set a percent or amount first.', true);
-        var cs = (d.job.client && d.job.client.signers && d.job.client.signers[0]) || {};
-        call('POST', 'inv/save', { job: S.job.id, title: x.name + (x.milestone ? ' · ' + x.milestone : ''), mode: 'flat', flat_amount: amt, milestone: x.milestone, draw_id: x.id, client: cs }).then(function (r) {
-          if (!r.ok) return flash(r.error, true); x.invoice_id = r.invoice.id;
-          call('POST', 'draw/save', { job: S.job.id, draws: draws }).then(function () { flash('Draft invoice ' + r.invoice.number + ' created. Review it, then send.'); m.remove(); document.documentElement.classList.remove('bf-lock'); S.tab = 'inv'; load().then(function () { openEditor('inv', r.invoice.id); }); });
+        call('POST', 'draw/save', { job: S.job.id, draws: draws }).then(function () { return call('POST', 'draw/draft', { job: S.job.id, draw_id: x.id }); }).then(function (r) {
+          if (!r.ok) return flash(r.error, true);
+          flash('Draft invoice ' + r.invoice.number + ' created' + (r.includes_cos ? ' with ' + r.includes_cos + ' change order(s)' : '') + '. Review it, then send.'); m.remove(); document.documentElement.classList.remove('bf-lock'); S.tab = 'inv'; load().then(function () { openEditor('inv', r.invoice.id); });
         });
       }
     });

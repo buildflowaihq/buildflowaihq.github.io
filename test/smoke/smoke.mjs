@@ -125,7 +125,8 @@ try {
   await page.waitForFunction((n) => true, before, T); await page.waitForTimeout(800);
   check(rec.chat.length === before + 1 && /Do this to-do/.test(rec.chat.at(-1).messages.at(-1).text), '"Do it" opens the chat and asks the agent');
   // 9. other tabs open without errors
-  for (const t of ['#tabReq', '#tabDash', '#tabChat']) { await page.click(t); await page.waitForTimeout(250); }
+  for (const t of ['#tabDash', '#tabChat']) { await page.click(t); await page.waitForTimeout(250); }
+  await page.evaluate(() => window.showTab('reqs')); await page.waitForTimeout(250); await page.click('#tabChat'); await page.waitForTimeout(250); // Requests tab hidden (retired 11/24); its screen must still draw
   check(await page.locator('#what').isVisible(), 'tabs switch back to chat');
   // 10. reload with the now-bigger saved chat still works
   await page.reload({ waitUntil: 'load' }); await page.waitForSelector('#msgs .acard', T).catch(() => {});

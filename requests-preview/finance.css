@@ -53,3 +53,35 @@ html.bf-lock,html.bf-lock body{overflow:hidden}
 
 .dash .bf-quick{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
 @media(max-width:600px){.dash .bf-quick{display:grid;grid-template-columns:1fr 1fr}.dash .bf-quick .bf-btn{min-height:44px;padding:10px 8px}}
+
+.bf-ready{border:1px solid rgba(128,128,128,.3);border-radius:10px;padding:12px;margin:0 0 12px}.bf-ready-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(128,128,128,.2)}.bf-ready-row .bf-btn{min-height:44px;flex:none}
+.bf-iset label{display:block;margin:8px 0}.bf-iset input:not([type=checkbox]){width:100%;min-height:44px}.bf-chk{display:flex;gap:8px;align-items:flex-start}
+@media(max-width:600px){.bf-ready-row{flex-direction:column;align-items:stretch}}
+
+.bf-bar>[data-bf-new],.bf-bar>[data-bf-bnew]{display:none}
+@media(max-width:600px){.bf-click .lo{display:none}}
+/* phone: each line item stacks as a card so cost code, qty and price are never clipped */
+@media(max-width:600px){
+ .bf-lines{min-width:0;display:block}.bf-lines thead{display:none}.bf-lines tbody{display:block}
+ .bf-lines tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;padding:10px 0;border-bottom:1px solid var(--line)}
+ .bf-lines td{display:block;width:auto!important;padding:0}.bf-lines td.ds{grid-column:1/-1}
+ .bf-lines td:nth-child(2)::before{content:"Cost type"}.bf-lines td:nth-child(3)::before{content:"Cost code"}.bf-lines td:nth-child(4)::before{content:"Unit cost"}.bf-lines td:nth-child(5)::before{content:"Qty"}.bf-lines td:nth-child(6)::before{content:"Unit"}.bf-lines td.mk::before{content:"Markup %"}.bf-lines td.bf-lt::before{content:"Client price"}
+ .bf-lines td::before{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.bf-lines td.ds::before{content:none}
+ .bf-lines td:nth-child(3){grid-column:1/-1}.bf-lines td.bf-lt{text-align:left;font-weight:600}
+ .bf-lines input,.bf-lines select{min-height:44px;font-size:16px}
+}
+
+.bf-sum{border:1px solid var(--line);border-radius:12px;padding:14px;margin:8px 0}.bf-sum-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.bf-sum h3{margin:2px 0 0;font-size:20px}.bf-sum-total{font-size:22px;font-weight:700;text-align:right}.bf-sum-total small{display:block;font-size:12px;font-weight:500;opacity:.75}
+.bf-sum-lines{list-style:none;padding:0;margin:0}.bf-sum-lines li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.bf-sum-lines small{display:block;opacity:.7}
+
+.bf-cframe{width:100%;height:70vh;border:1px solid var(--line);border-radius:8px;background:#fff}.bf-ready-btns{display:flex;gap:8px;flex-wrap:wrap}.bf-contract{z-index:10001}
+
+.bf-btabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line,#33373D);margin:0 0 10px}
+.bf-btab{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted,#A9A79F);font:inherit;font-size:14px;padding:8px 10px;white-space:nowrap;cursor:pointer}
+.bf-btab span{background:rgba(255,255,255,.08);border-radius:99px;padding:1px 7px;font-size:12px;margin-left:3px}
+.bf-btab[aria-selected=true]{color:var(--ink,#F1EEE6);border-bottom-color:var(--accent,#B4EE3A)}
+.bf-istrip{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:0 0 12px}
+.bf-istrip small{display:block;color:var(--muted,#A9A79F);font-size:12px}.bf-istrip b{font-size:20px}.bf-istrip i{font-style:normal;color:var(--muted,#A9A79F);font-size:20px}
+.bf-chev{background:none;border:0;color:var(--muted,#A9A79F);font-size:14px;cursor:pointer;padding:2px 4px}
+.bf-istrip .bf-st{align-self:center}
+table.bt tfoot td{border-top:1px solid var(--line,#33373D);padding-top:8px}

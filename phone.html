@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>BuildFlowAI</title>
+<style>
+html,body{margin:0;height:100%;background:#16181B;color:#F1EEE6;font-family:Outfit,-apple-system,system-ui,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:12px;box-sizing:border-box}
+.bar{display:flex;align-items:center;gap:12px;font-size:14px;color:#A9A79F}
+.bar button{font:inherit;color:#F1EEE6;background:#1F2226;border:1px solid #33373D;border-radius:999px;padding:8px 16px;cursor:pointer}
+.ph{flex:none;box-sizing:border-box;width:410px;max-width:100%;border:10px solid #2A2D33;border-radius:36px;background:#16181B;overflow:hidden}
+iframe{width:100%;height:100%;border:0;display:block}
+</style></head><body>
+<div class="bar"><span>Phone view, 390 px wide</span><button id="d" type="button">Desktop view</button></div>
+<div class="ph" id="ph"><iframe id="f" name="bfphone" allow="microphone; camera; clipboard-write; geolocation"></iframe></div>
+<script>
+/* Frames the app (same page, ?u=) in a phone-sized window on a big screen. Only this site's own app pages are allowed. */
+(function () {
+  var u = new URLSearchParams(location.search).get('u') || '', ok = false, t;
+  try { t = new URL(u, location.href); ok = t.origin === location.origin && /\/app\.html$/.test(t.pathname); } catch (e) {}
+  var l = ''; try { l = localStorage.getItem('dk-layout') || ''; } catch (e) {}
+  if (!ok) { location.replace('app.html'); return; }
+  if (l !== 'm' || window.innerWidth <= 720) { location.replace(t.href); return; }
+  var h = Math.max(560, Math.min(860, window.innerHeight - 76));
+  document.getElementById('ph').style.height = h + 'px';
+  document.getElementById('f').src = t.href;
+  document.getElementById('d').onclick = function () { try { localStorage.setItem('dk-layout', 'd'); } catch (e) {} location.replace(t.href); };
+})();
+</script></body></html>
