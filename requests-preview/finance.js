@@ -18,7 +18,8 @@
       .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Server said ' + r.status }; }); })
       .catch(function () { return { ok: false, error: 'Could not reach the finance service. Check your connection.' }; });
   }
-  function flash(msg, bad) { S.note = msg; S.noteBad = !!bad; var t = S.el && S.el.querySelector('.bf-note'); if (t) { t.textContent = msg; t.className = 'bf-note show' + (bad ? ' bad' : ''); clearTimeout(flash.t); flash.t = setTimeout(function () { t.className = 'bf-note'; }, 6000); } }
+  function modalErr(msg) { var m = document.querySelector('.bf-modal'); if (!m) return; var e = m.querySelector('.bf-err'); if (!msg) { if (e) e.remove(); return; } if (!e) { e = document.createElement('div'); e.className = 'bf-err'; e.setAttribute('role', 'alert'); e.style.cssText = 'position:sticky;bottom:0;margin:8px 0;padding:10px 12px;border-radius:8px;background:#5a1d1d;color:#fff;font-weight:600'; var f = m.querySelector('.bf-foot'); if (f) f.parentNode.insertBefore(e, f); else m.appendChild(e); } e.textContent = msg; }
+  function flash(msg, bad) { if (S.ed) modalErr(bad ? msg : ''); S.note = msg; S.noteBad = !!bad; var t = S.el && S.el.querySelector('.bf-note'); if (t) { t.textContent = msg; t.className = 'bf-note show' + (bad ? ' bad' : ''); clearTimeout(flash.t); flash.t = setTimeout(function () { t.className = 'bf-note'; }, 6000); } }
   function load() {
     var sw = S.swept === S.job.id ? Promise.resolve() : (S.swept = S.job.id, call('POST', 'draw/sweep', { job: S.job.id }).catch(function () {}));   // schedule steps marked done turn into draft draw invoices (once per open)
     return sw.then(function () { return call('GET', 'job?job=' + encodeURIComponent(S.job.id)); }).then(function (d) {
