@@ -47,6 +47,8 @@ await ctx.route('**/*', async (route) => {
   if (u.origin === base) return route.continue();
   const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
   if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+  // The shared app page boots from /api/me (who the client is). Fake, public-safe settings for the dry run.
+  if (u.hostname.endsWith('workers.dev') && u.pathname === '/api/me') return json(route, { name: 'Kyle', ready: true, app: { short_name: 'Test Co', requests_api: 'https://script.google.com/macros/s/SMOKE-REQ/exec', calendar_api: 'https://script.google.com/macros/s/SMOKE-CAL/exec', calendar_name: 'Test Schedule', area: 'Testville', wx: null, owner_names: ['Michael'], tz: 'America/Los_Angeles', finance_api: '', team: [{ name: 'Sam Test', email: 'sam@example.com', role: 'team' }], view_as: [] } });
   if (u.hostname.endsWith('workers.dev') && u.pathname === '/api/chat') {
     const body = JSON.parse(req.postData() || '{}'); rec.chat.push(body); const last = body.messages.at(-1).text;
     return route.fulfill({ status: 200, contentType: 'text/plain; charset=utf-8', headers: cors, body: chatReply(last) });
